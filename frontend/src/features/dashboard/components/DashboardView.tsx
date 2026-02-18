@@ -1,4 +1,13 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
+"use client";
+
+import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
+import { useRecruitmentEntries } from "@/features/application-tracker/hooks/useRecruitmentEntries";
+
 export function DashboardView() {
+  const { memberId } = useDevMemberId();
+  const { data: entries = [] } = useRecruitmentEntries(memberId);
+  const recent = entries.slice(0, 4);
   return (
     <>
       <section className="relative overflow-hidden rounded-xl bg-primary p-8 text-white shadow-xl">
@@ -99,42 +108,33 @@ export function DashboardView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                  <RecentRow
-                    logo="T"
-                    logoBg="bg-slate-900"
-                    company="TechFlow"
-                    role="시니어 프론트엔드"
-                    applied="2023-10-12"
-                    status="오퍼"
-                    statusTone="success"
-                  />
-                  <RecentRow
-                    logo="V"
-                    logoBg="bg-blue-600"
-                    company="Vanguard Systems"
-                    role="풀스택"
-                    applied="2023-10-08"
-                    status="면접"
-                    statusTone="warn"
-                  />
-                  <RecentRow
-                    logo="N"
-                    logoBg="bg-purple-600"
-                    company="Nebula AI"
-                    role="프로덕트 엔지니어"
-                    applied="2023-10-05"
-                    status="지원 완료"
-                    statusTone="neutral"
-                  />
-                  <RecentRow
-                    logo="S"
-                    logoBg="bg-slate-200 text-slate-600"
-                    company="ScaleUp"
-                    role="백엔드"
-                    applied="2023-09-28"
-                    status="불합격"
-                    statusTone="danger"
-                  />
+                  {recent.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="px-6 py-8 text-center text-sm text-slate-500"
+                      >
+                        아직 지원 내역이 없어요.{" "}
+                        <a className="font-bold text-primary hover:underline" href="/application-tracker">
+                          지원 현황
+                        </a>
+                        에서 추가해 보세요.
+                      </td>
+                    </tr>
+                  ) : (
+                    recent.map((e) => (
+                      <RecentRow
+                        key={e.id}
+                        logo={e.companyName.slice(0, 1).toUpperCase()}
+                        logoBg="bg-slate-900"
+                        company={e.companyName}
+                        role={e.position}
+                        applied="-"
+                        status={toKoreanStep(e.step)}
+                        statusTone={toneFromStep(e.step)}
+                      />
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -155,6 +155,42 @@ export function DashboardView() {
       </section>
     </>
   );
+}
+
+function toKoreanStep(step: string) {
+  switch (step) {
+    case "READY":
+      return "준비";
+    case "APPLIED":
+      return "지원";
+    case "DOC_PASSED":
+      return "서류 합격";
+    case "TEST_PHASE":
+      return "테스트";
+    case "INTERVIEWING":
+      return "면접";
+    case "OFFERED":
+      return "오퍼";
+    case "REJECTED":
+      return "불합격";
+    case "ON_HOLD":
+      return "보류";
+    default:
+      return step;
+  }
+}
+
+function toneFromStep(step: string) {
+  switch (step) {
+    case "OFFERED":
+      return "success" as const;
+    case "INTERVIEWING":
+      return "warn" as const;
+    case "REJECTED":
+      return "danger" as const;
+    default:
+      return "neutral" as const;
+  }
 }
 
 function ScoreItem({

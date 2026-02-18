@@ -19,7 +19,7 @@ export function AppSidebar() {
         </div>
         <div>
           <h1 className="text-lg font-bold tracking-tight text-primary">
-            DevPrep AI
+            Be Dev
           </h1>
           <p className="text-xs font-medium text-slate-500">Premium Plan</p>
         </div>

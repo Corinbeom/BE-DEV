@@ -1,28 +1,160 @@
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { createRecruitmentEntry } from "../api/recruitmentEntryApi";
+import type { RecruitmentEntry, RecruitmentStep } from "../api/types";
+import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
+import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
+
+type ColumnKey = "APPLIED" | "IN_REVIEW" | "INTERVIEWING" | "FINAL";
+
+function mapStepToColumn(step: RecruitmentStep): ColumnKey {
+  switch (step) {
+    case "READY":
+    case "APPLIED":
+      return "APPLIED";
+    case "DOC_PASSED":
+    case "TEST_PHASE":
+      return "IN_REVIEW";
+    case "INTERVIEWING":
+      return "INTERVIEWING";
+    case "OFFERED":
+    case "REJECTED":
+    case "ON_HOLD":
+      return "FINAL";
+  }
+}
+
+function columnTitle(key: ColumnKey) {
+  switch (key) {
+    case "APPLIED":
+      return "지원 완료";
+    case "IN_REVIEW":
+      return "전형 진행";
+    case "INTERVIEWING":
+      return "면접";
+    case "FINAL":
+      return "결과";
+  }
+}
+
 export function ApplicationTrackerView() {
+  const qc = useQueryClient();
+  const { memberId, isBootstrapping, error: memberError } = useDevMemberId();
+  const { data: entries = [], isLoading, error } = useRecruitmentEntries(memberId);
+  const [companyName, setCompanyName] = useState("");
+  const [position, setPosition] = useState("");
+
+  const grouped = useMemo(() => {
+    const init: Record<ColumnKey, RecruitmentEntry[]> = {
+      APPLIED: [],
+      IN_REVIEW: [],
+      INTERVIEWING: [],
+      FINAL: [],
+    };
+    for (const e of entries) {
+      init[mapStepToColumn(e.step)].push(e);
+    }
+    return init;
+  }, [entries]);
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      if (!memberId) throw new Error("memberId가 없습니다.");
+      if (!companyName.trim() || !position.trim()) {
+        throw new Error("회사/포지션을 입력해 주세요.");
+      }
+      return await createRecruitmentEntry({
+        memberId,
+        companyName: companyName.trim(),
+        position: position.trim(),
+        step: "APPLIED",
+      });
+    },
+    onSuccess: async () => {
+      setCompanyName("");
+      setPosition("");
+      await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
+    },
+  });
+
   return (
     <div className="flex flex-col gap-6">
+      <section className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              개발용 연결 상태
+            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              {isBootstrapping
+                ? "member 생성/조회 중..."
+                : memberError
+                  ? `member 오류: ${memberError}`
+                  : `memberId=${memberId ?? "없음"} / entries=${entries.length}`}
+            </p>
+            {error ? (
+              <p className="text-sm text-red-600">
+                목록 조회 오류: {error instanceof Error ? error.message : "알 수 없음"}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="h-10 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900"
+              placeholder="회사명"
+            />
+            <input
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              className="h-10 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900"
+              placeholder="포지션"
+            />
+            <button
+              type="button"
+              disabled={createMutation.isPending}
+              onClick={() => createMutation.mutate()}
+              className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-50"
+            >
+              새 지원 추가
+            </button>
+          </div>
+        </div>
+        {createMutation.error ? (
+          <p className="mt-2 text-sm text-red-600">
+            생성 오류:{" "}
+            {createMutation.error instanceof Error
+              ? createMutation.error.message
+              : "알 수 없음"}
+          </p>
+        ) : null}
+      </section>
+
       <section className="flex flex-wrap gap-4">
         <StatCard
           label="총 지원"
-          value="42"
+          value={String(entries.length)}
           icon="description"
           iconClass="text-primary bg-primary/10"
-          footer="+5 이번 주"
-          footerTone="good"
+          footer="API 연결됨"
         />
         <StatCard
           label="면접"
-          value="8"
+          value={String(grouped.INTERVIEWING.length)}
           icon="event"
           iconClass="text-amber-500 bg-amber-500/10"
-          footer="다음 주 예정 3건"
+          footer="현재 면접 단계"
         />
         <StatCard
           label="오퍼"
-          value="2"
+          value={String(entries.filter((e) => e.step === "OFFERED").length)}
           icon="workspace_premium"
           iconClass="text-emerald-500 bg-emerald-500/10"
-          footer="성공률: 4.8%"
+          footer="OFFERED 기준"
         />
       </section>
 
@@ -63,70 +195,37 @@ export function ApplicationTrackerView() {
       </section>
 
       <section className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <KanbanColumn title="지원 완료" count={12}>
-          <KanbanCard
-            company="Stripe"
-            role="시니어 프로덕트 디자이너"
-            dateLabel="지원"
-            date="2023-10-24"
-            tag="신규"
-            tagTone="primary"
-          />
-          <KanbanCard
-            company="Airbnb"
-            role="UX 리서처"
-            dateLabel="지원"
-            date="2023-10-22"
-            tag="대기"
-            tagTone="primary"
-            noteCount={1}
-          />
-        </KanbanColumn>
-
-        <KanbanColumn title="서류 검토" count={6}>
-          <KanbanCard
-            company="Notion"
-            role="UI 엔지니어"
-            dateLabel="검토 시작"
-            date="2023-10-20"
-            tag="스크리닝"
-            tagTone="amber"
-          />
-        </KanbanColumn>
-
-        <KanbanColumn title="면접 진행" count={4}>
-          <KanbanCard
-            company="Figma"
-            role="시니어 UI 디자이너"
-            dateLabel="라운드 2"
-            date="내일(기술)"
-            tag="예정"
-            tagTone="amber"
-            highlight
-            noteCount={3}
-          />
-        </KanbanColumn>
-
-        <KanbanColumn title="최종 결과" count={14}>
-          <KanbanCard
-            company="Vercel"
-            role="프론트엔드 리드"
-            dateLabel="오퍼"
-            date="3일 남음"
-            tag="오퍼"
-            tagTone="emerald"
-          />
-          <KanbanCard
-            company="Meta"
-            role="프로덕트 디자이너"
-            dateLabel="결정"
-            date="2023-10-15"
-            tag="마감"
-            tagTone="muted"
-            dimmed
-          />
-          <EmptySlot />
-        </KanbanColumn>
+        {(["APPLIED", "IN_REVIEW", "INTERVIEWING", "FINAL"] as const).map(
+          (key) => (
+            <KanbanColumn key={key} title={columnTitle(key)} count={grouped[key].length}>
+              {isLoading ? (
+                <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                  불러오는 중...
+                </div>
+              ) : grouped[key].length === 0 ? (
+                <EmptySlot />
+              ) : (
+                grouped[key].map((e) => (
+                  <KanbanCard
+                    key={e.id}
+                    company={e.companyName}
+                    role={e.position}
+                    dateLabel="단계"
+                    date={e.step}
+                    tag={e.step}
+                    tagTone={
+                      e.step === "OFFERED"
+                        ? "emerald"
+                        : e.step === "INTERVIEWING"
+                          ? "amber"
+                          : "primary"
+                    }
+                  />
+                ))
+              )}
+            </KanbanColumn>
+          ),
+        )}
       </section>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const manrope = Manrope({
   variable: "--font-sans",
@@ -25,8 +26,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
         />
       </head>
-      <body className={`${manrope.variable} antialiased text-[#111118]`}>
-        {children}
+      <body className={`${manrope.variable} antialiased text-foreground`}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
