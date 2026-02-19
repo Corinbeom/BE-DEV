@@ -129,7 +129,7 @@ export function DashboardView() {
                         logoBg="bg-slate-900"
                         company={e.companyName}
                         role={e.position}
-                        applied="-"
+                        applied={e.appliedDate ?? "-"}
                         status={toKoreanStep(e.step)}
                         statusTone={toneFromStep(e.step)}
                       />

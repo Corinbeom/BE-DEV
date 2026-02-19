@@ -18,6 +18,7 @@ export type RecruitmentEntry = {
   step: RecruitmentStep;
   platformType: PlatformType;
   externalId: string | null;
+  appliedDate?: string | null; // yyyy-MM-dd (backend LocalDate)
 };
 
 

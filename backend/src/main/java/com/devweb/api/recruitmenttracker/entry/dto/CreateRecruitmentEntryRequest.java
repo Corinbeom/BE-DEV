@@ -5,13 +5,16 @@ import com.devweb.domain.recruitmenttracker.entry.model.RecruitmentStep;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDate;
+
 public record CreateRecruitmentEntryRequest(
         @NotNull Long memberId,
         @NotBlank String companyName,
         @NotBlank String position,
         RecruitmentStep step,
         PlatformType platformType,
-        String externalId
+        String externalId,
+        LocalDate appliedDate
 ) {
 }
 

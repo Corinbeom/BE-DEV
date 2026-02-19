@@ -4,6 +4,8 @@ import com.devweb.domain.recruitmenttracker.entry.model.PlatformType;
 import com.devweb.domain.recruitmenttracker.entry.model.RecruitmentEntry;
 import com.devweb.domain.recruitmenttracker.entry.model.RecruitmentStep;
 
+import java.time.LocalDate;
+
 public record RecruitmentEntryResponse(
         Long id,
         Long memberId,
@@ -11,7 +13,8 @@ public record RecruitmentEntryResponse(
         String position,
         RecruitmentStep step,
         PlatformType platformType,
-        String externalId
+        String externalId,
+        LocalDate appliedDate
 ) {
     public static RecruitmentEntryResponse from(RecruitmentEntry entry) {
         return new RecruitmentEntryResponse(
@@ -21,7 +24,8 @@ public record RecruitmentEntryResponse(
                 entry.getPosition(),
                 entry.getStep(),
                 entry.getPlatformType(),
-                entry.getExternalId()
+                entry.getExternalId(),
+                entry.getAppliedDate()
         );
     }
 }

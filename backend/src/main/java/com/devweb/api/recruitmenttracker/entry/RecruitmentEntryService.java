@@ -10,6 +10,7 @@ import com.devweb.domain.recruitmenttracker.entry.port.RecruitmentEntryRepositor
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -33,12 +34,13 @@ public class RecruitmentEntryService {
             String position,
             RecruitmentStep step,
             PlatformType platformType,
-            String externalId
+            String externalId,
+            LocalDate appliedDate
     ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
 
-        RecruitmentEntry entry = new RecruitmentEntry(member, companyName, position, step, platformType, externalId);
+        RecruitmentEntry entry = new RecruitmentEntry(member, companyName, position, step, platformType, externalId, appliedDate);
         return recruitmentEntryRepository.save(entry);
     }
 

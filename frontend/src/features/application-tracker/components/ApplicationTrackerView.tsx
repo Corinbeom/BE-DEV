@@ -2,12 +2,21 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { createRecruitmentEntry } from "../api/recruitmentEntryApi";
+import {
+  createRecruitmentEntry,
+  updateRecruitmentEntryStep,
+} from "../api/recruitmentEntryApi";
 import type { RecruitmentEntry, RecruitmentStep } from "../api/types";
 import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
 import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
 
 type ColumnKey = "APPLIED" | "IN_REVIEW" | "INTERVIEWING" | "FINAL";
+
+function todayLocalISODate() {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
 
 function mapStepToColumn(step: RecruitmentStep): ColumnKey {
   switch (step) {
@@ -39,12 +48,49 @@ function columnTitle(key: ColumnKey) {
   }
 }
 
+function defaultStepForColumn(key: ColumnKey): RecruitmentStep {
+  switch (key) {
+    case "APPLIED":
+      return "APPLIED";
+    case "IN_REVIEW":
+      return "DOC_PASSED";
+    case "INTERVIEWING":
+      return "INTERVIEWING";
+    case "FINAL":
+      return "ON_HOLD";
+  }
+}
+
+function toKoreanStep(step: RecruitmentStep) {
+  switch (step) {
+    case "READY":
+      return "준비";
+    case "APPLIED":
+      return "지원";
+    case "DOC_PASSED":
+      return "서류 합격";
+    case "TEST_PHASE":
+      return "테스트";
+    case "INTERVIEWING":
+      return "면접";
+    case "OFFERED":
+      return "오퍼";
+    case "REJECTED":
+      return "불합격";
+    case "ON_HOLD":
+      return "보류";
+  }
+}
+
 export function ApplicationTrackerView() {
   const qc = useQueryClient();
   const { memberId, isBootstrapping, error: memberError } = useDevMemberId();
   const { data: entries = [], isLoading, error } = useRecruitmentEntries(memberId);
   const [companyName, setCompanyName] = useState("");
   const [position, setPosition] = useState("");
+  const [appliedDate, setAppliedDate] = useState(() => todayLocalISODate());
+  const [dragOver, setDragOver] = useState<ColumnKey | null>(null);
+  const [selected, setSelected] = useState<RecruitmentEntry | null>(null);
 
   const grouped = useMemo(() => {
     const init: Record<ColumnKey, RecruitmentEntry[]> = {
@@ -70,14 +116,30 @@ export function ApplicationTrackerView() {
         companyName: companyName.trim(),
         position: position.trim(),
         step: "APPLIED",
+        appliedDate: appliedDate ? appliedDate : null,
       });
     },
     onSuccess: async () => {
       setCompanyName("");
       setPosition("");
+      setAppliedDate(todayLocalISODate());
       await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
     },
   });
+
+  const stepMutation = useMutation({
+    mutationFn: async (input: { id: number; step: RecruitmentStep }) => {
+      return await updateRecruitmentEntryStep(input);
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
+    },
+  });
+
+  function handleDrop(column: ColumnKey, entryId: number) {
+    const nextStep = defaultStepForColumn(column);
+    stepMutation.mutate({ id: entryId, step: nextStep });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -113,6 +175,13 @@ export function ApplicationTrackerView() {
               onChange={(e) => setPosition(e.target.value)}
               className="h-10 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900"
               placeholder="포지션"
+            />
+            <input
+              type="date"
+              value={appliedDate}
+              onChange={(e) => setAppliedDate(e.target.value)}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              aria-label="지원일"
             />
             <button
               type="button"
@@ -197,7 +266,18 @@ export function ApplicationTrackerView() {
       <section className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-4">
         {(["APPLIED", "IN_REVIEW", "INTERVIEWING", "FINAL"] as const).map(
           (key) => (
-            <KanbanColumn key={key} title={columnTitle(key)} count={grouped[key].length}>
+            <KanbanColumn
+              key={key}
+              title={columnTitle(key)}
+              count={grouped[key].length}
+              isDragOver={dragOver === key}
+              onDragOver={() => setDragOver(key)}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={(entryId) => {
+                setDragOver(null);
+                handleDrop(key, entryId);
+              }}
+            >
               {isLoading ? (
                 <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
                   불러오는 중...
@@ -208,11 +288,18 @@ export function ApplicationTrackerView() {
                 grouped[key].map((e) => (
                   <KanbanCard
                     key={e.id}
+                    id={e.id}
                     company={e.companyName}
                     role={e.position}
-                    dateLabel="단계"
-                    date={e.step}
-                    tag={e.step}
+                    step={e.step}
+                    appliedDate={e.appliedDate ?? null}
+                    onStepChange={(step) => stepMutation.mutate({ id: e.id, step })}
+                    onDragStart={(id) => {
+                      // no-op: column drop handler uses dataTransfer
+                      void id;
+                    }}
+                    onOpenDetails={() => setSelected(e)}
+                    tag={toKoreanStep(e.step)}
                     tagTone={
                       e.step === "OFFERED"
                         ? "emerald"
@@ -227,6 +314,13 @@ export function ApplicationTrackerView() {
           ),
         )}
       </section>
+
+      <EntryDetailsModal
+        open={selected != null}
+        entry={selected}
+        onClose={() => setSelected(null)}
+        onStepChange={(id, step) => stepMutation.mutate({ id, step })}
+      />
     </div>
   );
 }
@@ -283,10 +377,18 @@ function KanbanColumn({
   title,
   count,
   children,
+  isDragOver,
+  onDragOver,
+  onDragLeave,
+  onDrop,
 }: {
   title: string;
   count: number;
   children: React.ReactNode;
+  isDragOver: boolean;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: (entryId: number) => void;
 }) {
   return (
     <div className="flex min-h-[500px] flex-col gap-4">
@@ -305,26 +407,52 @@ function KanbanColumn({
           <span className="material-symbols-outlined">more_horiz</span>
         </button>
       </div>
-      <div className="flex flex-col gap-3">{children}</div>
+      <div
+        className={[
+          "flex flex-col gap-3 rounded-xl p-1",
+          isDragOver ? "bg-primary/5 ring-2 ring-primary/20" : "",
+        ].join(" ")}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDragOver();
+        }}
+        onDragLeave={() => onDragLeave()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const raw = e.dataTransfer.getData("text/devweb-recruitment-entry-id");
+          const id = Number(raw);
+          if (!Number.isNaN(id) && id > 0) onDrop(id);
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
 function KanbanCard({
+  id,
   company,
   role,
-  dateLabel,
-  date,
+  step,
+  appliedDate,
+  onStepChange,
+  onDragStart,
+  onOpenDetails,
   tag,
   tagTone,
   noteCount,
   highlight,
   dimmed,
 }: {
+  id: number;
   company: string;
   role: string;
-  dateLabel: string;
-  date: string;
+  step: RecruitmentStep;
+  appliedDate: string | null;
+  onStepChange: (step: RecruitmentStep) => void;
+  onDragStart: (id: number) => void;
+  onOpenDetails: () => void;
   tag: string;
   tagTone: "primary" | "amber" | "emerald" | "muted";
   noteCount?: number;
@@ -347,6 +475,17 @@ function KanbanCard({
         highlight ? "border-l-4 border-l-amber-500" : "",
         dimmed ? "opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "",
       ].join(" ")}
+      draggable
+      role="button"
+      tabIndex={0}
+      onClick={onOpenDetails}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onOpenDetails();
+      }}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/devweb-recruitment-entry-id", String(id));
+        onDragStart(id);
+      }}
     >
       <div className="mb-3 flex items-start justify-between">
         <div>
@@ -358,25 +497,44 @@ function KanbanCard({
         <div className="size-8 rounded bg-slate-50 p-1" />
       </div>
 
-      {highlight ? (
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-amber-50 p-2 dark:bg-amber-500/10">
-          <span className="material-symbols-outlined text-lg text-amber-600">
-            upcoming
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-sm text-slate-400">
+            timeline
           </span>
-          <p className="text-[11px] font-bold uppercase text-amber-700 dark:text-amber-500">
-            {dateLabel}: {date}
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            단계: {toKoreanStep(step)}
           </p>
         </div>
-      ) : (
+
+        <select
+          value={step}
+          onChange={(e) => onStepChange(e.target.value as RecruitmentStep)}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+        >
+          <option value="READY">준비</option>
+          <option value="APPLIED">지원</option>
+          <option value="DOC_PASSED">서류 합격</option>
+          <option value="TEST_PHASE">테스트</option>
+          <option value="INTERVIEWING">면접</option>
+          <option value="OFFERED">오퍼</option>
+          <option value="REJECTED">불합격</option>
+          <option value="ON_HOLD">보류</option>
+        </select>
+      </div>
+
+      {appliedDate ? (
         <div className="mb-4 flex items-center gap-2">
           <span className="material-symbols-outlined text-sm text-slate-400">
             calendar_today
           </span>
-          <p className="text-xs font-medium text-slate-500">
-            {dateLabel} {date}
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            지원일: {appliedDate}
           </p>
         </div>
-      )}
+      ) : null}
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
         <span
@@ -396,6 +554,124 @@ function KanbanCard({
           <span className="material-symbols-outlined text-lg">sticky_note_2</span>
           {noteCount != null ? <span className="text-[10px]">{noteCount}</span> : null}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function EntryDetailsModal({
+  open,
+  entry,
+  onClose,
+  onStepChange,
+}: {
+  open: boolean;
+  entry: RecruitmentEntry | null;
+  onClose: () => void;
+  onStepChange: (id: number, step: RecruitmentStep) => void;
+}) {
+  if (!open || !entry) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={onClose}
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <div
+        className="relative z-10 w-[min(560px,calc(100%-24px))] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              지원 상세
+            </p>
+            <h3 className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+              {entry.companyName}
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {entry.position}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5"
+            aria-label="닫기"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <DetailItem label="지원일" value={entry.appliedDate ?? "-"} icon="calendar_today" />
+          <DetailItem label="현재 단계" value={toKoreanStep(entry.step)} icon="timeline" />
+          <DetailItem label="플랫폼" value={entry.platformType} icon="public" />
+          <DetailItem label="외부 ID" value={entry.externalId ?? "-"} icon="tag" />
+        </div>
+
+        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-white/5">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+            단계 변경
+          </p>
+          <select
+            value={entry.step}
+            onChange={(e) => onStepChange(entry.id, e.target.value as RecruitmentStep)}
+            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+          >
+            <option value="READY">준비</option>
+            <option value="APPLIED">지원</option>
+            <option value="DOC_PASSED">서류 합격</option>
+            <option value="TEST_PHASE">테스트</option>
+            <option value="INTERVIEWING">면접</option>
+            <option value="OFFERED">오퍼</option>
+            <option value="REJECTED">불합격</option>
+            <option value="ON_HOLD">보류</option>
+          </select>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            카드 드래그로도 이동할 수 있고, 여기서는 단계 값을 정확히 선택할 수 있어요.
+          </p>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <span className="material-symbols-outlined mt-0.5 text-lg text-slate-400">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          {label}
+        </p>
+        <p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">
+          {value}
+        </p>
       </div>
     </div>
   );
