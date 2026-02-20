@@ -1,9 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createRecruitmentEntry,
+  updateRecruitmentEntry,
   updateRecruitmentEntryStep,
 } from "../api/recruitmentEntryApi";
 import type { RecruitmentEntry, RecruitmentStep } from "../api/types";
@@ -319,7 +320,15 @@ export function ApplicationTrackerView() {
         open={selected != null}
         entry={selected}
         onClose={() => setSelected(null)}
-        onStepChange={(id, step) => stepMutation.mutate({ id, step })}
+        onStepChange={(id, step) => {
+          setSelected((prev) => (prev ? { ...prev, step } : prev));
+          stepMutation.mutate({ id, step });
+        }}
+        onSave={async (payload) => {
+          const updated = await updateRecruitmentEntry(payload);
+          await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
+          setSelected(updated);
+        }}
       />
     </div>
   );
@@ -564,12 +573,51 @@ function EntryDetailsModal({
   entry,
   onClose,
   onStepChange,
+  onSave,
 }: {
   open: boolean;
   entry: RecruitmentEntry | null;
   onClose: () => void;
   onStepChange: (id: number, step: RecruitmentStep) => void;
+  onSave: (payload: {
+    id: number;
+    companyName: string;
+    position: string;
+    step: RecruitmentStep;
+    externalId: string | null;
+    appliedDate: string | null;
+  }) => Promise<void>;
 }) {
+  const [companyName, setCompanyName] = useState("");
+  const [position, setPosition] = useState("");
+  const [appliedDate, setAppliedDate] = useState("");
+  const [externalId, setExternalId] = useState("");
+
+  useEffect(() => {
+    if (!open || !entry) return;
+    setCompanyName(entry.companyName);
+    setPosition(entry.position);
+    setAppliedDate(entry.appliedDate ?? "");
+    setExternalId(entry.externalId ?? "");
+  }, [open, entry]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!entry) throw new Error("entry가 없습니다.");
+      if (!companyName.trim() || !position.trim()) {
+        throw new Error("회사/포지션은 필수입니다.");
+      }
+      await onSave({
+        id: entry.id,
+        companyName: companyName.trim(),
+        position: position.trim(),
+        step: entry.step,
+        externalId: externalId.trim() ? externalId.trim() : null,
+        appliedDate: appliedDate ? appliedDate : null,
+      });
+    },
+  });
+
   if (!open || !entry) return null;
 
   return (
@@ -589,12 +637,22 @@ function EntryDetailsModal({
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               지원 상세
             </p>
-            <h3 className="mt-1 text-xl font-black text-slate-900 dark:text-white">
-              {entry.companyName}
-            </h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              {entry.position}
-            </p>
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              <input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                placeholder="회사명"
+                aria-label="회사명"
+              />
+              <input
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                placeholder="포지션"
+                aria-label="포지션"
+              />
+            </div>
           </div>
 
           <button
@@ -607,11 +665,34 @@ function EntryDetailsModal({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <DetailItem label="지원일" value={entry.appliedDate ?? "-"} icon="calendar_today" />
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              지원일
+            </p>
+            <input
+              type="date"
+              value={appliedDate}
+              onChange={(e) => setAppliedDate(e.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-white"
+              aria-label="지원일"
+            />
+          </div>
+
           <DetailItem label="현재 단계" value={toKoreanStep(entry.step)} icon="timeline" />
           <DetailItem label="플랫폼" value={entry.platformType} icon="public" />
-          <DetailItem label="외부 ID" value={entry.externalId ?? "-"} icon="tag" />
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              외부 ID
+            </p>
+            <input
+              value={externalId}
+              onChange={(e) => setExternalId(e.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
+              placeholder="예: 원티드/링크드인 등 externalId"
+              aria-label="외부 ID"
+            />
+          </div>
         </div>
 
         <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-white/5">
@@ -645,7 +726,22 @@ function EntryDetailsModal({
           >
             닫기
           </button>
+          <button
+            type="button"
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending}
+            className="h-10 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            저장
+          </button>
         </div>
+
+        {saveMutation.error ? (
+          <p className="mt-3 text-sm text-red-600">
+            저장 오류:{" "}
+            {saveMutation.error instanceof Error ? saveMutation.error.message : "알 수 없음"}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -56,7 +56,8 @@ public class RecruitmentEntryController {
                 req.position(),
                 req.step(),
                 req.platformType(),
-                req.externalId()
+                req.externalId(),
+                req.appliedDate()
         );
         return ApiResponse.success(RecruitmentEntryResponse.from(updated));
     }

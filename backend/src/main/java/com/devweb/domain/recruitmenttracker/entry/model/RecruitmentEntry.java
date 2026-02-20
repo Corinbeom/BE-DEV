@@ -120,6 +120,11 @@ public class RecruitmentEntry {
         return appliedDate;
     }
 
+    public void changeAppliedDate(LocalDate newAppliedDate) {
+        if (newAppliedDate == null) throw new IllegalArgumentException("appliedDate는 null일 수 없습니다.");
+        this.appliedDate = newAppliedDate;
+    }
+
     public void changeStep(RecruitmentStep newStep) {
         if (newStep == null) throw new IllegalArgumentException("step은 null일 수 없습니다.");
         this.step = newStep;

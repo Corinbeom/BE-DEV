@@ -61,7 +61,8 @@ public class RecruitmentEntryService {
             String position,
             RecruitmentStep step,
             PlatformType platformType,
-            String externalId
+            String externalId,
+            LocalDate appliedDate
     ) {
         RecruitmentEntry entry = get(id);
         entry.updateApplicationInfo(companyName, position);
@@ -69,6 +70,7 @@ public class RecruitmentEntryService {
         if (externalId != null || platformType != null) {
             entry.linkExternal(externalId, platformType);
         }
+        if (appliedDate != null) entry.changeAppliedDate(appliedDate);
         return entry;
     }
 
