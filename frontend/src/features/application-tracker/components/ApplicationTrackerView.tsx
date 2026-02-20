@@ -639,6 +639,7 @@ function EntryDetailsModal({
   const [appliedDate, setAppliedDate] = useState("");
   const [externalId, setExternalId] = useState("");
   const [platformType, setPlatformType] = useState<PlatformType>("MANUAL");
+  const [justSaved, setJustSaved] = useState(false);
 
   useEffect(() => {
     if (!open || !entry) return;
@@ -647,6 +648,7 @@ function EntryDetailsModal({
     setAppliedDate(entry.appliedDate ?? "");
     setExternalId(entry.externalId ?? "");
     setPlatformType(entry.platformType);
+    setJustSaved(false);
   }, [open, entry]);
 
   const saveMutation = useMutation({
@@ -664,6 +666,10 @@ function EntryDetailsModal({
         externalId: externalId.trim() ? externalId.trim() : null,
         appliedDate: appliedDate ? appliedDate : null,
       });
+    },
+    onSuccess: () => {
+      setJustSaved(true);
+      window.setTimeout(() => setJustSaved(false), 2000);
     },
   });
 
@@ -713,6 +719,13 @@ function EntryDetailsModal({
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
+
+        {justSaved ? (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <span className="material-symbols-outlined text-lg">check_circle</span>
+            저장 완료
+          </div>
+        ) : null}
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -795,9 +808,18 @@ function EntryDetailsModal({
             type="button"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="h-10 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            저장
+            {saveMutation.isPending ? (
+              <>
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+                저장 중...
+              </>
+            ) : (
+              "저장"
+            )}
           </button>
         </div>
 
