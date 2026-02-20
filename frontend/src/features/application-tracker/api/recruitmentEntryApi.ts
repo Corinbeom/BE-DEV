@@ -1,5 +1,5 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
-import type { RecruitmentEntry, RecruitmentStep } from "./types";
+import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "./types";
 
 export async function listRecruitmentEntriesByMember(memberId: number) {
   const res = await apiFetch<ApiResponse<RecruitmentEntry[]>>(
@@ -17,6 +17,8 @@ export async function createRecruitmentEntry(input: {
   position: string;
   step?: RecruitmentStep;
   appliedDate?: string | null; // yyyy-MM-dd
+  platformType?: PlatformType;
+  externalId?: string | null;
 }) {
   const res = await apiFetch<ApiResponse<RecruitmentEntry>>("/api/recruitment-entries", {
     method: "POST",
@@ -25,8 +27,8 @@ export async function createRecruitmentEntry(input: {
       companyName: input.companyName,
       position: input.position,
       step: input.step ?? "APPLIED",
-      platformType: "MANUAL",
-      externalId: null,
+      platformType: input.platformType ?? "MANUAL",
+      externalId: input.externalId ?? null,
       appliedDate: input.appliedDate ?? null,
     }),
   });
@@ -60,6 +62,7 @@ export async function updateRecruitmentEntry(input: {
   companyName: string;
   position: string;
   step: RecruitmentStep;
+  platformType: PlatformType;
   externalId: string | null;
   appliedDate: string | null; // yyyy-MM-dd
 }) {
@@ -71,7 +74,7 @@ export async function updateRecruitmentEntry(input: {
         companyName: input.companyName,
         position: input.position,
         step: input.step,
-        platformType: "MANUAL",
+        platformType: input.platformType,
         externalId: input.externalId,
         appliedDate: input.appliedDate,
       }),

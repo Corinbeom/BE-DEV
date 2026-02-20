@@ -8,7 +8,17 @@ export type RecruitmentStep =
   | "REJECTED"
   | "ON_HOLD";
 
-export type PlatformType = "MANUAL";
+export type PlatformType =
+  | "MANUAL"
+  | "WANTED"
+  | "LINKEDIN"
+  | "JOBKOREA"
+  | "SARMIN"
+  | "REMEMBER"
+  | "JUMPIT"
+  | "ROCKETPUNCH"
+  | "PROGRAMMERS"
+  | "ETC";
 
 export type RecruitmentEntry = {
   id: number;

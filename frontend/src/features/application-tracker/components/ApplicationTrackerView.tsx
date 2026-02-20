@@ -7,7 +7,7 @@ import {
   updateRecruitmentEntry,
   updateRecruitmentEntryStep,
 } from "../api/recruitmentEntryApi";
-import type { RecruitmentEntry, RecruitmentStep } from "../api/types";
+import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "../api/types";
 import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
 import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
 
@@ -18,6 +18,44 @@ function todayLocalISODate() {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 10);
 }
+
+function platformLabel(p: PlatformType) {
+  switch (p) {
+    case "MANUAL":
+      return "직접 입력";
+    case "WANTED":
+      return "원티드";
+    case "LINKEDIN":
+      return "LinkedIn";
+    case "JOBKOREA":
+      return "잡코리아";
+    case "SARMIN":
+      return "사람인";
+    case "REMEMBER":
+      return "리멤버";
+    case "JUMPIT":
+      return "점핏";
+    case "ROCKETPUNCH":
+      return "로켓펀치";
+    case "PROGRAMMERS":
+      return "프로그래머스";
+    case "ETC":
+      return "기타";
+  }
+}
+
+const ALL_PLATFORMS: PlatformType[] = [
+  "MANUAL",
+  "WANTED",
+  "LINKEDIN",
+  "JOBKOREA",
+  "SARMIN",
+  "REMEMBER",
+  "JUMPIT",
+  "ROCKETPUNCH",
+  "PROGRAMMERS",
+  "ETC",
+];
 
 function mapStepToColumn(step: RecruitmentStep): ColumnKey {
   switch (step) {
@@ -109,6 +147,7 @@ export function ApplicationTrackerView() {
       companyName: string;
       position: string;
       appliedDate: string | null;
+      platformType: PlatformType;
     }) => {
       if (!memberId) throw new Error("memberId가 없습니다.");
       return await createRecruitmentEntry({
@@ -117,6 +156,7 @@ export function ApplicationTrackerView() {
         position: input.position.trim(),
         step: "APPLIED",
         appliedDate: input.appliedDate,
+        platformType: input.platformType,
       });
     },
     onSuccess: async () => {
@@ -589,6 +629,7 @@ function EntryDetailsModal({
     companyName: string;
     position: string;
     step: RecruitmentStep;
+    platformType: PlatformType;
     externalId: string | null;
     appliedDate: string | null;
   }) => Promise<void>;
@@ -597,6 +638,7 @@ function EntryDetailsModal({
   const [position, setPosition] = useState("");
   const [appliedDate, setAppliedDate] = useState("");
   const [externalId, setExternalId] = useState("");
+  const [platformType, setPlatformType] = useState<PlatformType>("MANUAL");
 
   useEffect(() => {
     if (!open || !entry) return;
@@ -604,6 +646,7 @@ function EntryDetailsModal({
     setPosition(entry.position);
     setAppliedDate(entry.appliedDate ?? "");
     setExternalId(entry.externalId ?? "");
+    setPlatformType(entry.platformType);
   }, [open, entry]);
 
   const saveMutation = useMutation({
@@ -617,6 +660,7 @@ function EntryDetailsModal({
         companyName: companyName.trim(),
         position: position.trim(),
         step: entry.step,
+        platformType,
         externalId: externalId.trim() ? externalId.trim() : null,
         appliedDate: appliedDate ? appliedDate : null,
       });
@@ -685,7 +729,23 @@ function EntryDetailsModal({
           </div>
 
           <DetailItem label="현재 단계" value={toKoreanStep(entry.step)} icon="timeline" />
-          <DetailItem label="플랫폼" value={entry.platformType} icon="public" />
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              플랫폼
+            </p>
+            <select
+              value={platformType}
+              onChange={(e) => setPlatformType(e.target.value as PlatformType)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-white"
+              aria-label="플랫폼"
+            >
+              {ALL_PLATFORMS.map((p) => (
+                <option key={p} value={p}>
+                  {platformLabel(p)}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               외부 ID
@@ -791,6 +851,7 @@ function AddEntryModal({
     companyName: string;
     position: string;
     appliedDate: string | null;
+    platformType: PlatformType;
   }) => void;
   isSubmitting: boolean;
   errorMessage: string | null;
@@ -798,12 +859,14 @@ function AddEntryModal({
   const [companyName, setCompanyName] = useState("");
   const [position, setPosition] = useState("");
   const [appliedDate, setAppliedDate] = useState(todayLocalISODate());
+  const [platformType, setPlatformType] = useState<PlatformType>("MANUAL");
 
   useEffect(() => {
     if (!open) return;
     setCompanyName("");
     setPosition("");
     setAppliedDate(todayLocalISODate());
+    setPlatformType("MANUAL");
   }, [open]);
 
   if (!open) return null;
@@ -877,6 +940,22 @@ function AddEntryModal({
               className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
             />
           </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              지원 플랫폼
+            </p>
+            <select
+              value={platformType}
+              onChange={(e) => setPlatformType(e.target.value as PlatformType)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+            >
+              {ALL_PLATFORMS.map((p) => (
+                <option key={p} value={p}>
+                  {platformLabel(p)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {errorMessage ? (
@@ -899,6 +978,7 @@ function AddEntryModal({
                 companyName,
                 position,
                 appliedDate: appliedDate ? appliedDate : null,
+              platformType,
               })
             }
             className="h-10 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
