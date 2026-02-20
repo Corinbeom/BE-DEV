@@ -7,8 +7,13 @@ import {
   updateRecruitmentEntry,
   updateRecruitmentEntryStep,
 } from "../api/recruitmentEntryApi";
+import {
+  createRecruitmentEntryNote,
+  deleteRecruitmentEntryNote,
+} from "../api/recruitmentEntryNoteApi";
 import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "../api/types";
 import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
+import { useRecruitmentEntryNotes } from "../hooks/useRecruitmentEntryNotes";
 import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
 
 type ColumnKey = "APPLIED" | "IN_REVIEW" | "INTERVIEWING" | "FINAL";
@@ -634,12 +639,14 @@ function EntryDetailsModal({
     appliedDate: string | null;
   }) => Promise<void>;
 }) {
+  const qc = useQueryClient();
   const [companyName, setCompanyName] = useState("");
   const [position, setPosition] = useState("");
   const [appliedDate, setAppliedDate] = useState("");
   const [externalId, setExternalId] = useState("");
   const [platformType, setPlatformType] = useState<PlatformType>("MANUAL");
   const [justSaved, setJustSaved] = useState(false);
+  const [newNote, setNewNote] = useState("");
 
   useEffect(() => {
     if (!open || !entry) return;
@@ -649,7 +656,33 @@ function EntryDetailsModal({
     setExternalId(entry.externalId ?? "");
     setPlatformType(entry.platformType);
     setJustSaved(false);
+    setNewNote("");
   }, [open, entry]);
+
+  const entryId = entry?.id ?? null;
+  const notesQuery = useRecruitmentEntryNotes(entryId, open);
+
+  const createNoteMutation = useMutation({
+    mutationFn: async () => {
+      if (!entry) throw new Error("entry가 없습니다.");
+      if (!newNote.trim()) throw new Error("메모를 입력해 주세요.");
+      return await createRecruitmentEntryNote(entry.id, newNote.trim());
+    },
+    onSuccess: async () => {
+      setNewNote("");
+      await qc.invalidateQueries({ queryKey: ["recruitmentEntryNotes", entryId] });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: number) => {
+      if (!entry) throw new Error("entry가 없습니다.");
+      await deleteRecruitmentEntryNote(entry.id, noteId);
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["recruitmentEntryNotes", entryId] });
+    },
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -684,6 +717,8 @@ function EntryDetailsModal({
   });
 
   if (!open || !entry) return null;
+
+  const notes = notesQuery.data ?? [];
 
   return (
     <div
@@ -804,6 +839,91 @@ function EntryDetailsModal({
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
             카드 드래그로도 이동할 수 있고, 여기서는 단계 값을 정확히 선택할 수 있어요.
           </p>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg text-slate-400">
+                sticky_note_2
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                메모
+              </p>
+            </div>
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              {notesQuery.isLoading ? "불러오는 중..." : `${notes.length}개`}
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              className="h-10 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
+              placeholder="메모를 입력해 주세요"
+            />
+            <button
+              type="button"
+              disabled={createNoteMutation.isPending}
+              onClick={() => createNoteMutation.mutate()}
+              className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              추가
+            </button>
+          </div>
+          {createNoteMutation.error ? (
+            <p className="mt-2 text-sm text-red-600">
+              메모 오류:{" "}
+              {createNoteMutation.error instanceof Error
+                ? createNoteMutation.error.message
+                : "알 수 없음"}
+            </p>
+          ) : null}
+
+          <div className="mt-4 space-y-2">
+            {notesQuery.isLoading ? (
+              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500 dark:border-slate-800">
+                메모 불러오는 중...
+              </div>
+            ) : notesQuery.error ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+                메모 조회 오류:{" "}
+                {notesQuery.error instanceof Error
+                  ? notesQuery.error.message
+                  : "알 수 없음"}
+              </div>
+            ) : notes.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500 dark:border-slate-800">
+                아직 메모가 없어요.
+              </div>
+            ) : (
+              notes.map((n) => (
+                <div
+                  key={n.id}
+                  className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40"
+                >
+                  <div className="min-w-0">
+                    <p className="whitespace-pre-wrap break-words text-sm text-slate-800 dark:text-slate-100">
+                      {n.content}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                      {n.createdAt ? n.createdAt.slice(0, 19).replace("T", " ") : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteNoteMutation.mutate(n.id)}
+                    disabled={deleteNoteMutation.isPending}
+                    className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-600 disabled:opacity-50 dark:hover:bg-white/5"
+                    aria-label="메모 삭제"
+                  >
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="mt-5 flex items-center justify-end gap-2">

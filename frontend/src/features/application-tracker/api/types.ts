@@ -31,4 +31,12 @@ export type RecruitmentEntry = {
   appliedDate?: string | null; // yyyy-MM-dd (backend LocalDate)
 };
 
+export type RecruitmentEntryNote = {
+  id: number;
+  entryId: number;
+  content: string;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+};
+
 
