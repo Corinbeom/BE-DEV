@@ -657,6 +657,11 @@ function EntryDetailsModal({
       if (!companyName.trim() || !position.trim()) {
         throw new Error("회사/포지션은 필수입니다.");
       }
+      // 로컬/초고속 환경에서는 로딩 UI가 "깜빡"이는 것처럼 보일 수 있어
+      // 최소 로딩 표시 시간을 둬서 UX를 안정화한다.
+      const minDelayMs = 400;
+      const startedAt = Date.now();
+
       await onSave({
         id: entry.id,
         companyName: companyName.trim(),
@@ -666,6 +671,11 @@ function EntryDetailsModal({
         externalId: externalId.trim() ? externalId.trim() : null,
         appliedDate: appliedDate ? appliedDate : null,
       });
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < minDelayMs) {
+        await new Promise((r) => setTimeout(r, minDelayMs - elapsed));
+      }
     },
     onSuccess: () => {
       setJustSaved(true);
