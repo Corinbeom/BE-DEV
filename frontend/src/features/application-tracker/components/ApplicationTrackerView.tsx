@@ -87,11 +87,9 @@ export function ApplicationTrackerView() {
   const qc = useQueryClient();
   const { memberId, isBootstrapping, error: memberError } = useDevMemberId();
   const { data: entries = [], isLoading, error } = useRecruitmentEntries(memberId);
-  const [companyName, setCompanyName] = useState("");
-  const [position, setPosition] = useState("");
-  const [appliedDate, setAppliedDate] = useState(() => todayLocalISODate());
   const [dragOver, setDragOver] = useState<ColumnKey | null>(null);
   const [selected, setSelected] = useState<RecruitmentEntry | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const grouped = useMemo(() => {
     const init: Record<ColumnKey, RecruitmentEntry[]> = {
@@ -107,23 +105,22 @@ export function ApplicationTrackerView() {
   }, [entries]);
 
   const createMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: {
+      companyName: string;
+      position: string;
+      appliedDate: string | null;
+    }) => {
       if (!memberId) throw new Error("memberId가 없습니다.");
-      if (!companyName.trim() || !position.trim()) {
-        throw new Error("회사/포지션을 입력해 주세요.");
-      }
       return await createRecruitmentEntry({
         memberId,
-        companyName: companyName.trim(),
-        position: position.trim(),
+        companyName: input.companyName.trim(),
+        position: input.position.trim(),
         step: "APPLIED",
-        appliedDate: appliedDate ? appliedDate : null,
+        appliedDate: input.appliedDate,
       });
     },
     onSuccess: async () => {
-      setCompanyName("");
-      setPosition("");
-      setAppliedDate(todayLocalISODate());
+      setIsAddOpen(false);
       await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
     },
   });
@@ -144,64 +141,59 @@ export function ApplicationTrackerView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              개발용 연결 상태
+      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+              지원 현황 보드
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              드래그로 단계를 옮기고, 카드 클릭으로 상세를 편집할 수 있어요.
             </p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              {isBootstrapping
-                ? "member 생성/조회 중..."
-                : memberError
-                  ? `member 오류: ${memberError}`
-                  : `memberId=${memberId ?? "없음"} / entries=${entries.length}`}
-            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                createMutation.reset();
+                setIsAddOpen(true);
+              }}
+              disabled={isBootstrapping || !!memberError}
+              className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+              지원 추가
+            </button>
+          </div>
+        </div>
+
+        {(memberError || error) ? (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+            {memberError ? <p>member 오류: {memberError}</p> : null}
             {error ? (
-              <p className="text-sm text-red-600">
+              <p>
                 목록 조회 오류: {error instanceof Error ? error.message : "알 수 없음"}
               </p>
             ) : null}
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className="h-10 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900"
-              placeholder="회사명"
-            />
-            <input
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              className="h-10 w-44 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900"
-              placeholder="포지션"
-            />
-            <input
-              type="date"
-              value={appliedDate}
-              onChange={(e) => setAppliedDate(e.target.value)}
-              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-              aria-label="지원일"
-            />
-            <button
-              type="button"
-              disabled={createMutation.isPending}
-              onClick={() => createMutation.mutate()}
-              className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-50"
-            >
-              새 지원 추가
-            </button>
-          </div>
-        </div>
-        {createMutation.error ? (
-          <p className="mt-2 text-sm text-red-600">
-            생성 오류:{" "}
-            {createMutation.error instanceof Error
-              ? createMutation.error.message
-              : "알 수 없음"}
-          </p>
         ) : null}
+
+        <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
+          <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-slate-500">
+            개발 정보
+          </summary>
+          <div className="mt-2 flex flex-col gap-1">
+            <p>
+              {isBootstrapping
+                ? "member 생성/조회 중..."
+                : `memberId=${memberId ?? "없음"} / entries=${entries.length}`}
+            </p>
+            <p className="text-xs text-slate-500">
+              로그인 도입 시 이 영역은 제거/대체될 예정입니다.
+            </p>
+          </div>
+        </details>
       </section>
 
       <section className="flex flex-wrap gap-4">
@@ -329,6 +321,19 @@ export function ApplicationTrackerView() {
           await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
           setSelected(updated);
         }}
+      />
+
+      <AddEntryModal
+        open={isAddOpen}
+        onClose={() => {
+          createMutation.reset();
+          setIsAddOpen(false);
+        }}
+        isSubmitting={createMutation.isPending}
+        errorMessage={
+          createMutation.error instanceof Error ? createMutation.error.message : null
+        }
+        onSubmit={(payload) => createMutation.mutate(payload)}
       />
     </div>
   );
@@ -768,6 +773,139 @@ function DetailItem({
         <p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">
           {value}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function AddEntryModal({
+  open,
+  onClose,
+  onSubmit,
+  isSubmitting,
+  errorMessage,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (payload: {
+    companyName: string;
+    position: string;
+    appliedDate: string | null;
+  }) => void;
+  isSubmitting: boolean;
+  errorMessage: string | null;
+}) {
+  const [companyName, setCompanyName] = useState("");
+  const [position, setPosition] = useState("");
+  const [appliedDate, setAppliedDate] = useState(todayLocalISODate());
+
+  useEffect(() => {
+    if (!open) return;
+    setCompanyName("");
+    setPosition("");
+    setAppliedDate(todayLocalISODate());
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={onClose}
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <div
+        className="relative z-10 w-[min(560px,calc(100%-24px))] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              지원 추가
+            </p>
+            <h3 className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+              새로운 지원을 기록해요
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              저장 후에는 카드에서 단계 이동/상세 편집이 가능해요.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5"
+            aria-label="닫기"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              회사명
+            </p>
+            <input
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+              placeholder="예: 네이버"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              포지션
+            </p>
+            <input
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+              placeholder="예: 백엔드 엔지니어"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              지원일
+            </p>
+            <input
+              type="date"
+              value={appliedDate}
+              onChange={(e) => setAppliedDate(e.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        {errorMessage ? (
+          <p className="mt-3 text-sm text-red-600">생성 오류: {errorMessage}</p>
+        ) : null}
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() =>
+              onSubmit({
+                companyName,
+                position,
+                appliedDate: appliedDate ? appliedDate : null,
+              })
+            }
+            className="h-10 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            저장
+          </button>
+        </div>
       </div>
     </div>
   );
