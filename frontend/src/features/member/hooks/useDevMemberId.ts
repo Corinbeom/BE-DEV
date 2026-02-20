@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createMember } from "../api/memberApi";
+import { createMember, getMember } from "../api/memberApi";
 
 const STORAGE_KEY = "devweb:memberId";
 
@@ -19,8 +19,20 @@ export function useDevMemberId() {
         if (raw) {
           const parsed = Number(raw);
           if (!Number.isNaN(parsed) && parsed > 0) {
-            if (!cancelled) setMemberId(parsed);
-            return;
+            try {
+              // 백엔드를 재기동(H2 in-memory)하면 기존 memberId가 사라질 수 있음
+              await getMember(parsed);
+              if (!cancelled) setMemberId(parsed);
+              return;
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : String(e);
+              // 멤버가 없으면(404) 저장된 값을 폐기하고 새로 생성한다.
+              if (msg.startsWith("HTTP 404")) {
+                localStorage.removeItem(STORAGE_KEY);
+              } else {
+                throw e;
+              }
+            }
           }
         }
 
