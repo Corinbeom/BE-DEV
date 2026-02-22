@@ -1,6 +1,8 @@
 spring:
   application:
     name: devweb
+  config:
+    import: optional:file:.env.properties
   datasource:
     url: jdbc:h2:mem:devweb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -22,5 +24,11 @@ server:
 logging:
   level:
     org.hibernate.SQL: debug
+
+devweb:
+  gemini:
+    api-key: ${GEMINI_API_KEY}
+    model: gemini-2.0-flash
+    base-url: https://generativelanguage.googleapis.com
 
 
