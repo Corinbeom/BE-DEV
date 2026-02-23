@@ -12,7 +12,7 @@ import java.util.List;
 @Component
 public class QuestionGenerator {
 
-    private static final int MAX_CONTEXT_CHARS = 18_000; // MVP: 토큰 폭주 방지용 가드
+    private static final int MAX_CONTEXT_CHARS = 8_000; // 응답 지연/타임아웃 방지용 가드
 
     private final InterviewAiPort aiPort;
     private final PositionPromptStrategies promptStrategies;
@@ -42,7 +42,12 @@ public class QuestionGenerator {
     private static String trimToMaxChars(String text, int max) {
         if (text == null) return null;
         if (text.length() <= max) return text;
-        return text.substring(0, max) + "\n...(truncated)...";
+        // 앞/뒤를 조금씩 남겨 문맥 손실을 줄인다.
+        int head = Math.max(0, (int) (max * 0.7));
+        int tail = Math.max(0, max - head);
+        String h = text.substring(0, Math.min(head, text.length()));
+        String t = text.substring(Math.max(0, text.length() - tail));
+        return h + "\n...(truncated)...\n" + t;
     }
 }
 

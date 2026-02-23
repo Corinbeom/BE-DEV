@@ -15,6 +15,7 @@
 backend/.gradle/
 backend/build/
 backend/out/
+backend/storage/
 
 # Java build artifacts (just in case)
 **/target/
