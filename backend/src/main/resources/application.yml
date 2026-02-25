@@ -30,11 +30,22 @@ logging:
     org.hibernate.SQL: debug
 
 devweb:
+  # AI 공급자 선택: gemini(기본값) 또는 groq
+  ai:
+    provider: ${AI_PROVIDER:gemini}
+
   gemini:
-    api-key: ${GEMINI_API_KEY}
+    api-key: ${GEMINI_API_KEY:}
     model: gemini-2.5-flash
     base-url: https://generativelanguage.googleapis.com
     request-timeout-seconds: 90
     max-output-tokens: 8192
+
+  groq:
+    api-key: ${GROQ_API_KEY:}
+    model: llama-3.3-70b-versatile
+    base-url: https://api.groq.com
+    request-timeout-seconds: 60
+    max-output-tokens: 4096
 
 

@@ -173,6 +173,7 @@ public class CsQuizSessionService {
 
     private static String questionGenSystemInstruction() {
         return """
+                [언어 규칙] 모든 출력은 반드시 한국어로만 작성하세요. 영어, 중국어, 일본어 등 다른 언어는 절대 사용하지 마세요.
                 당신은 CS 면접 대비 문제를 생성하는 출제자입니다.
                 사실/개념 오류가 없도록 보수적으로 작성하고, 질문은 명확하고 애매하지 않게 만드세요.
                 출력은 반드시 지정된 JSON 스키마만 따릅니다.
