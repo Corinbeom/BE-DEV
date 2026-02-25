@@ -54,6 +54,18 @@ public class GlobalExceptionHandler {
     /**
      * 외부 시스템(예: LLM API) 호출 실패 등, 애플리케이션 내부의 상태가 아닌 경우를 위한 핸들러.
      */
+    @ExceptionHandler(UpstreamRateLimitException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUpstreamRateLimit(UpstreamRateLimitException e) {
+        log.warn("UpstreamRateLimitException", e);
+        String msg = e.getMessage();
+        if (msg != null && msg.length() > 2000) msg = msg.substring(0, 2000) + "...";
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS);
+        if (e.getRetryAfterSeconds() > 0) {
+            builder.header("Retry-After", String.valueOf(e.getRetryAfterSeconds()));
+        }
+        return builder.body(ApiResponse.fail("RATE_LIMITED", msg == null ? "외부 서비스 요청이 제한되었습니다." : msg));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException e) {
         log.error("IllegalStateException", e);
