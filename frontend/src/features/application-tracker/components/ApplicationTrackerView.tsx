@@ -14,7 +14,7 @@ import {
 import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "../api/types";
 import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
 import { useRecruitmentEntryNotes } from "../hooks/useRecruitmentEntryNotes";
-import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 type ColumnKey = "APPLIED" | "IN_REVIEW" | "INTERVIEWING" | "FINAL";
 
@@ -128,7 +128,8 @@ function toKoreanStep(step: RecruitmentStep) {
 
 export function ApplicationTrackerView() {
   const qc = useQueryClient();
-  const { memberId, isBootstrapping, error: memberError } = useDevMemberId();
+  const { user } = useAuth();
+  const memberId = user?.id ?? null;
   const { data: entries = [], isLoading, error } = useRecruitmentEntries(memberId);
   const [dragOver, setDragOver] = useState<ColumnKey | null>(null);
   const [selected, setSelected] = useState<RecruitmentEntry | null>(null);
@@ -154,9 +155,7 @@ export function ApplicationTrackerView() {
       appliedDate: string | null;
       platformType: PlatformType;
     }) => {
-      if (!memberId) throw new Error("memberId가 없습니다.");
       return await createRecruitmentEntry({
-        memberId,
         companyName: input.companyName.trim(),
         position: input.position.trim(),
         step: "APPLIED",
@@ -204,7 +203,7 @@ export function ApplicationTrackerView() {
                 createMutation.reset();
                 setIsAddOpen(true);
               }}
-              disabled={isBootstrapping || !!memberError}
+              disabled={!memberId}
               className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-lg">add</span>
@@ -213,32 +212,13 @@ export function ApplicationTrackerView() {
           </div>
         </div>
 
-        {(memberError || error) ? (
+        {error ? (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-            {memberError ? <p>member 오류: {memberError}</p> : null}
-            {error ? (
-              <p>
-                목록 조회 오류: {error instanceof Error ? error.message : "알 수 없음"}
-              </p>
-            ) : null}
+            <p>
+              목록 조회 오류: {error instanceof Error ? error.message : "알 수 없음"}
+            </p>
           </div>
         ) : null}
-
-        <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
-          <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-wider text-slate-500">
-            개발 정보
-          </summary>
-          <div className="mt-2 flex flex-col gap-1">
-            <p>
-              {isBootstrapping
-                ? "member 생성/조회 중..."
-                : `memberId=${memberId ?? "없음"} / entries=${entries.length}`}
-            </p>
-            <p className="text-xs text-slate-500">
-              로그인 도입 시 이 영역은 제거/대체될 예정입니다.
-            </p>
-          </div>
-        </details>
       </section>
 
       <section className="flex flex-wrap gap-4">

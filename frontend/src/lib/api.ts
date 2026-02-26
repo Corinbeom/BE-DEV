@@ -23,7 +23,7 @@ export async function apiFetch<T>(
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
-    // App Router의 fetch 캐싱을 끄기 위해 사용
+    credentials: "include",
     cache: "no-store",
   });
 
@@ -34,5 +34,3 @@ export async function apiFetch<T>(
 
   return (await res.json()) as T;
 }
-
-

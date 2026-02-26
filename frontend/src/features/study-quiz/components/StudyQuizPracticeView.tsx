@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   useCreateCsQuizSession,
   useSubmitCsQuizAttempt,
@@ -33,7 +33,7 @@ const DIFFICULTIES: { id: CsQuizDifficulty; label: string }[] = [
 ];
 
 export function StudyQuizPracticeView() {
-  const { memberId, isBootstrapping, error: memberError } = useDevMemberId();
+  const { user } = useAuth();
   const createSession = useCreateCsQuizSession();
   const submitAttempt = useSubmitCsQuizAttempt();
 
@@ -60,13 +60,10 @@ export function StudyQuizPracticeView() {
   const activeQuestion: CsQuizQuestion | null =
     questions.find((q) => q.id === activeQuestionId) ?? (questions[0] ?? null);
 
-  const isBusy =
-    isBootstrapping || createSession.isPending || submitAttempt.isPending;
+  const isBusy = createSession.isPending || submitAttempt.isPending;
 
   async function onCreateSession() {
-    if (!memberId) return;
     const created = await createSession.mutateAsync({
-      memberId,
       difficulty,
       topics: selectedTopics,
       questionCount,
@@ -116,12 +113,11 @@ export function StudyQuizPracticeView() {
             </p>
           </div>
 
-          {(memberError || createSession.error) && (
+          {createSession.error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-200">
-              {memberError ??
-                (createSession.error instanceof Error
-                  ? createSession.error.message
-                  : "세션 생성 오류")}
+              {createSession.error instanceof Error
+                ? createSession.error.message
+                : "세션 생성 오류"}
             </div>
           )}
 
@@ -209,7 +205,7 @@ export function StudyQuizPracticeView() {
             <button
               type="button"
               onClick={onCreateSession}
-              disabled={!memberId || selectedTopics.length === 0 || isBusy}
+              disabled={!user || selectedTopics.length === 0 || isBusy}
               className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 disabled:opacity-50"
             >
               {createSession.isPending ? "세션 생성 중…" : "세션 생성하기"}

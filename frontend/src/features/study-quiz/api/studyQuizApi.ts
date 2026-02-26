@@ -2,7 +2,6 @@ import { apiFetch, type ApiResponse } from "@/lib/api";
 import type { CsQuizAttempt, CsQuizDifficulty, CsQuizSession, CsQuizTopic } from "./types";
 
 export async function createCsQuizSession(input: {
-  memberId: number;
   difficulty: CsQuizDifficulty;
   topics: CsQuizTopic[];
   questionCount: number; // 5~10

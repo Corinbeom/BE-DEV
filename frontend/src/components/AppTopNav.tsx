@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 type NavItem = {
   href: string;
@@ -17,6 +18,7 @@ const navItems: NavItem[] = [
 
 export function AppTopNav() {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-primary/10 bg-white px-10 py-3">
@@ -62,15 +64,15 @@ export function AppTopNav() {
           </button>
           <button
             type="button"
+            onClick={logout}
             className="flex size-10 cursor-pointer items-center justify-center rounded-lg bg-primary/10 text-primary"
-            aria-label="계정"
+            aria-label="로그아웃"
+            title="로그아웃"
           >
-            <span className="material-symbols-outlined">account_circle</span>
+            <span className="material-symbols-outlined">logout</span>
           </button>
         </div>
       </div>
     </header>
   );
 }
-
-

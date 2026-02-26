@@ -1,9 +1,9 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
 import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "./types";
 
-export async function listRecruitmentEntriesByMember(memberId: number) {
+export async function listRecruitmentEntriesByMember(_memberId: number) {
   const res = await apiFetch<ApiResponse<RecruitmentEntry[]>>(
-    `/api/recruitment-entries/by-member/${memberId}`,
+    `/api/recruitment-entries/by-member/me`,
   );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message ?? "지원 목록 조회에 실패했습니다.");
@@ -12,7 +12,6 @@ export async function listRecruitmentEntriesByMember(memberId: number) {
 }
 
 export async function createRecruitmentEntry(input: {
-  memberId: number;
   companyName: string;
   position: string;
   step?: RecruitmentStep;
@@ -23,7 +22,6 @@ export async function createRecruitmentEntry(input: {
   const res = await apiFetch<ApiResponse<RecruitmentEntry>>("/api/recruitment-entries", {
     method: "POST",
     body: JSON.stringify({
-      memberId: input.memberId,
       companyName: input.companyName,
       position: input.position,
       step: input.step ?? "APPLIED",

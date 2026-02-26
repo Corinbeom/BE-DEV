@@ -2,7 +2,6 @@ import { apiBaseUrl, apiFetch, type ApiResponse } from "@/lib/api";
 import type { PositionType, ResumeFeedback, ResumeSession } from "./types";
 
 export async function createResumeSession(input: {
-  memberId: number;
   positionType: PositionType;
   title?: string;
   resumeFile: File;
@@ -10,7 +9,6 @@ export async function createResumeSession(input: {
   portfolioUrl?: string | null;
 }) {
   const form = new FormData();
-  form.append("memberId", String(input.memberId));
   form.append("positionType", input.positionType);
   if (input.title) form.append("title", input.title);
   if (input.portfolioUrl) form.append("portfolioUrl", input.portfolioUrl);
@@ -20,8 +18,16 @@ export async function createResumeSession(input: {
   const res = await fetch(`${apiBaseUrl()}/api/resume-sessions`, {
     method: "POST",
     body: form,
+    credentials: "include",
     cache: "no-store",
   });
+
+  if (res.status === 401) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+    throw new Error("UNAUTHORIZED");
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -61,4 +67,3 @@ export async function createResumeFeedback(input: {
   }
   return res.data;
 }
-

@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDevMemberId } from "@/features/member/hooks/useDevMemberId";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import type { PositionType, ResumeFeedback, ResumeSession } from "../api/types";
 import {
   useCreateResumeFeedback,
@@ -12,7 +12,7 @@ import { useResumeSession } from "../hooks/useResumeSession";
 
 export function ResumePortfolioPrepView() {
   const queryClient = useQueryClient();
-  const { memberId, isBootstrapping, error: memberError } = useDevMemberId();
+  const { user } = useAuth();
 
   const [positionType, setPositionType] = useState<PositionType>("BE");
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -51,20 +51,17 @@ export function ResumePortfolioPrepView() {
   const totalCount = questions.length;
 
   const isBusy =
-    isBootstrapping ||
     createSession.isPending ||
     sessionQuery.isFetching ||
     createFeedback.isPending;
 
   async function onCreateSession() {
-    if (!memberId) return;
     if (!resumeFile) {
       alert("이력서 파일을 먼저 선택해 주세요.");
       return;
     }
 
     const created = await createSession.mutateAsync({
-      memberId,
       positionType,
       resumeFile,
       portfolioFile: portfolioFile ?? null,
@@ -112,11 +109,6 @@ export function ResumePortfolioPrepView() {
           문서를 업로드하거나 작업 링크를 연결하면, 맞춤형 AI 질문을 생성하고 실시간으로
           답변 연습을 할 수 있어요.
         </p>
-        {memberError ? (
-          <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-            멤버 준비 오류: {memberError}
-          </p>
-        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -235,7 +227,7 @@ export function ResumePortfolioPrepView() {
             <button
               type="button"
               className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={!memberId || isBusy}
+              disabled={!user || isBusy}
               onClick={() => void onCreateSession()}
             >
               <span className="material-symbols-outlined text-sm">analytics</span>

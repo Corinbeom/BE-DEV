@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
-function headerCopy(pathname: string) {
+function headerCopy(pathname: string, displayName: string) {
   if (pathname.startsWith("/application-tracker")) {
     return {
       title: "지원 현황 관리",
@@ -25,7 +26,7 @@ function headerCopy(pathname: string) {
     };
   }
   return {
-    title: "환영합니다, Alex!",
+    title: `환영합니다, ${displayName}!`,
     subtitle: "이번 주 상위 15%의 학습 페이스예요.",
     cta: "프로필 보기",
   };
@@ -33,7 +34,9 @@ function headerCopy(pathname: string) {
 
 export function AppHeader() {
   const pathname = usePathname();
-  const copy = headerCopy(pathname);
+  const { user } = useAuth();
+  const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? "사용자";
+  const copy = headerCopy(pathname, displayName);
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between bg-background-light/80 px-8 py-4 backdrop-blur-md dark:bg-background-dark/80">
@@ -61,5 +64,3 @@ export function AppHeader() {
     </header>
   );
 }
-
-

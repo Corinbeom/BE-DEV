@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { primaryNav } from "./nav";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -10,6 +11,10 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  const displayName = user?.displayName ?? user?.email ?? "사용자";
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-primary/10 bg-white dark:bg-background-dark/50 md:flex">
@@ -57,18 +62,32 @@ export function AppSidebar() {
 
       <div className="border-t border-slate-100 p-4 dark:border-white/5">
         <div className="flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
-          <div className="size-10 rounded-full bg-slate-200" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">Alex Rivera</p>
-            <p className="truncate text-xs text-slate-500">Software Engineer</p>
+          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+            {user?.photoUrl ? (
+              <img
+                src={user.photoUrl}
+                alt={displayName}
+                className="size-10 rounded-full object-cover"
+              />
+            ) : (
+              initial
+            )}
           </div>
-          <span className="material-symbols-outlined text-sm text-slate-400">
-            unfold_more
-          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold">{displayName}</p>
+            <p className="truncate text-xs text-slate-500">{user?.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10"
+            aria-label="로그아웃"
+            title="로그아웃"
+          >
+            <span className="material-symbols-outlined text-lg">logout</span>
+          </button>
         </div>
       </div>
     </aside>
   );
 }
-
-
