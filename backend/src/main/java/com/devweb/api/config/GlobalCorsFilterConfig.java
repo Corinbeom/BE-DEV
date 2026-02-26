@@ -22,6 +22,7 @@ public class GlobalCorsFilterConfig {
     public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "http://192.168.*:*",
@@ -29,6 +30,7 @@ public class GlobalCorsFilterConfig {
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.addAllowedHeader("*");
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -39,4 +41,3 @@ public class GlobalCorsFilterConfig {
         return bean;
     }
 }
-

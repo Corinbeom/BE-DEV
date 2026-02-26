@@ -24,6 +24,14 @@ public class MemberRepositoryAdapter implements MemberRepository {
     public Optional<Member> findById(Long id) {
         return jpaRepository.findById(id);
     }
+
+    @Override
+    public Optional<Member> findByEmail(String email) {
+        return jpaRepository.findByEmail(email);
+    }
+
+    @Override
+    public Optional<Member> findByOauthProviderAndOauthSubject(String provider, String subject) {
+        return jpaRepository.findByOauthProviderAndOauthSubject(provider, subject);
+    }
 }
-
-

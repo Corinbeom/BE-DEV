@@ -7,6 +7,27 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 20MB
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope: openid,profile,email
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:}
+            client-secret: ${KAKAO_CLIENT_SECRET:}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            scope: profile_nickname,account_email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
   datasource:
     url: jdbc:h2:mem:devweb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -30,6 +51,12 @@ logging:
     org.hibernate.SQL: debug
 
 devweb:
+  jwt:
+    secret: ${JWT_SECRET:devweb-default-secret-key-must-be-at-least-256-bits-long-for-hs256}
+    expiry-hours: 24
+
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
   # AI 공급자 선택: gemini(기본값) 또는 groq
   ai:
     provider: ${AI_PROVIDER:gemini}

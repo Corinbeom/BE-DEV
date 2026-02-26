@@ -2,6 +2,7 @@ package com.devweb.api.recruitmenttracker.entry;
 
 import com.devweb.api.recruitmenttracker.entry.dto.*;
 import com.devweb.common.ApiResponse;
+import com.devweb.common.AuthUtils;
 import com.devweb.domain.recruitmenttracker.entry.model.RecruitmentEntry;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +21,9 @@ public class RecruitmentEntryController {
 
     @PostMapping
     public ApiResponse<RecruitmentEntryResponse> create(@Valid @RequestBody CreateRecruitmentEntryRequest req) {
+        Long memberId = AuthUtils.currentMemberId();
         RecruitmentEntry created = service.create(
-                req.memberId(),
+                memberId,
                 req.companyName(),
                 req.position(),
                 req.step(),
@@ -37,8 +39,9 @@ public class RecruitmentEntryController {
         return ApiResponse.success(RecruitmentEntryResponse.from(service.get(id)));
     }
 
-    @GetMapping("/by-member/{memberId}")
-    public ApiResponse<List<RecruitmentEntryResponse>> listByMember(@PathVariable Long memberId) {
+    @GetMapping("/by-member/me")
+    public ApiResponse<List<RecruitmentEntryResponse>> listByCurrentMember() {
+        Long memberId = AuthUtils.currentMemberId();
         List<RecruitmentEntryResponse> result = service.listByMember(memberId).stream()
                 .map(RecruitmentEntryResponse::from)
                 .toList();
@@ -76,5 +79,3 @@ public class RecruitmentEntryController {
         return ApiResponse.ok();
     }
 }
-
-

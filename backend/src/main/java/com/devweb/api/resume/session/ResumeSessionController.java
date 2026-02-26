@@ -2,6 +2,7 @@ package com.devweb.api.resume.session;
 
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import com.devweb.common.ApiResponse;
+import com.devweb.common.AuthUtils;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +20,13 @@ public class ResumeSessionController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<ResumeSessionResponse> create(
-            @RequestParam Long memberId,
             @RequestParam String positionType,
             @RequestPart("resumeFile") MultipartFile resumeFile,
             @RequestPart(value = "portfolioFile", required = false) MultipartFile portfolioFile,
             @RequestParam(required = false) String portfolioUrl,
             @RequestParam(required = false) String title
     ) {
+        Long memberId = AuthUtils.currentMemberId();
         ResumeSession created = service.create(memberId, positionType, title, resumeFile, portfolioFile, portfolioUrl);
         return ApiResponse.success(ResumeSessionResponse.from(created));
     }
@@ -35,4 +36,3 @@ public class ResumeSessionController {
         return ApiResponse.success(ResumeSessionResponse.from(service.get(id)));
     }
 }
-

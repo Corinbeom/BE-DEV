@@ -17,6 +17,18 @@ public class Member {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "oauth_provider")
+    private String oauthProvider;
+
+    @Column(name = "oauth_subject")
+    private String oauthSubject;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(name = "photo_url", length = 1024)
+    private String photoUrl;
+
     protected Member() {
     }
 
@@ -27,6 +39,18 @@ public class Member {
         this.email = email;
     }
 
+    public Member(String email, String oauthProvider, String oauthSubject,
+                  String displayName, String photoUrl) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("email은 필수입니다.");
+        }
+        this.email = email;
+        this.oauthProvider = oauthProvider;
+        this.oauthSubject = oauthSubject;
+        this.displayName = displayName;
+        this.photoUrl = photoUrl;
+    }
+
     public Long getId() {
         return id;
     }
@@ -34,6 +58,20 @@ public class Member {
     public String getEmail() {
         return email;
     }
+
+    public String getOauthProvider() {
+        return oauthProvider;
+    }
+
+    public String getOauthSubject() {
+        return oauthSubject;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
 }
-
-

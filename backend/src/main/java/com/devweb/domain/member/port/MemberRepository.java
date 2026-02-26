@@ -11,6 +11,8 @@ public interface MemberRepository {
     Member save(Member member);
 
     Optional<Member> findById(Long id);
+
+    Optional<Member> findByEmail(String email);
+
+    Optional<Member> findByOauthProviderAndOauthSubject(String provider, String subject);
 }
-
-

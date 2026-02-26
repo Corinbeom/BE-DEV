@@ -3,6 +3,7 @@ package com.devweb.api.studyquiz.session;
 import com.devweb.api.studyquiz.session.dto.CreateCsQuizSessionRequest;
 import com.devweb.api.studyquiz.session.dto.CsQuizSessionResponse;
 import com.devweb.common.ApiResponse;
+import com.devweb.common.AuthUtils;
 import com.devweb.domain.studyquiz.session.model.CsQuizSession;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +20,9 @@ public class CsQuizSessionController {
 
     @PostMapping
     public ApiResponse<CsQuizSessionResponse> create(@Valid @RequestBody CreateCsQuizSessionRequest req) {
+        Long memberId = AuthUtils.currentMemberId();
         CsQuizSession created = service.create(
-                req.memberId(),
+                memberId,
                 req.difficulty(),
                 req.topics(),
                 req.questionCount(),
@@ -34,4 +36,3 @@ public class CsQuizSessionController {
         return ApiResponse.success(CsQuizSessionResponse.from(service.get(id)));
     }
 }
-

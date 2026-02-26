@@ -4,11 +4,16 @@ import com.devweb.domain.member.model.Member;
 
 public record MemberResponse(
         Long id,
-        String email
+        String email,
+        String displayName,
+        String photoUrl
 ) {
     public static MemberResponse from(Member member) {
-        return new MemberResponse(member.getId(), member.getEmail());
+        return new MemberResponse(
+                member.getId(),
+                member.getEmail(),
+                member.getDisplayName(),
+                member.getPhotoUrl()
+        );
     }
 }
-
-
