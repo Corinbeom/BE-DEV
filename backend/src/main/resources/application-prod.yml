@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    root: warn
+    com.devweb: info
+
+devweb:
+  storage:
+    s3:
+      endpoint: ${SUPABASE_S3_ENDPOINT}
+      region: ${SUPABASE_S3_REGION:ap-southeast-1}
+      access-key-id: ${SUPABASE_S3_ACCESS_KEY_ID}
+      secret-access-key: ${SUPABASE_S3_SECRET_ACCESS_KEY}
+      bucket: ${SUPABASE_STORAGE_BUCKET}
