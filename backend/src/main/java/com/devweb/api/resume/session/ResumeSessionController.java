@@ -8,6 +8,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/resume-sessions")
 public class ResumeSessionController {
@@ -16,6 +18,16 @@ public class ResumeSessionController {
 
     public ResumeSessionController(ResumeSessionService service) {
         this.service = service;
+    }
+
+    @GetMapping
+    public ApiResponse<List<ResumeSessionResponse>> listByCurrentMember() {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(
+                service.listByMember(memberId).stream()
+                        .map(ResumeSessionResponse::from)
+                        .toList()
+        );
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

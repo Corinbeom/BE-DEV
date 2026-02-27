@@ -100,6 +100,11 @@ public class ResumeSessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("ResumeSession을 찾을 수 없습니다. id=" + id));
     }
 
+    @Transactional(readOnly = true)
+    public List<ResumeSession> listByMember(Long memberId) {
+        return sessionRepository.findAllByMemberId(memberId);
+    }
+
     private static void validateSize(MultipartFile file) {
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new IllegalArgumentException("파일 크기는 최대 5MB 입니다. filename=" + file.getOriginalFilename());

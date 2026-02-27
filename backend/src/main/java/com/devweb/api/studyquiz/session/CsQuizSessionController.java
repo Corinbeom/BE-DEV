@@ -8,6 +8,8 @@ import com.devweb.domain.studyquiz.session.model.CsQuizSession;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/cs-quiz-sessions")
 public class CsQuizSessionController {
@@ -16,6 +18,16 @@ public class CsQuizSessionController {
 
     public CsQuizSessionController(CsQuizSessionService service) {
         this.service = service;
+    }
+
+    @GetMapping
+    public ApiResponse<List<CsQuizSessionResponse>> listByCurrentMember() {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(
+                service.listByMember(memberId).stream()
+                        .map(CsQuizSessionResponse::from)
+                        .toList()
+        );
     }
 
     @PostMapping

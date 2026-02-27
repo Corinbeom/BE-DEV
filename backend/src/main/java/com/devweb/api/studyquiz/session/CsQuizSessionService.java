@@ -73,6 +73,11 @@ public class CsQuizSessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("CsQuizSession을 찾을 수 없습니다. id=" + id));
     }
 
+    @Transactional(readOnly = true)
+    public List<CsQuizSession> listByMember(Long memberId) {
+        return sessionRepository.findAllByMemberId(memberId);
+    }
+
     private List<CsQuizQuestion> pickMultipleChoiceQuestionsWithFallback(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, int count, int startIndex) {
         List<CsQuestionBankItem> pool = new ArrayList<>();
         for (CsQuizTopic t : topics) {
