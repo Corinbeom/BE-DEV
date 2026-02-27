@@ -41,6 +41,14 @@ export async function createResumeSession(input: {
   return json.data;
 }
 
+export async function listResumeSessions() {
+  const res = await apiFetch<ApiResponse<ResumeSession[]>>("/api/resume-sessions");
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "이력서 세션 목록 조회에 실패했습니다.");
+  }
+  return res.data;
+}
+
 export async function getResumeSession(sessionId: number) {
   const res = await apiFetch<ApiResponse<ResumeSession>>(
     `/api/resume-sessions/${sessionId}`,

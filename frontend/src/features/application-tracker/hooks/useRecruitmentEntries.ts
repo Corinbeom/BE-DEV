@@ -3,15 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { listRecruitmentEntriesByMember } from "../api/recruitmentEntryApi";
 
-export function useRecruitmentEntries(memberId: number | null) {
+export function useRecruitmentEntries() {
   return useQuery({
-    queryKey: ["recruitmentEntries", memberId],
-    queryFn: async () => {
-      if (!memberId) return [];
-      return await listRecruitmentEntriesByMember(memberId);
-    },
-    enabled: !!memberId,
+    queryKey: ["recruitmentEntries"],
+    queryFn: () => listRecruitmentEntriesByMember(),
   });
 }
-
-

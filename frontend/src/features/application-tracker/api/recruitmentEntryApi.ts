@@ -1,7 +1,7 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
 import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "./types";
 
-export async function listRecruitmentEntriesByMember(_memberId: number) {
+export async function listRecruitmentEntriesByMember() {
   const res = await apiFetch<ApiResponse<RecruitmentEntry[]>>(
     `/api/recruitment-entries/by-member/me`,
   );

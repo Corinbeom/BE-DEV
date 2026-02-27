@@ -14,7 +14,6 @@ import {
 import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "../api/types";
 import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
 import { useRecruitmentEntryNotes } from "../hooks/useRecruitmentEntryNotes";
-import { useAuth } from "@/features/auth/hooks/useAuth";
 
 type ColumnKey = "APPLIED" | "IN_REVIEW" | "INTERVIEWING" | "FINAL";
 
@@ -128,9 +127,7 @@ function toKoreanStep(step: RecruitmentStep) {
 
 export function ApplicationTrackerView() {
   const qc = useQueryClient();
-  const { user } = useAuth();
-  const memberId = user?.id ?? null;
-  const { data: entries = [], isLoading, error } = useRecruitmentEntries(memberId);
+  const { data: entries = [], isLoading, error } = useRecruitmentEntries();
   const [dragOver, setDragOver] = useState<ColumnKey | null>(null);
   const [selected, setSelected] = useState<RecruitmentEntry | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -165,7 +162,7 @@ export function ApplicationTrackerView() {
     },
     onSuccess: async () => {
       setIsAddOpen(false);
-      await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
+      await qc.invalidateQueries({ queryKey: ["recruitmentEntries"] });
     },
   });
 
@@ -174,7 +171,7 @@ export function ApplicationTrackerView() {
       return await updateRecruitmentEntryStep(input);
     },
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
+      await qc.invalidateQueries({ queryKey: ["recruitmentEntries"] });
     },
   });
 
@@ -203,8 +200,7 @@ export function ApplicationTrackerView() {
                 createMutation.reset();
                 setIsAddOpen(true);
               }}
-              disabled={!memberId}
-              className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90"
             >
               <span className="material-symbols-outlined text-lg">add</span>
               지원 추가
@@ -343,7 +339,7 @@ export function ApplicationTrackerView() {
         }}
         onSave={async (payload) => {
           const updated = await updateRecruitmentEntry(payload);
-          await qc.invalidateQueries({ queryKey: ["recruitmentEntries", memberId] });
+          await qc.invalidateQueries({ queryKey: ["recruitmentEntries"] });
           setSelected(updated);
         }}
       />
