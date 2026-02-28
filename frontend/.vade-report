@@ -1,0 +1,52 @@
+# Vercel Speed Insights Implementation
+
+## Summary
+Successfully installed and configured Vercel Speed Insights for the Next.js project to enable performance monitoring and Core Web Vitals tracking.
+
+## Changes Made
+
+### 1. Package Installation
+- **Added dependency**: `@vercel/speed-insights` version `^1.3.1`
+- Updated `package.json` to include the new dependency
+- Updated `package-lock.json` with resolved dependencies
+
+### 2. Root Layout Configuration
+**File**: `frontend/src/app/layout.tsx`
+
+- **Import Added**: 
+  ```typescript
+  import { SpeedInsights } from "@vercel/speed-insights/next";
+  ```
+
+- **Component Added**: 
+  - Placed `<SpeedInsights />` component inside the `<body>` tag
+  - Positioned after `{children}` wrapped in `<Providers>` component
+  - Follows Next.js 13.5+ App Router best practices
+
+## Implementation Details
+
+The project uses:
+- **Next.js Version**: 16.1.6 (latest, with App Router)
+- **Package Manager**: npm
+- **Router Type**: App Router (not Pages Router)
+
+Since this is Next.js 16.1.6, which is well above version 13.5, I used the recommended approach for App Router:
+- Imported from `@vercel/speed-insights/next` (not the React version)
+- Added the component directly to the root layout without needing `usePathname()` or client directive
+- The component automatically handles route detection and performance tracking
+
+## Verification Completed
+
+1. ✅ **Build Test**: Project builds successfully with no errors
+2. ✅ **TypeScript Compilation**: No type errors introduced
+3. ✅ **Lint Check**: Verified no new linting errors (existing warnings are pre-existing and unrelated)
+4. ✅ **Lock Files**: package-lock.json properly updated
+
+## Next Steps
+
+The Speed Insights component is now active and will:
+- Automatically collect Core Web Vitals (LCP, FID, CLS, TTFB, INP)
+- Send performance metrics to Vercel when deployed
+- Work seamlessly with all routes in the application
+
+No additional configuration is required. The component will start tracking performance metrics once the application is deployed to Vercel.
