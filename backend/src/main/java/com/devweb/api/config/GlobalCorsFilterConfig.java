@@ -22,6 +22,7 @@ public class GlobalCorsFilterConfig {
     public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
+                "https://*.vercel.app",
                 "http://localhost:3000",
                 "http://localhost:*",
                 "http://127.0.0.1:*",
