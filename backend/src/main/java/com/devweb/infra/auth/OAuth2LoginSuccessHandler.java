@@ -54,13 +54,15 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         String token = jwtTokenProvider.generateToken(member.getId());
 
-        Cookie cookie = new Cookie("devweb_token", token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(86400);
-        // production에서는 Secure 플래그 활성화 필요
-        // cookie.setSecure(true);
-        response.addCookie(cookie);
+        // SameSite=None; Secure 필수 (Vercel → Render 크로스 도메인 fetch에서 쿠키 전송)
+        // Java Cookie API는 SameSite 미지원 → Set-Cookie 헤더 직접 작성
+        String cookieHeader = "devweb_token=" + token
+                + "; Max-Age=86400"
+                + "; Path=/"
+                + "; HttpOnly"
+                + "; Secure"
+                + "; SameSite=None";
+        response.addHeader("Set-Cookie", cookieHeader);
 
         response.sendRedirect(frontendUrl + "/auth/callback");
     }

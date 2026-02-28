@@ -33,11 +33,13 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ApiResponse<Void> logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie("devweb_token", "");
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        String cookieHeader = "devweb_token="
+                + "; Max-Age=0"
+                + "; Path=/"
+                + "; HttpOnly"
+                + "; Secure"
+                + "; SameSite=None";
+        response.addHeader("Set-Cookie", cookieHeader);
         return ApiResponse.ok();
     }
 }
