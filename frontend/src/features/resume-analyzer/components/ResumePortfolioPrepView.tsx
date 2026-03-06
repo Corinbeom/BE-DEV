@@ -9,6 +9,8 @@ import {
   useCreateResumeSession,
 } from "../hooks/useResumeMutations";
 import { useResumeSession } from "../hooks/useResumeSession";
+import { AnalysisProgressOverlay } from "./AnalysisProgressOverlay";
+import { QuestionSkeleton } from "./QuestionSkeleton";
 
 export function ResumePortfolioPrepView() {
   const queryClient = useQueryClient();
@@ -50,6 +52,8 @@ export function ResumePortfolioPrepView() {
   const attemptedCount = Object.keys(feedbackByQuestion).length;
   const totalCount = questions.length;
 
+  const [showOverlay, setShowOverlay] = useState(false);
+
   const isBusy =
     createSession.isPending ||
     sessionQuery.isFetching ||
@@ -61,20 +65,26 @@ export function ResumePortfolioPrepView() {
       return;
     }
 
-    const created = await createSession.mutateAsync({
-      positionType,
-      resumeFile,
-      portfolioFile: portfolioFile ?? null,
-      portfolioUrl: portfolioUrl.trim() ? portfolioUrl.trim() : null,
-    });
+    setShowOverlay(true);
 
-    setSessionId(created.id);
-    queryClient.setQueryData(["resumeSession", created.id], created);
+    try {
+      const created = await createSession.mutateAsync({
+        positionType,
+        resumeFile,
+        portfolioFile: portfolioFile ?? null,
+        portfolioUrl: portfolioUrl.trim() ? portfolioUrl.trim() : null,
+      });
 
-    const first = created.questions[0];
-    setActiveQuestionId(first?.id ?? null);
-    setAnswersByQuestion({});
-    setFeedbackByQuestion({});
+      setSessionId(created.id);
+      queryClient.setQueryData(["resumeSession", created.id], created);
+
+      const first = created.questions[0];
+      setActiveQuestionId(first?.id ?? null);
+      setAnswersByQuestion({});
+      setFeedbackByQuestion({});
+    } finally {
+      setTimeout(() => setShowOverlay(false), 1500);
+    }
   }
 
   async function onCreateFeedback() {
@@ -226,12 +236,24 @@ export function ResumePortfolioPrepView() {
             </div>
             <button
               type="button"
-              className="mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+              className={[
+                "mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70",
+                createSession.isPending ? "animate-pulse-glow" : "",
+              ].join(" ")}
               disabled={!user || isBusy}
               onClick={() => void onCreateSession()}
             >
-              <span className="material-symbols-outlined text-sm">analytics</span>
-              {createSession.isPending ? "분석 중..." : "질문 생성하기"}
+              {createSession.isPending ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  AI가 질문을 생성하고 있어요...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm">analytics</span>
+                  질문 생성하기
+                </>
+              )}
             </button>
             {createSession.error ? (
               <p className="text-sm font-semibold text-red-600 dark:text-red-400">
@@ -260,12 +282,10 @@ export function ResumePortfolioPrepView() {
           </div>
 
           <div className="custom-scrollbar flex max-h-[800px] flex-col gap-3 overflow-y-auto pr-2">
-            {sessionQuery.isFetching && !session ? (
-              <div className="rounded-lg bg-white p-4 text-sm text-slate-500 shadow-sm dark:bg-white/5 dark:text-slate-300">
-                질문을 불러오는 중...
-              </div>
+            {createSession.isPending || (sessionQuery.isFetching && !session) ? (
+              <QuestionSkeleton />
             ) : null}
-            {!questions.length ? (
+            {!createSession.isPending && !questions.length ? (
               <div className="rounded-lg bg-white p-4 text-sm text-slate-500 shadow-sm dark:bg-white/5 dark:text-slate-300">
                 아직 생성된 질문이 없어요. 먼저 이력서를 업로드하고 질문을 생성해 주세요.
               </div>
@@ -343,15 +363,31 @@ export function ResumePortfolioPrepView() {
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  className="flex items-center gap-2 rounded-lg bg-primary px-8 py-3 font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={!activeQuestionId || isBusy}
-                  onClick={() => void onCreateFeedback()}
-                >
-                  <span className="material-symbols-outlined">auto_fix_high</span>
-                  {createFeedback.isPending ? "피드백 생성 중..." : "AI 피드백 받기"}
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-lg bg-primary px-8 py-3 font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!activeQuestionId || isBusy}
+                    onClick={() => void onCreateFeedback()}
+                  >
+                    {createFeedback.isPending ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                        피드백 생성 중...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined">auto_fix_high</span>
+                        AI 피드백 받기
+                      </>
+                    )}
+                  </button>
+                  {createFeedback.isPending && (
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                      <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -486,6 +522,11 @@ export function ResumePortfolioPrepView() {
           </button>
         </div>
       </section>
+
+      <AnalysisProgressOverlay
+        isActive={showOverlay && createSession.isPending}
+        isComplete={showOverlay && !createSession.isPending}
+      />
     </div>
   );
 }
