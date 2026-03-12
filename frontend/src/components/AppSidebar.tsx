@@ -52,7 +52,15 @@ export function AppSidebar() {
       </nav>
 
       <div className="border-t border-slate-100 p-4 dark:border-white/5">
-        <div className="flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+        <Link
+          href="/profile"
+          className={[
+            "flex items-center gap-3 rounded-xl p-2 transition-colors",
+            isActivePath(pathname, "/profile")
+              ? "bg-primary/10"
+              : "hover:bg-slate-50 dark:hover:bg-white/5",
+          ].join(" ")}
+        >
           <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
             {user?.photoUrl ? (
               <img
@@ -70,14 +78,18 @@ export function AppSidebar() {
           </div>
           <button
             type="button"
-            onClick={logout}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              logout();
+            }}
             className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10"
             aria-label="로그아웃"
             title="로그아웃"
           >
             <span className="material-symbols-outlined text-lg">logout</span>
           </button>
-        </div>
+        </Link>
       </div>
     </aside>
   );
