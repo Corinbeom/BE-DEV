@@ -3,6 +3,9 @@ package com.devweb.api.resume.session;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
+import com.devweb.domain.resume.model.Resume;
+import com.devweb.domain.resume.model.ResumeExtractStatus;
+import com.devweb.domain.resume.port.ResumeRepository;
 import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
@@ -28,6 +31,7 @@ public class ResumeSessionService {
 
     private final ResumeSessionRepository sessionRepository;
     private final MemberRepository memberRepository;
+    private final ResumeRepository resumeRepository;
     private final FileStoragePort fileStorage;
     private final TextExtractorPort textExtractor;
     private final UrlTextFetcherPort urlTextFetcher;
@@ -36,6 +40,7 @@ public class ResumeSessionService {
     public ResumeSessionService(
             ResumeSessionRepository sessionRepository,
             MemberRepository memberRepository,
+            ResumeRepository resumeRepository,
             FileStoragePort fileStorage,
             TextExtractorPort textExtractor,
             UrlTextFetcherPort urlTextFetcher,
@@ -43,6 +48,7 @@ public class ResumeSessionService {
     ) {
         this.sessionRepository = sessionRepository;
         this.memberRepository = memberRepository;
+        this.resumeRepository = resumeRepository;
         this.fileStorage = fileStorage;
         this.textExtractor = textExtractor;
         this.urlTextFetcher = urlTextFetcher;
@@ -86,6 +92,60 @@ public class ResumeSessionService {
         String resumeText = textExtractor.extract(resumeBytes, resumeFile.getContentType());
         String portfolioText = buildPortfolioText(portfolioBytes, portfolioFile, portfolioUrl);
 
+        session.markExtracted(resumeText, portfolioText);
+
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl);
+        session.markQuestionsReady(questions);
+
+        return sessionRepository.save(session);
+    }
+
+    public ResumeSession createFromResume(
+            Long memberId,
+            String positionTypeRaw,
+            String title,
+            Long resumeId,
+            Long portfolioResumeId,
+            String portfolioUrl
+    ) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
+
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resume를 찾을 수 없습니다. id=" + resumeId));
+        if (resume.getExtractStatus() != ResumeExtractStatus.EXTRACTED) {
+            throw new IllegalArgumentException("텍스트 추출이 완료되지 않은 이력서입니다.");
+        }
+
+        PositionType positionType = PositionType.from(positionTypeRaw);
+        String resolvedTitle = (title == null || title.isBlank()) ? resume.getTitle() : title;
+
+        ResumeSession session = new ResumeSession(member, positionType, resolvedTitle, portfolioUrl);
+
+        StoredFileRef resumeRef = resume.getStoredFile();
+        StoredFileRef portfolioRef = null;
+        String resumeText = resume.getExtractedText();
+        String portfolioText = null;
+
+        if (portfolioResumeId != null) {
+            Resume portfolio = resumeRepository.findById(portfolioResumeId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Portfolio Resume를 찾을 수 없습니다. id=" + portfolioResumeId));
+            if (portfolio.getExtractStatus() == ResumeExtractStatus.EXTRACTED) {
+                portfolioRef = portfolio.getStoredFile();
+                portfolioText = portfolio.getExtractedText();
+            }
+        }
+
+        if (portfolioUrl != null && !portfolioUrl.isBlank()) {
+            String fromUrl = urlTextFetcher.fetch(portfolioUrl);
+            if (fromUrl != null && !fromUrl.isBlank()) {
+                portfolioText = portfolioText != null
+                        ? portfolioText + "\n\n---\n\n" + fromUrl
+                        : fromUrl;
+            }
+        }
+
+        session.attachFiles(resumeRef, portfolioRef);
         session.markExtracted(resumeText, portfolioText);
 
         List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl);

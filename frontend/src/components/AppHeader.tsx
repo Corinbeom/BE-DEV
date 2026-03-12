@@ -25,6 +25,13 @@ function headerCopy(pathname: string, displayName: string) {
       cta: "프로필 보기",
     };
   }
+  if (pathname.startsWith("/profile")) {
+    return {
+      title: "프로필",
+      subtitle: "개인 정보와 이력서/포트폴리오 파일을 관리해요.",
+      cta: "파일 업로드",
+    };
+  }
   return {
     title: `환영합니다, ${displayName}!`,
     subtitle: "이번 주 상위 15%의 학습 페이스예요.",

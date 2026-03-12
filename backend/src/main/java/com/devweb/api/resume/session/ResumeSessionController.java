@@ -1,12 +1,11 @@
 package com.devweb.api.resume.session;
 
+import com.devweb.api.resume.session.dto.CreateResumeSessionRequest;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
 import com.devweb.domain.resume.session.model.ResumeSession;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,16 +29,17 @@ public class ResumeSessionController {
         );
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<ResumeSessionResponse> create(
-            @RequestParam String positionType,
-            @RequestPart("resumeFile") MultipartFile resumeFile,
-            @RequestPart(value = "portfolioFile", required = false) MultipartFile portfolioFile,
-            @RequestParam(required = false) String portfolioUrl,
-            @RequestParam(required = false) String title
-    ) {
+    @PostMapping
+    public ApiResponse<ResumeSessionResponse> create(@RequestBody CreateResumeSessionRequest request) {
         Long memberId = AuthUtils.currentMemberId();
-        ResumeSession created = service.create(memberId, positionType, title, resumeFile, portfolioFile, portfolioUrl);
+        ResumeSession created = service.createFromResume(
+                memberId,
+                request.positionType(),
+                request.title(),
+                request.resumeId(),
+                request.portfolioResumeId(),
+                request.portfolioUrl()
+        );
         return ApiResponse.success(ResumeSessionResponse.from(created));
     }
 

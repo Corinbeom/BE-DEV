@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useResumeFiles } from "@/features/profile/hooks/useResumeFiles";
 import type { PositionType, ResumeFeedback, ResumeSession } from "../api/types";
 import {
   useCreateResumeFeedback,
@@ -17,8 +19,8 @@ export function ResumePortfolioPrepView() {
   const { user } = useAuth();
 
   const [positionType, setPositionType] = useState<PositionType>("BE");
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
+  const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
   const [portfolioUrl, setPortfolioUrl] = useState<string>("");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
@@ -27,8 +29,9 @@ export function ResumePortfolioPrepView() {
     Record<number, ResumeFeedback>
   >({});
 
-  const resumeInputRef = useRef<HTMLInputElement | null>(null);
-  const portfolioInputRef = useRef<HTMLInputElement | null>(null);
+  const { data: resumeFiles, isLoading: isLoadingFiles } = useResumeFiles();
+  const resumes = resumeFiles?.filter((f) => f.fileType === "RESUME" && f.extractStatus === "EXTRACTED") ?? [];
+  const portfolios = resumeFiles?.filter((f) => f.fileType === "PORTFOLIO" && f.extractStatus === "EXTRACTED") ?? [];
 
   const createSession = useCreateResumeSession();
   const createFeedback = useCreateResumeFeedback();
@@ -60,8 +63,8 @@ export function ResumePortfolioPrepView() {
     createFeedback.isPending;
 
   async function onCreateSession() {
-    if (!resumeFile) {
-      alert("이력서 파일을 먼저 선택해 주세요.");
+    if (!selectedResumeId) {
+      alert("이력서를 먼저 선택해 주세요.");
       return;
     }
 
@@ -70,8 +73,8 @@ export function ResumePortfolioPrepView() {
     try {
       const created = await createSession.mutateAsync({
         positionType,
-        resumeFile,
-        portfolioFile: portfolioFile ?? null,
+        resumeId: selectedResumeId,
+        portfolioResumeId: selectedPortfolioId,
         portfolioUrl: portfolioUrl.trim() ? portfolioUrl.trim() : null,
       });
 
@@ -101,13 +104,7 @@ export function ResumePortfolioPrepView() {
     setFeedbackByQuestion((prev) => ({ ...prev, [activeQuestionId]: fb }));
   }
 
-  function onPickResumeFile() {
-    resumeInputRef.current?.click();
-  }
-
-  function onPickPortfolioFile() {
-    portfolioInputRef.current?.click();
-  }
+  const hasNoFiles = !isLoadingFiles && resumes.length === 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -116,7 +113,7 @@ export function ResumePortfolioPrepView() {
           이력서 · 포트폴리오 면접 준비
         </h1>
         <p className="max-w-2xl text-lg text-slate-500 dark:text-slate-400">
-          문서를 업로드하거나 작업 링크를 연결하면, 맞춤형 AI 질문을 생성하고 실시간으로
+          프로필에서 업로드한 이력서를 선택하면, 맞춤형 AI 질문을 생성하고 실시간으로
           답변 연습을 할 수 있어요.
         </p>
       </div>
@@ -125,54 +122,56 @@ export function ResumePortfolioPrepView() {
         <section className="flex flex-col rounded-xl border border-primary/10 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/5 dark:bg-white/5">
           <div className="mb-4 flex items-center gap-3">
             <span className="material-symbols-outlined rounded-lg bg-primary/10 p-2 text-primary">
-              upload_file
+              description
             </span>
-            <h3 className="text-lg font-bold">PDF 이력서 업로드</h3>
+            <h3 className="text-lg font-bold">이력서 선택</h3>
           </div>
 
-          <input
-            ref={resumeInputRef}
-            type="file"
-            accept=".pdf,.txt"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0] ?? null;
-              setResumeFile(f);
-            }}
-          />
-          <div
-            className="cursor-pointer rounded-xl border-2 border-dashed border-primary/20 bg-slate-50 p-8 transition-colors hover:bg-primary/5 dark:bg-white/5 dark:hover:bg-white/10"
-            role="button"
-            tabIndex={0}
-            onClick={onPickResumeFile}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onPickResumeFile();
-            }}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const f = e.dataTransfer.files?.[0] ?? null;
-              if (f) setResumeFile(f);
-            }}
-          >
-            <div className="flex flex-col items-center justify-center">
-              <span className="material-symbols-outlined mb-2 text-4xl text-primary/40">
-                cloud_upload
+          {hasNoFiles ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/20 bg-slate-50 p-8 dark:bg-white/5">
+              <span className="material-symbols-outlined text-4xl text-primary/40">
+                upload_file
               </span>
               <p className="text-center text-sm text-slate-600 dark:text-slate-300">
-                PDF를 여기로 끌어오거나,{" "}
-                <span className="font-bold text-primary underline">파일 찾아보기</span>
+                아직 업로드된 이력서가 없어요.
               </p>
-              {resumeFile ? (
-                <p className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  선택됨: {resumeFile.name}
-                </p>
-              ) : null}
-              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                최대 파일 크기: 5MB
+              <Link
+                href="/profile"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-all hover:bg-primary/90"
+              >
+                프로필에서 업로드하기
+              </Link>
+            </div>
+          ) : (
+            <div className="flex h-full flex-col gap-4">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  이력서
+                </span>
+                <select
+                  className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  value={selectedResumeId ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSelectedResumeId(v ? Number(v) : null);
+                  }}
+                >
+                  <option value="">이력서를 선택하세요</option>
+                  {resumes.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title} ({r.originalFilename})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                프로필 페이지에서 이력서를 업로드하면 여기에 표시됩니다.{" "}
+                <Link href="/profile" className="font-bold text-primary underline">
+                  프로필로 이동
+                </Link>
               </p>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="flex flex-col rounded-xl border border-primary/10 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/5 dark:bg-white/5">
@@ -209,38 +208,33 @@ export function ResumePortfolioPrepView() {
                 onChange={(e) => setPortfolioUrl(e.target.value)}
               />
             </label>
-            <div className="flex flex-col gap-2">
-              <input
-                ref={portfolioInputRef}
-                type="file"
-                accept=".pdf,.txt"
-                className="hidden"
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                포트폴리오 파일 (선택)
+              </span>
+              <select
+                className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                value={selectedPortfolioId ?? ""}
                 onChange={(e) => {
-                  const f = e.target.files?.[0] ?? null;
-                  setPortfolioFile(f);
+                  const v = e.target.value;
+                  setSelectedPortfolioId(v ? Number(v) : null);
                 }}
-              />
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                onClick={onPickPortfolioFile}
               >
-                <span className="material-symbols-outlined text-sm">attach_file</span>
-                포트폴리오 파일 추가(선택)
-              </button>
-              {portfolioFile ? (
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  선택됨: {portfolioFile.name}
-                </p>
-              ) : null}
-            </div>
+                <option value="">선택 안 함</option>
+                {portfolios.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title} ({p.originalFilename})
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               className={[
                 "mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70",
                 createSession.isPending ? "animate-pulse-glow" : "",
               ].join(" ")}
-              disabled={!user || isBusy}
+              disabled={!user || isBusy || !selectedResumeId}
               onClick={() => void onCreateSession()}
             >
               {createSession.isPending ? (
@@ -287,7 +281,7 @@ export function ResumePortfolioPrepView() {
             ) : null}
             {!createSession.isPending && !questions.length ? (
               <div className="rounded-lg bg-white p-4 text-sm text-slate-500 shadow-sm dark:bg-white/5 dark:text-slate-300">
-                아직 생성된 질문이 없어요. 먼저 이력서를 업로드하고 질문을 생성해 주세요.
+                아직 생성된 질문이 없어요. 먼저 이력서를 선택하고 질문을 생성해 주세요.
               </div>
             ) : null}
             {questions.map((q) => (
@@ -582,5 +576,3 @@ function QuestionCard({
     </div>
   );
 }
-
-
