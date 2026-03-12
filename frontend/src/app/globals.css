@@ -47,3 +47,31 @@ body {
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Server warming progress bar */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+.animate-progress-indeterminate {
+  width: 30%;
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* Button glow effect */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 16px 4px color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

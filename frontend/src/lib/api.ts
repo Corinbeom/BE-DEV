@@ -18,7 +18,7 @@ export async function apiFetch<T>(
   init?: RequestInit,
 ): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+  const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
   let res: Response;
   try {
@@ -42,4 +42,21 @@ export async function apiFetch<T>(
   }
 
   return (await res.json()) as T;
+}
+
+export async function healthCheck(): Promise<boolean> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const res = await fetch(`${apiBaseUrl()}/`, {
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
