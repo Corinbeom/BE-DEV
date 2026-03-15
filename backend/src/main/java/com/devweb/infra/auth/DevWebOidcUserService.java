@@ -17,9 +17,13 @@ public class DevWebOidcUserService extends OidcUserService {
         this.memberRepository = memberRepository;
     }
 
+    protected OidcUser callParentLoadUser(OidcUserRequest userRequest) {
+        return super.loadUser(userRequest);
+    }
+
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
-        OidcUser oidcUser = super.loadUser(userRequest);
+        OidcUser oidcUser = callParentLoadUser(userRequest);
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         String oauthSubject = oidcUser.getSubject();
