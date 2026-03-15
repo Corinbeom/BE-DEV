@@ -19,9 +19,13 @@ public class DevWebOAuth2UserService extends DefaultOAuth2UserService {
         this.memberRepository = memberRepository;
     }
 
+    protected OAuth2User callParentLoadUser(OAuth2UserRequest userRequest) {
+        return super.loadUser(userRequest);
+    }
+
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        OAuth2User oAuth2User = super.loadUser(userRequest);
+        OAuth2User oAuth2User = callParentLoadUser(userRequest);
 
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Map<String, Object> attributes = oAuth2User.getAttributes();
