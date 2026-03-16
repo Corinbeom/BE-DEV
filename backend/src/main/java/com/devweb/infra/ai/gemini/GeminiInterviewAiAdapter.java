@@ -6,10 +6,14 @@ import com.devweb.domain.studyquiz.session.model.CsQuizQuestionType;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
 import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
 import com.devweb.common.UpstreamRateLimitException;
+import com.devweb.infra.ai.AiMetrics;
 import com.devweb.infra.ai.AiPromptBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -30,8 +34,11 @@ import java.util.Set;
 @ConditionalOnProperty(name = "devweb.ai.provider", havingValue = "gemini", matchIfMissing = true)
 public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
+    private static final Logger log = LoggerFactory.getLogger(GeminiInterviewAiAdapter.class);
+
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
+    private final AiMetrics aiMetrics;
 
     private final String apiKey;
     private final String model;
@@ -41,6 +48,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
     public GeminiInterviewAiAdapter(
             ObjectMapper objectMapper,
+            AiMetrics aiMetrics,
             @Value("${devweb.gemini.api-key:}") String apiKey,
             @Value("${devweb.gemini.model:gemini-2.5-flash}") String model,
             @Value("${devweb.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
@@ -48,6 +56,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             @Value("${devweb.gemini.max-output-tokens:8192}") int maxOutputTokens
     ) {
         this.objectMapper = objectMapper;
+        this.aiMetrics = aiMetrics;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -218,6 +227,8 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             Map<String, Object> responseSchema,
             RetryProfile profile
     ) {
+        log.debug("Gemini API 호출 시작: profile={}", profile);
+        Timer.Sample timerSample = aiMetrics.startTimer();
         IllegalStateException last = null;
 
         // attempt 1: original prompt
@@ -231,11 +242,16 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
             try {
                 int tokens = maxOutputTokens;
-                return generateStructuredJson(systemInstruction, prompt, responseSchema, tokens);
+                JsonNode result = generateStructuredJson(systemInstruction, prompt, responseSchema, tokens);
+                aiMetrics.recordSuccess(timerSample, "gemini", profile.name());
+                log.info("Gemini API 호출 완료: profile={}", profile);
+                return result;
             } catch (IllegalStateException e) {
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 boolean isJsonFailure = msg.contains("structured JSON 파싱에 실패") || msg.contains("JSON 텍스트를 찾지 못했습니다");
                 if (!isJsonFailure) throw e;
+                aiMetrics.recordRetry("gemini", profile.name());
+                log.warn("Gemini JSON 파싱 실패, 재시도: attempt={}", attempt);
                 last = e;
             }
         }
@@ -354,6 +370,8 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             String msg = new String(resp.body() == null ? new byte[0] : resp.body(), StandardCharsets.UTF_8);
             if (resp.statusCode() == 429) {
                 int retryAfter = extractRetryAfterSeconds(msg);
+                aiMetrics.recordRateLimit("gemini");
+                log.warn("Gemini rate limit: retryAfter={}s", retryAfter);
                 throw new UpstreamRateLimitException("Gemini 호출 제한(429). 잠시 후 다시 시도하거나, 문항 수를 줄이거나, 무료티어 쿼터를 확인해 주세요. body=" + truncate(msg, 2000), retryAfter);
             }
             throw new IllegalStateException("Gemini 호출 실패. status=" + resp.statusCode() + " body=" + truncate(msg, 2000));
