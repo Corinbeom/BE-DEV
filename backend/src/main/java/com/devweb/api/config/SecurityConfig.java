@@ -1,5 +1,6 @@
 package com.devweb.api.config;
 
+import com.devweb.common.RequestLoggingFilter;
 import com.devweb.infra.auth.DevWebOAuth2UserService;
 import com.devweb.infra.auth.DevWebOidcUserService;
 import com.devweb.infra.auth.JwtAuthenticationFilter;
@@ -30,17 +31,20 @@ public class SecurityConfig {
     private final DevWebOAuth2UserService oAuth2UserService;
     private final DevWebOidcUserService oidcUserService;
     private final OAuth2LoginSuccessHandler successHandler;
+    private final RequestLoggingFilter requestLoggingFilter;
     private final String frontendUrl;
 
     public SecurityConfig(JwtTokenProvider jwtTokenProvider,
                           DevWebOAuth2UserService oAuth2UserService,
                           DevWebOidcUserService oidcUserService,
                           OAuth2LoginSuccessHandler successHandler,
+                          RequestLoggingFilter requestLoggingFilter,
                           @Value("${devweb.frontend-url}") String frontendUrl) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.oAuth2UserService = oAuth2UserService;
         this.oidcUserService = oidcUserService;
         this.successHandler = successHandler;
+        this.requestLoggingFilter = requestLoggingFilter;
         this.frontendUrl = frontendUrl;
     }
 
@@ -63,6 +67,7 @@ public class SecurityConfig {
                     "/login/oauth2/**",
                     "/api/auth/**",
                     "/h2-console/**",
+                    "/actuator/**",
                     "/error"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/members").permitAll()
@@ -76,6 +81,7 @@ public class SecurityConfig {
                     .oidcUserService(oidcUserService))   // Google (OIDC)
                 .successHandler(successHandler)
             )
+            .addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(
                 new JwtAuthenticationFilter(jwtTokenProvider),
                 UsernamePasswordAuthenticationFilter.class

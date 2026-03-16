@@ -10,6 +10,8 @@ import com.devweb.infra.ai.AiPromptBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -34,6 +36,8 @@ import java.util.Set;
 @Component
 @ConditionalOnProperty(name = "devweb.ai.provider", havingValue = "groq")
 public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
+
+    private static final Logger log = LoggerFactory.getLogger(GroqInterviewAiAdapter.class);
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -182,6 +186,8 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK }
 
     private JsonNode generateStructuredJsonWithRetry(String systemInstruction, String userPrompt, RetryProfile profile) {
+        log.debug("Groq API 호출 시작: profile={}", profile);
+        long start = System.currentTimeMillis();
         IllegalStateException last = null;
         for (int attempt = 1; attempt <= 3; attempt++) {
             String prompt = switch (attempt) {
@@ -190,11 +196,15 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                 default -> userPrompt + retryRulesAttempt3(profile);
             };
             try {
-                return callGroq(systemInstruction, prompt);
+                JsonNode result = callGroq(systemInstruction, prompt);
+                long duration = System.currentTimeMillis() - start;
+                log.info("Groq API 호출 완료: profile={} ({}ms)", profile, duration);
+                return result;
             } catch (IllegalStateException e) {
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 boolean isJsonFailure = msg.contains("JSON 파싱에 실패") || msg.contains("JSON 텍스트를 찾지 못했습니다");
                 if (!isJsonFailure) throw e;
+                log.warn("Groq JSON 파싱 실패, 재시도: attempt={}", attempt);
                 last = e;
             }
         }
@@ -219,6 +229,7 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             String bodyStr = new String(resp.body() == null ? new byte[0] : resp.body(), StandardCharsets.UTF_8);
             if (resp.statusCode() == 429) {
                 int retryAfter = extractRetryAfterSeconds(resp);
+                log.warn("Groq rate limit: retryAfter={}s", retryAfter);
                 throw new UpstreamRateLimitException(
                         "Groq 호출 제한(429). 잠시 후 다시 시도하세요. body=" + truncate(bodyStr, 2000),
                         retryAfter

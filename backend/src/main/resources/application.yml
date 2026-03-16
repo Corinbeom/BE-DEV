@@ -48,7 +48,18 @@ server:
 
 logging:
   level:
+    com.devweb: info
+    com.devweb.infra.ai: debug
     org.hibernate.SQL: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  endpoint:
+    health:
+      show-details: always
 
 devweb:
   jwt:
