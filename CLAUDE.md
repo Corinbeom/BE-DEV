@@ -80,6 +80,14 @@ src/lib/api.ts    → Base fetch wrapper (sets base URL, handles ApiResponse)
 | `CsQuizSessionController` | `/api/cs-quiz/sessions` | Quiz session management |
 | `MemberController` | `/api/members` | User profile |
 
+## Git Branching Strategy
+
+- **main**: 프로덕션 배포 브랜치 (Render 자동 배포). 직접 커밋 금지.
+- **develop**: 통합 개발 브랜치. 모든 기능 브랜치의 머지 대상.
+- **작업 브랜치**: 반드시 `develop`에서 분기. 네이밍: `feat/`, `fix/`, `test/`, `refactor/`, `ci/` 등.
+- **머지 흐름**: 작업 브랜치 → develop → main. main에 직접 머지하지 않는다.
+- **back-merge**: main → develop 머지 후에는 반드시 develop에 동기화한다.
+
 ## Key Conventions
 
 - **Rich Domain Model**: business logic lives inside domain entities, not in service layer.
