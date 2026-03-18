@@ -5,6 +5,10 @@ import { useRecruitmentEntries } from "@/features/application-tracker/hooks/useR
 import { useCsQuizSessions } from "@/features/study-quiz/hooks/useCsQuizSessions";
 import { useResumeSessions } from "@/features/resume-analyzer/hooks/useResumeSessions";
 import type { CsQuizSession } from "@/features/study-quiz/api/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function DashboardView() {
   const { data: entries = [] } = useRecruitmentEntries();
@@ -17,99 +21,150 @@ export function DashboardView() {
 
   return (
     <>
-      {/* 이력서 분석 배너 */}
-      <section className="relative overflow-hidden rounded-xl bg-primary p-8 text-white shadow-xl">
+      {/* AI Hero Banner */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 p-8 text-primary-foreground shadow-xl shadow-primary/15">
         <div className="relative z-10 flex flex-col items-center justify-between gap-6 md:flex-row">
           <div className="max-w-xl">
+            <Badge className="mb-3 border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/20">
+              AI Interview Coach
+            </Badge>
             <h3 className="mb-2 text-2xl font-bold">이력서 기반 모의 면접</h3>
             {latestResumeSession ? (
-              <p className="mb-6 leading-relaxed text-slate-100/80">
-                최근 분석: <span className="font-semibold">{latestResumeSession.title}</span>
+              <p className="mb-6 leading-relaxed text-primary-foreground/80">
+                최근 분석:{" "}
+                <span className="font-semibold text-primary-foreground">
+                  {latestResumeSession.title}
+                </span>
                 {latestResumeSession.questions.length > 0
                   ? ` · 질문 ${latestResumeSession.questions.length}개 준비됨`
                   : ""}
               </p>
             ) : (
-              <p className="mb-6 leading-relaxed text-slate-100/80">
+              <p className="mb-6 leading-relaxed text-primary-foreground/80">
                 이력서를 업로드하면 AI가 분석해 맞춤 면접 질문을 생성해 드립니다.
               </p>
             )}
             <Link
               href="/resume-analyzer"
-              className="flex w-fit items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-bold text-primary shadow-lg transition-colors hover:bg-slate-50"
+              className={cn(
+                buttonVariants(),
+                "gap-2 bg-white text-primary shadow-lg hover:bg-white/90"
+              )}
             >
-              <span className="material-symbols-outlined">play_circle</span>
+              <span className="material-symbols-outlined text-lg">
+                play_circle
+              </span>
               {latestResumeSession ? "이어서 연습하기" : "분석 시작하기"}
             </Link>
           </div>
 
-          <div className="hidden h-40 w-64 rounded-lg border border-white/20 bg-white/10 p-4 backdrop-blur-sm lg:block">
-            {latestResumeSession ? (
-              <div className="h-full flex flex-col justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-3 rounded-full bg-green-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider">
-                    최근 분석 완료
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-slate-200/70">세션</p>
-                  <p className="text-sm font-semibold truncate">{latestResumeSession.title}</p>
-                  <p className="text-xs text-slate-200/70">
-                    {latestResumeSession.positionType ?? "포지션 미지정"} ·{" "}
-                    {new Date(latestResumeSession.createdAt).toLocaleDateString("ko-KR")}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex h-full flex-col justify-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="size-3 animate-pulse rounded-full bg-green-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider">
-                    AI 코치 대기 중
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <div className="h-2 w-full rounded-full bg-white/20" />
-                  <div className="h-2 w-4/5 rounded-full bg-white/20" />
-                  <div className="h-2 w-3/4 rounded-full bg-white/20" />
-                </div>
-              </div>
-            )}
-          </div>
+          <Card className="hidden border-primary-foreground/20 bg-primary-foreground/10 shadow-none backdrop-blur-sm lg:block">
+            <CardContent className="flex h-40 w-64 flex-col justify-between p-4">
+              {latestResumeSession ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="size-2.5 rounded-full bg-green-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
+                      최근 분석 완료
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-primary-foreground/60">세션</p>
+                    <p className="truncate text-sm font-semibold text-primary-foreground">
+                      {latestResumeSession.title}
+                    </p>
+                    <p className="text-xs text-primary-foreground/60">
+                      {latestResumeSession.positionType ?? "포지션 미지정"} ·{" "}
+                      {new Date(
+                        latestResumeSession.createdAt
+                      ).toLocaleDateString("ko-KR")}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="size-2.5 animate-pulse rounded-full bg-green-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
+                      AI 코치 대기 중
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="h-2 w-full rounded-full bg-primary-foreground/15" />
+                    <div className="h-2 w-4/5 rounded-full bg-primary-foreground/15" />
+                    <div className="h-2 w-3/4 rounded-full bg-primary-foreground/15" />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="absolute right-0 top-0 -mr-20 -mt-20 size-80 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 size-80 rounded-full bg-indigo-400/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -top-20 size-80 rounded-full bg-white/5 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 size-80 rounded-full bg-white/8 blur-3xl" />
+      </section>
+
+      {/* Stats Strip */}
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          label="총 지원"
+          value={entries.length}
+          icon="description"
+          color="primary"
+        />
+        <StatCard
+          label="면접 진행"
+          value={entries.filter((e) => e.step === "INTERVIEWING").length}
+          icon="event"
+          color="amber"
+        />
+        <StatCard
+          label="오퍼"
+          value={entries.filter((e) => e.step === "OFFERED").length}
+          icon="workspace_premium"
+          color="emerald"
+        />
+        <StatCard
+          label="퀴즈 세션"
+          value={quizSessions.length}
+          icon="quiz"
+          color="violet"
+        />
       </section>
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* CS 퀴즈 세션 섹션 */}
-        <div className="space-y-6 lg:col-span-1">
+        {/* CS Quiz Sessions */}
+        <div className="space-y-4 lg:col-span-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold tracking-tight">최근 CS 퀴즈</h3>
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              최근 CS 퀴즈
+            </h3>
             <Link
               href="/study-quiz/practice"
-              className="text-sm font-bold text-primary hover:underline"
+              className="text-sm font-semibold text-primary hover:underline"
             >
               새 퀴즈
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {recentQuizSessions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-white/10 dark:bg-white/5">
-                <span className="material-symbols-outlined text-3xl text-slate-400">quiz</span>
-                <p className="text-sm text-slate-500">
-                  아직 CS 퀴즈 기록이 없어요.
-                </p>
-                <Link
-                  href="/study-quiz/practice"
-                  className="text-sm font-bold text-primary hover:underline"
-                >
-                  퀴즈 시작하기
-                </Link>
-              </div>
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-center">
+                  <span className="material-symbols-outlined text-3xl text-muted-foreground">
+                    quiz
+                  </span>
+                  <p className="text-sm text-muted-foreground">
+                    아직 CS 퀴즈 기록이 없어요.
+                  </p>
+                  <Link
+                    href="/study-quiz/practice"
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    퀴즈 시작하기
+                  </Link>
+                </CardContent>
+              </Card>
             ) : (
               recentQuizSessions.map((session) => (
                 <QuizSessionItem key={session.id} session={session} />
@@ -118,41 +173,42 @@ export function DashboardView() {
           </div>
         </div>
 
-        {/* 최근 지원 현황 */}
-        <div className="space-y-6 lg:col-span-2">
+        {/* Recent Applications */}
+        <div className="space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold tracking-tight">최근 지원</h3>
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              최근 지원
+            </h3>
             <Link
               href="/application-tracker"
-              className="text-slate-500 transition-colors hover:text-primary"
+              className="text-muted-foreground transition-colors hover:text-primary"
               aria-label="전체 보기"
             >
-              <span className="material-symbols-outlined">filter_list</span>
+              <span className="material-symbols-outlined">arrow_forward</span>
             </Link>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/5 dark:bg-white/5">
+          <Card>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:bg-white/5">
-                    <th className="px-6 py-4">회사</th>
-                    <th className="px-6 py-4">포지션</th>
-                    <th className="px-6 py-4">지원일</th>
-                    <th className="px-6 py-4">상태</th>
-                    <th className="px-6 py-4" />
+                  <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-6 py-3">회사</th>
+                    <th className="px-6 py-3">포지션</th>
+                    <th className="px-6 py-3">지원일</th>
+                    <th className="px-6 py-3">상태</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                <tbody className="divide-y divide-border">
                   {recentEntries.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={5}
-                        className="px-6 py-8 text-center text-sm text-slate-500"
+                        colSpan={4}
+                        className="px-6 py-8 text-center text-sm text-muted-foreground"
                       >
                         아직 지원 내역이 없어요.{" "}
                         <Link
-                          className="font-bold text-primary hover:underline"
+                          className="font-semibold text-primary hover:underline"
                           href="/application-tracker"
                         >
                           지원 현황
@@ -164,8 +220,6 @@ export function DashboardView() {
                     recentEntries.map((e) => (
                       <RecentRow
                         key={e.id}
-                        logo={e.companyName.slice(0, 1).toUpperCase()}
-                        logoBg="bg-slate-900"
                         company={e.companyName}
                         role={e.position}
                         applied={e.appliedDate ?? "-"}
@@ -178,10 +232,10 @@ export function DashboardView() {
               </table>
             </div>
 
-            <div className="bg-slate-50 p-4 text-center dark:bg-white/5">
+            <div className="border-t border-border bg-muted/30 p-3 text-center">
               <Link
                 href="/application-tracker"
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/5"
+                className="flex w-full items-center justify-center gap-2 rounded-lg py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
               >
                 전체 지원 이력 보기
                 <span className="material-symbols-outlined text-sm">
@@ -189,10 +243,61 @@ export function DashboardView() {
                 </span>
               </Link>
             </div>
-          </div>
+          </Card>
         </div>
       </section>
     </>
+  );
+}
+
+const colorMap = {
+  primary: {
+    icon: "text-primary bg-primary/10",
+    border: "border-l-primary",
+  },
+  amber: {
+    icon: "text-amber-600 bg-amber-500/10",
+    border: "border-l-amber-500",
+  },
+  emerald: {
+    icon: "text-emerald-600 bg-emerald-500/10",
+    border: "border-l-emerald-500",
+  },
+  violet: {
+    icon: "text-violet-600 bg-violet-500/10",
+    border: "border-l-violet-500",
+  },
+} as const;
+
+function StatCard({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string;
+  value: number;
+  icon: string;
+  color: keyof typeof colorMap;
+}) {
+  const c = colorMap[color];
+  return (
+    <Card className={cn("border-l-4 transition-shadow hover:shadow-md", c.border)}>
+      <CardContent className="flex items-center justify-between p-5">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
+        </div>
+        <div
+          className={cn(
+            "flex size-10 items-center justify-center rounded-lg",
+            c.icon
+          )}
+        >
+          <span className="material-symbols-outlined">{icon}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -260,16 +365,16 @@ function statusKorean(status: string) {
   }
 }
 
-function statusTone(status: string) {
+function statusVariant(status: string) {
   switch (status) {
     case "QUESTIONS_READY":
-      return "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400";
+      return "default" as const;
     case "CREATED":
-      return "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400";
+      return "secondary" as const;
     case "FAILED":
-      return "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400";
+      return "destructive" as const;
     default:
-      return "bg-slate-50 text-slate-600 dark:bg-white/10 dark:text-slate-400";
+      return "outline" as const;
   }
 }
 
@@ -279,95 +384,80 @@ function QuizSessionItem({ session }: { session: CsQuizSession }) {
   const extraCount = topics.length - 2;
 
   return (
-    <Link
-      href="/study-quiz/practice"
-      className="group flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-white/5 dark:bg-white/5"
-    >
-      <div className="flex items-center gap-4 min-w-0">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-          <span className="material-symbols-outlined">quiz</span>
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold">{session.title}</p>
-          <p className="text-xs text-slate-500">
-            {topicDisplay}
-            {extraCount > 0 ? ` +${extraCount}` : ""}
-          </p>
-        </div>
-      </div>
-      <div className="ml-3 shrink-0 text-right">
-        <span
-          className={[
-            "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold",
-            statusTone(session.status),
-          ].join(" ")}
-        >
-          {statusKorean(session.status)}
-        </span>
-        <p className="mt-1 text-[10px] text-slate-400">
-          {new Date(session.createdAt).toLocaleDateString("ko-KR")}
-        </p>
-      </div>
+    <Link href="/study-quiz/practice">
+      <Card className="group transition-all hover:shadow-md hover:border-primary/30">
+        <CardContent className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span className="material-symbols-outlined">quiz</span>
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                {session.title}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {topicDisplay}
+                {extraCount > 0 ? ` +${extraCount}` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="ml-3 shrink-0 text-right">
+            <Badge variant={statusVariant(session.status)}>
+              {statusKorean(session.status)}
+            </Badge>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {new Date(session.createdAt).toLocaleDateString("ko-KR")}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </Link>
   );
 }
 
 function RecentRow({
-  logo,
-  logoBg,
   company,
   role,
   applied,
   status,
   statusTone,
 }: {
-  logo: string;
-  logoBg: string;
   company: string;
   role: string;
   applied: string;
   status: string;
   statusTone: "success" | "warn" | "neutral" | "danger";
 }) {
-  const tone =
+  const toneClasses =
     statusTone === "success"
-      ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400"
+      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
       : statusTone === "warn"
-        ? "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400"
+        ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
         : statusTone === "danger"
-          ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-          : "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-400";
+          ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
+          : "bg-muted text-muted-foreground";
 
   return (
-    <tr className="group transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+    <tr className="group transition-colors hover:bg-muted/50">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <div
-            className={[
-              "flex size-8 items-center justify-center rounded text-[10px] font-bold text-white",
-              logoBg,
-            ].join(" ")}
-          >
-            {logo}
+          <div className="flex size-8 items-center justify-center rounded-md bg-foreground text-[10px] font-bold text-background">
+            {company.slice(0, 1).toUpperCase()}
           </div>
-          <span className="text-sm font-bold">{company}</span>
+          <span className="text-sm font-semibold text-foreground">{company}</span>
         </div>
       </td>
-      <td className="px-6 py-4 text-sm font-medium">{role}</td>
-      <td className="px-6 py-4 text-sm text-slate-500">{applied}</td>
+      <td className="px-6 py-4 text-sm text-foreground">{role}</td>
+      <td className="px-6 py-4 text-sm text-muted-foreground">{applied}</td>
       <td className="px-6 py-4">
-        <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold", tone].join(" ")}>
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+            toneClasses
+          )}
+        >
           {status}
         </span>
-      </td>
-      <td className="px-6 py-4 text-right">
-        <button
-          type="button"
-          className="material-symbols-outlined text-slate-400 transition-colors hover:text-primary"
-          aria-label="더보기"
-        >
-          more_vert
-        </button>
       </td>
     </tr>
   );
