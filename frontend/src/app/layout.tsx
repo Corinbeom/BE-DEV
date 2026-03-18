@@ -10,7 +10,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "PrepPro AI",
+  title: "Be Dev",
   description: "AI 기반 이력서/포트폴리오 분석 및 면접 준비 플랫폼",
 };
 
@@ -20,14 +20,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="bg-background-light dark:bg-background-dark">
+    <html lang="ko" suppressHydrationWarning>
       <head>
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
         />
       </head>
-      <body className={`${manrope.variable} antialiased text-foreground`}>
+      <body className={`${manrope.variable} antialiased`}>
         <Providers>{children}</Providers>
         <SpeedInsights />
       </body>
