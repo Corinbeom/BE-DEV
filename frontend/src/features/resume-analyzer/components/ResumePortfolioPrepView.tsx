@@ -13,6 +13,11 @@ import {
 import { useResumeSession } from "../hooks/useResumeSession";
 import { AnalysisProgressOverlay } from "./AnalysisProgressOverlay";
 import { QuestionSkeleton } from "./QuestionSkeleton";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export function ResumePortfolioPrepView() {
   const queryClient = useQueryClient();
@@ -20,18 +25,28 @@ export function ResumePortfolioPrepView() {
 
   const [positionType, setPositionType] = useState<PositionType>("BE");
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(null);
+  const [selectedPortfolioId, setSelectedPortfolioId] = useState<number | null>(
+    null
+  );
   const [portfolioUrl, setPortfolioUrl] = useState<string>("");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
-  const [answersByQuestion, setAnswersByQuestion] = useState<Record<number, string>>({});
+  const [answersByQuestion, setAnswersByQuestion] = useState<
+    Record<number, string>
+  >({});
   const [feedbackByQuestion, setFeedbackByQuestion] = useState<
     Record<number, ResumeFeedback>
   >({});
 
   const { data: resumeFiles, isLoading: isLoadingFiles } = useResumeFiles();
-  const resumes = resumeFiles?.filter((f) => f.fileType === "RESUME" && f.extractStatus === "EXTRACTED") ?? [];
-  const portfolios = resumeFiles?.filter((f) => f.fileType === "PORTFOLIO" && f.extractStatus === "EXTRACTED") ?? [];
+  const resumes =
+    resumeFiles?.filter(
+      (f) => f.fileType === "RESUME" && f.extractStatus === "EXTRACTED"
+    ) ?? [];
+  const portfolios =
+    resumeFiles?.filter(
+      (f) => f.fileType === "PORTFOLIO" && f.extractStatus === "EXTRACTED"
+    ) ?? [];
 
   const createSession = useCreateResumeSession();
   const createFeedback = useCreateResumeFeedback();
@@ -108,181 +123,190 @@ export function ResumePortfolioPrepView() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-          이력서 · 포트폴리오 면접 준비
-        </h1>
-        <p className="max-w-2xl text-lg text-slate-500 dark:text-slate-400">
-          프로필에서 업로드한 이력서를 선택하면, 맞춤형 AI 질문을 생성하고 실시간으로
-          답변 연습을 할 수 있어요.
-        </p>
-      </div>
-
+      {/* Setup cards */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="flex flex-col rounded-xl border border-primary/10 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/5 dark:bg-white/5">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="material-symbols-outlined rounded-lg bg-primary/10 p-2 text-primary">
-              description
-            </span>
-            <h3 className="text-lg font-bold">이력서 선택</h3>
-          </div>
-
-          {hasNoFiles ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/20 bg-slate-50 p-8 dark:bg-white/5">
-              <span className="material-symbols-outlined text-4xl text-primary/40">
-                upload_file
-              </span>
-              <p className="text-center text-sm text-slate-600 dark:text-slate-300">
-                아직 업로드된 이력서가 없어요.
-              </p>
-              <Link
-                href="/profile"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-all hover:bg-primary/90"
-              >
-                프로필에서 업로드하기
-              </Link>
+        {/* Resume selection */}
+        <Card className="transition-shadow hover:shadow-md">
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="material-symbols-outlined">description</span>
+              </div>
+              <h3 className="text-lg font-bold text-foreground">이력서 선택</h3>
             </div>
-          ) : (
-            <div className="flex h-full flex-col gap-4">
-              <label className="flex flex-col gap-1">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  이력서
+
+            {hasNoFiles ? (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/30 p-8">
+                <span className="material-symbols-outlined text-4xl text-muted-foreground/50">
+                  upload_file
+                </span>
+                <p className="text-center text-sm text-muted-foreground">
+                  아직 업로드된 이력서가 없어요.
+                </p>
+                <Link
+                  href="/profile"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+                >
+                  프로필에서 업로드하기
+                </Link>
+              </div>
+            ) : (
+              <div className="flex h-full flex-col gap-4">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    이력서
+                  </span>
+                  <select
+                    className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+                    value={selectedResumeId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSelectedResumeId(v ? Number(v) : null);
+                    }}
+                  >
+                    <option value="">이력서를 선택하세요</option>
+                    {resumes.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title} ({r.originalFilename})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  프로필 페이지에서 이력서를 업로드하면 여기에 표시됩니다.{" "}
+                  <Link
+                    href="/profile"
+                    className="font-semibold text-primary underline"
+                  >
+                    프로필로 이동
+                  </Link>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Portfolio & position */}
+        <Card className="transition-shadow hover:shadow-md">
+          <CardContent className="flex flex-col p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="material-symbols-outlined">link</span>
+              </div>
+              <h3 className="text-lg font-bold text-foreground">포트폴리오</h3>
+            </div>
+
+            <div className="flex flex-1 flex-col gap-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  포지션
                 </span>
                 <select
-                  className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                  value={selectedResumeId ?? ""}
+                  className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+                  value={positionType}
+                  onChange={(e) =>
+                    setPositionType(e.target.value as PositionType)
+                  }
+                >
+                  <option value="BE">Backend (BE)</option>
+                  <option value="FE">Frontend (FE)</option>
+                  <option value="MOBILE">Mobile</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  GitHub · Notion · 개인 웹사이트 URL
+                </span>
+                <input
+                  className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20"
+                  placeholder="https://github.com/username/project"
+                  value={portfolioUrl}
+                  onChange={(e) => setPortfolioUrl(e.target.value)}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  포트폴리오 파일 (선택)
+                </span>
+                <select
+                  className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+                  value={selectedPortfolioId ?? ""}
                   onChange={(e) => {
                     const v = e.target.value;
-                    setSelectedResumeId(v ? Number(v) : null);
+                    setSelectedPortfolioId(v ? Number(v) : null);
                   }}
                 >
-                  <option value="">이력서를 선택하세요</option>
-                  {resumes.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title} ({r.originalFilename})
+                  <option value="">선택 안 함</option>
+                  {portfolios.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} ({p.originalFilename})
                     </option>
                   ))}
                 </select>
               </label>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                프로필 페이지에서 이력서를 업로드하면 여기에 표시됩니다.{" "}
-                <Link href="/profile" className="font-bold text-primary underline">
-                  프로필로 이동
-                </Link>
-              </p>
+              <Button
+                className={cn(
+                  "mt-auto w-full gap-2",
+                  createSession.isPending && "animate-pulse-glow"
+                )}
+                disabled={!user || isBusy || !selectedResumeId}
+                onClick={() => void onCreateSession()}
+              >
+                {createSession.isPending ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-sm">
+                      progress_activity
+                    </span>
+                    AI가 질문을 생성하고 있어요...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm">
+                      analytics
+                    </span>
+                    질문 생성하기
+                  </>
+                )}
+              </Button>
+              {createSession.error ? (
+                <p className="text-sm font-semibold text-destructive">
+                  생성 오류:{" "}
+                  {createSession.error instanceof Error
+                    ? createSession.error.message
+                    : String(createSession.error)}
+                </p>
+              ) : null}
             </div>
-          )}
-        </section>
-
-        <section className="flex flex-col rounded-xl border border-primary/10 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-white/5 dark:bg-white/5">
-          <div className="mb-4 flex items-center gap-3">
-            <span className="material-symbols-outlined rounded-lg bg-primary/10 p-2 text-primary">
-              link
-            </span>
-            <h3 className="text-lg font-bold">포트폴리오</h3>
-          </div>
-
-          <div className="flex h-full flex-col gap-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                포지션
-              </span>
-              <select
-                className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                value={positionType}
-                onChange={(e) => setPositionType(e.target.value as PositionType)}
-              >
-                <option value="BE">Backend (BE)</option>
-                <option value="FE">Frontend (FE)</option>
-                <option value="MOBILE">Mobile</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                GitHub · Notion · 개인 웹사이트 URL
-              </span>
-              <input
-                className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
-                placeholder="https://github.com/username/project"
-                value={portfolioUrl}
-                onChange={(e) => setPortfolioUrl(e.target.value)}
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                포트폴리오 파일 (선택)
-              </span>
-              <select
-                className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                value={selectedPortfolioId ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelectedPortfolioId(v ? Number(v) : null);
-                }}
-              >
-                <option value="">선택 안 함</option>
-                {portfolios.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} ({p.originalFilename})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              className={[
-                "mt-auto flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70",
-                createSession.isPending ? "animate-pulse-glow" : "",
-              ].join(" ")}
-              disabled={!user || isBusy || !selectedResumeId}
-              onClick={() => void onCreateSession()}
-            >
-              {createSession.isPending ? (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                  AI가 질문을 생성하고 있어요...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-sm">analytics</span>
-                  질문 생성하기
-                </>
-              )}
-            </button>
-            {createSession.error ? (
-              <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                생성 오류:{" "}
-                {createSession.error instanceof Error
-                  ? createSession.error.message
-                  : String(createSession.error)}
-              </p>
-            ) : null}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* Question list + answer area */}
       <div className="mt-4 grid grid-cols-1 gap-8 xl:grid-cols-12">
+        {/* Question sidebar */}
         <section className="flex flex-col gap-4 xl:col-span-4">
           <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-xl font-bold">
+            <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
               <span className="material-symbols-outlined text-primary">
                 psychology
               </span>
               생성된 질문
             </h2>
-            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-bold text-primary">
-              {totalCount}개
-            </span>
+            <Badge variant="secondary">{totalCount}개</Badge>
           </div>
 
           <div className="custom-scrollbar flex max-h-[800px] flex-col gap-3 overflow-y-auto pr-2">
-            {createSession.isPending || (sessionQuery.isFetching && !session) ? (
+            {createSession.isPending ||
+            (sessionQuery.isFetching && !session) ? (
               <QuestionSkeleton />
             ) : null}
             {!createSession.isPending && !questions.length ? (
-              <div className="rounded-lg bg-white p-4 text-sm text-slate-500 shadow-sm dark:bg-white/5 dark:text-slate-300">
-                아직 생성된 질문이 없어요. 먼저 이력서를 선택하고 질문을 생성해 주세요.
-              </div>
+              <Card className="border-dashed">
+                <CardContent className="p-4 text-sm text-muted-foreground">
+                  아직 생성된 질문이 없어요. 먼저 이력서를 선택하고 질문을
+                  생성해 주세요.
+                </CardContent>
+              </Card>
             ) : null}
             {questions.map((q) => (
               <QuestionCard
@@ -298,86 +322,82 @@ export function ResumePortfolioPrepView() {
           </div>
         </section>
 
+        {/* Answer area */}
         <section className="flex flex-col gap-6 xl:col-span-8">
-          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-primary/10 bg-white shadow-lg dark:border-white/5 dark:bg-white/5">
-            <div className="border-b border-slate-100 bg-slate-50/50 p-6 dark:border-white/5 dark:bg-white/5">
-              <h3 className="mb-1 text-xs font-bold uppercase tracking-widest text-primary">
+          <Card className="flex flex-col overflow-hidden shadow-lg">
+            {/* Question header */}
+            <div className="border-b border-border bg-muted/30 p-6">
+              <Badge variant="outline" className="mb-2 text-[10px]">
                 진행 중인 연습 세션
-              </h3>
-              <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                질문: {activeQuestion?.question ?? "왼쪽에서 질문을 선택해 주세요."}
+              </Badge>
+              <p className="text-lg font-bold text-foreground">
+                {activeQuestion?.question ?? "왼쪽에서 질문을 선택해 주세요."}
               </p>
             </div>
 
+            {/* Answer input */}
             <div className="flex flex-1 flex-col gap-4 p-6">
-              <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">
-                    lightbulb
-                  </span>
-                  팁: STAR 기법(Situation, Task, Action, Result)을 활용해 보세요.
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="material-symbols-outlined text-sm">
+                  lightbulb
                 </span>
+                팁: STAR 기법(Situation, Task, Action, Result)을 활용해 보세요.
               </div>
 
-              <textarea
-                className="min-h-[300px] w-full flex-1 resize-none rounded-lg border-none bg-slate-50 p-6 text-lg leading-relaxed text-slate-900 outline-none placeholder:text-slate-300 focus:ring-2 focus:ring-primary/20 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500"
-                placeholder="여기에 답변을 작성해 보세요... 예: 이 프로젝트에서는 비동기 사이드 이펙트가 많아 마이크로서비스 아키텍처를 선택했고..."
+              <Textarea
+                className="min-h-[280px] flex-1 resize-none border-none bg-muted/30 p-5 text-base leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/20"
+                placeholder="여기에 답변을 작성해 보세요..."
                 value={activeAnswer}
                 onChange={(e) => {
                   if (!activeQuestionId) return;
                   const v = e.target.value;
-                  setAnswersByQuestion((prev) => ({ ...prev, [activeQuestionId]: v }));
+                  setAnswersByQuestion((prev) => ({
+                    ...prev,
+                    [activeQuestionId]: v,
+                  }));
                 }}
               />
 
               <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="p-2 text-slate-400 transition-colors hover:text-primary dark:text-slate-500"
-                    aria-label="음성 입력"
-                  >
-                    <span className="material-symbols-outlined">mic</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="p-2 text-slate-400 transition-colors hover:text-primary dark:text-slate-500"
-                    aria-label="목차"
-                  >
-                    <span className="material-symbols-outlined">
-                      format_list_bulleted
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="p-2 text-slate-400 transition-colors hover:text-primary dark:text-slate-500"
-                    aria-label="코드"
-                  >
-                    <span className="material-symbols-outlined">code</span>
-                  </button>
+                <div className="flex items-center gap-1">
+                  {["mic", "format_list_bulleted", "code"].map((icon) => (
+                    <button
+                      key={icon}
+                      type="button"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      aria-label={icon}
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        {icon}
+                      </span>
+                    </button>
+                  ))}
                 </div>
 
                 <div className="flex flex-col items-end gap-1">
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 rounded-lg bg-primary px-8 py-3 font-bold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                  <Button
+                    className="gap-2 px-8 shadow-md shadow-primary/15"
                     disabled={!activeQuestionId || isBusy}
                     onClick={() => void onCreateFeedback()}
                   >
                     {createFeedback.isPending ? (
                       <>
-                        <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                        <span className="material-symbols-outlined animate-spin">
+                          progress_activity
+                        </span>
                         피드백 생성 중...
                       </>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined">auto_fix_high</span>
+                        <span className="material-symbols-outlined">
+                          auto_fix_high
+                        </span>
                         AI 피드백 받기
                       </>
                     )}
-                  </button>
+                  </Button>
                   {createFeedback.isPending && (
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                       <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
                     </div>
                   )}
@@ -385,79 +405,84 @@ export function ResumePortfolioPrepView() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 bg-slate-50 p-6 dark:border-white/5 dark:bg-white/5">
+            {/* Feedback panel */}
+            <div className="border-t border-border bg-muted/20 p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h4 className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200">
-                  <span className="material-symbols-outlined text-green-500">
+                <h4 className="flex items-center gap-2 font-bold text-foreground">
+                  <span className="material-symbols-outlined text-emerald-500">
                     check_circle
                   </span>
                   AI 평가
                 </h4>
-                <div className="flex gap-1">
-                  <div className="size-2 rounded-full bg-green-500" />
-                  <div className="size-2 rounded-full bg-yellow-400" />
-                  <div className="size-2 rounded-full bg-slate-300" />
-                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-tighter text-green-600">
-                    잘한 점
-                  </p>
-                  <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                    {activeFeedback?.strengths?.length ? (
-                      activeFeedback.strengths.map((s, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="material-symbols-outlined text-xs text-green-500">
-                            done
-                          </span>
-                          {s}
+                {/* Strengths */}
+                <Card className="border-l-4 border-l-emerald-500">
+                  <CardContent className="p-4">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
+                      잘한 점
+                    </p>
+                    <ul className="space-y-2 text-sm text-foreground">
+                      {activeFeedback?.strengths?.length ? (
+                        activeFeedback.strengths.map((s, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="material-symbols-outlined text-sm text-emerald-500">
+                              done
+                            </span>
+                            {s}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-muted-foreground">
+                          아직 피드백이 없어요.
                         </li>
-                      ))
-                    ) : (
-                      <li className="text-slate-400 dark:text-slate-500">
-                        아직 피드백이 없어요.
-                      </li>
-                    )}
-                  </ul>
-                </div>
+                      )}
+                    </ul>
+                  </CardContent>
+                </Card>
 
-                <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-tighter text-amber-600">
-                    개선할 점
-                  </p>
-                  <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                    {activeFeedback?.improvements?.length ? (
-                      activeFeedback.improvements.map((s, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <span className="material-symbols-outlined text-xs text-amber-500">
-                            info
-                          </span>
-                          {s}
+                {/* Improvements */}
+                <Card className="border-l-4 border-l-amber-500">
+                  <CardContent className="p-4">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+                      개선할 점
+                    </p>
+                    <ul className="space-y-2 text-sm text-foreground">
+                      {activeFeedback?.improvements?.length ? (
+                        activeFeedback.improvements.map((s, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="material-symbols-outlined text-sm text-amber-500">
+                              info
+                            </span>
+                            {s}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-muted-foreground">
+                          아직 피드백이 없어요.
                         </li>
-                      ))
-                    ) : (
-                      <li className="text-slate-400 dark:text-slate-500">
-                        아직 피드백이 없어요.
-                      </li>
-                    )}
-                  </ul>
-                </div>
+                      )}
+                    </ul>
+                  </CardContent>
+                </Card>
               </div>
 
-              <div className="mt-4 rounded-lg border border-primary/10 bg-primary/5 p-4 dark:border-white/10 dark:bg-white/5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-tighter text-primary">
-                  AI 개선 예시 답변
-                </p>
-                <p className="text-sm italic leading-relaxed text-slate-700 dark:text-slate-300">
-                  {activeFeedback?.suggestedAnswer
-                    ? activeFeedback.suggestedAnswer
-                    : "피드백을 생성하면 개선 예시 답변이 표시됩니다."}
-                </p>
-              </div>
+              <Card className="mt-4 border-primary/20 bg-primary/5">
+                <CardContent className="p-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
+                    AI 개선 예시 답변
+                  </p>
+                  <p className="text-sm italic leading-relaxed text-foreground/80">
+                    {activeFeedback?.suggestedAnswer
+                      ? activeFeedback.suggestedAnswer
+                      : "피드백을 생성하면 개선 예시 답변이 표시됩니다."}
+                  </p>
+                </CardContent>
+              </Card>
+
               {createFeedback.error ? (
-                <p className="mt-4 text-sm font-semibold text-red-600 dark:text-red-400">
+                <p className="mt-4 text-sm font-semibold text-destructive">
                   피드백 오류:{" "}
                   {createFeedback.error instanceof Error
                     ? createFeedback.error.message
@@ -465,57 +490,57 @@ export function ResumePortfolioPrepView() {
                 </p>
               ) : null}
             </div>
-          </div>
+          </Card>
         </section>
       </div>
 
-      <section className="mt-4 flex flex-wrap items-center justify-between gap-6 rounded-xl border border-primary/10 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-white/5">
-        <div className="flex items-center gap-8">
-          <div className="flex flex-col">
-            <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-              시도한 질문
-            </span>
-            <span className="text-2xl font-black text-primary">
-              {attemptedCount.toString().padStart(2, "0")} /{" "}
-              {totalCount.toString().padStart(2, "0")}
-            </span>
+      {/* Progress bar */}
+      <Card className="mt-4">
+        <CardContent className="flex flex-wrap items-center justify-between gap-6 p-6">
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                시도한 질문
+              </span>
+              <span className="text-2xl font-black text-primary">
+                {attemptedCount.toString().padStart(2, "0")} /{" "}
+                {totalCount.toString().padStart(2, "0")}
+              </span>
+            </div>
+            <div className="h-10 w-px bg-border" />
+            <div className="flex flex-col">
+              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                피드백 상태
+              </span>
+              <span className="text-2xl font-black text-emerald-500">
+                {isBusy ? "진행 중" : "대기"}
+              </span>
+            </div>
           </div>
-          <div className="h-10 w-[1px] bg-slate-200 dark:bg-white/10" />
-          <div className="flex flex-col">
-            <span className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-              피드백 상태
-            </span>
-            <span className="text-2xl font-black text-green-500">
-              {isBusy ? "진행 중" : "대기"}
-            </span>
-          </div>
-        </div>
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-300"
-            disabled
-          >
-            <span className="material-symbols-outlined">download</span>
-            연습 기록 내보내기
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={!questions.length}
-            onClick={() => {
-              if (!questions.length) return;
-              const idx = questions.findIndex((q) => q.id === activeQuestionId);
-              const next = questions[(idx + 1) % questions.length];
-              setActiveQuestionId(next.id);
-            }}
-          >
-            <span className="material-symbols-outlined">navigate_next</span>
-            다음 연습 세션
-          </button>
-        </div>
-      </section>
+          <div className="flex gap-3">
+            <Button variant="ghost" disabled className="gap-2">
+              <span className="material-symbols-outlined">download</span>
+              연습 기록 내보내기
+            </Button>
+            <Button
+              className="gap-2"
+              disabled={!questions.length}
+              onClick={() => {
+                if (!questions.length) return;
+                const idx = questions.findIndex(
+                  (q) => q.id === activeQuestionId
+                );
+                const next = questions[(idx + 1) % questions.length];
+                setActiveQuestionId(next.id);
+              }}
+            >
+              <span className="material-symbols-outlined">navigate_next</span>
+              다음 연습 세션
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <AnalysisProgressOverlay
         isActive={showOverlay && createSession.isPending}
@@ -541,12 +566,13 @@ function QuestionCard({
   onClick?: () => void;
 }) {
   return (
-    <div
-      className={[
-        "group cursor-pointer rounded-lg bg-white p-4 shadow-sm transition-all hover:shadow-md dark:bg-white/5",
-        "border-l-4",
-        active ? "border-primary" : "border-slate-200 dark:border-white/10",
-      ].join(" ")}
+    <Card
+      className={cn(
+        "group cursor-pointer border-l-4 transition-all hover:shadow-md",
+        active
+          ? "border-l-primary bg-primary/5"
+          : "border-l-transparent hover:border-l-primary/30"
+      )}
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -554,25 +580,25 @@ function QuestionCard({
         if (e.key === "Enter" || e.key === " ") onClick?.();
       }}
     >
-      <div className="mb-2 flex items-start justify-between">
-        <span
-          className={[
-            "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-            badgeTone === "primary"
-              ? "bg-primary text-white"
-              : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300",
-          ].join(" ")}
-        >
-          {badge}
-        </span>
-        <span className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
-          <span className="material-symbols-outlined text-xs">trending_up</span>
-          출제 확률: {likelihood}%
-        </span>
-      </div>
-      <p className="text-sm font-semibold text-slate-900 transition-colors group-hover:text-primary dark:text-slate-100">
-        {text}
-      </p>
-    </div>
+      <CardContent className="p-4">
+        <div className="mb-2 flex items-start justify-between">
+          <Badge
+            variant={badgeTone === "primary" ? "default" : "secondary"}
+            className="text-[10px]"
+          >
+            {badge}
+          </Badge>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="material-symbols-outlined text-xs">
+              trending_up
+            </span>
+            {likelihood}%
+          </span>
+        </div>
+        <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
+          {text}
+        </p>
+      </CardContent>
+    </Card>
   );
 }

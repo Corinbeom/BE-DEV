@@ -13,23 +13,29 @@ import type {
   CsQuizSession,
   CsQuizTopic,
 } from "../api/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
-const TOPICS: { id: CsQuizTopic; label: string }[] = [
-  { id: "OS", label: "운영체제" },
-  { id: "NETWORK", label: "네트워크" },
-  { id: "DB", label: "데이터베이스" },
-  { id: "SPRING", label: "Spring" },
-  { id: "JAVA", label: "Java" },
-  { id: "DATA_STRUCTURE", label: "자료구조" },
-  { id: "ALGORITHM", label: "알고리즘" },
-  { id: "ARCHITECTURE", label: "아키텍처 설계" },
-  { id: "CLOUD", label: "클라우드 설계" },
+const TOPICS: { id: CsQuizTopic; label: string; icon: string }[] = [
+  { id: "OS", label: "운영체제", icon: "memory" },
+  { id: "NETWORK", label: "네트워크", icon: "lan" },
+  { id: "DB", label: "데이터베이스", icon: "database" },
+  { id: "SPRING", label: "Spring", icon: "eco" },
+  { id: "JAVA", label: "Java", icon: "coffee" },
+  { id: "DATA_STRUCTURE", label: "자료구조", icon: "account_tree" },
+  { id: "ALGORITHM", label: "알고리즘", icon: "functions" },
+  { id: "ARCHITECTURE", label: "아키텍처 설계", icon: "architecture" },
+  { id: "CLOUD", label: "클라우드 설계", icon: "cloud" },
 ];
 
-const DIFFICULTIES: { id: CsQuizDifficulty; label: string }[] = [
-  { id: "LOW", label: "하" },
-  { id: "MID", label: "중" },
-  { id: "HIGH", label: "상" },
+const DIFFICULTIES: { id: CsQuizDifficulty; label: string; color: string }[] = [
+  { id: "LOW", label: "하", color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
+  { id: "MID", label: "중", color: "text-amber-600 bg-amber-500/10 border-amber-500/30" },
+  { id: "HIGH", label: "상", color: "text-red-600 bg-red-500/10 border-red-500/30" },
 ];
 
 export function StudyQuizPracticeView() {
@@ -102,285 +108,339 @@ export function StudyQuizPracticeView() {
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+      {/* Left panel: Session builder + question list */}
       <aside className="custom-scrollbar lg:col-span-4 lg:pr-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-white/5 dark:bg-white/5">
-          <div className="mb-6">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              CS 퀴즈 세션 만들기
-            </h3>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              객관식 60% + 주관식 40%로 세션을 생성해요.
-            </p>
-          </div>
-
-          {createSession.error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-200">
-              {createSession.error instanceof Error
-                ? createSession.error.message
-                : "세션 생성 오류"}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                난이도
-              </div>
-              <div className="flex gap-2">
-                {DIFFICULTIES.map((d) => (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => setDifficulty(d.id)}
-                    className={
-                      d.id === difficulty
-                        ? "rounded-lg bg-primary/10 px-3 py-2 text-sm font-bold text-primary"
-                        : "rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5"
-                    }
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <h3 className="text-base font-bold text-foreground">
+                CS 퀴즈 세션 만들기
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                객관식 60% + 주관식 40%로 세션을 생성해요.
+              </p>
             </div>
 
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                토픽 (복수 선택)
+            {createSession.error && (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {createSession.error instanceof Error
+                  ? createSession.error.message
+                  : "세션 생성 오류"}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                {TOPICS.map((t) => {
-                  const checked = selectedTopics.includes(t.id);
-                  return (
-                    <label
-                      key={t.id}
-                      className={
-                        checked
-                          ? "flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                          : "flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/5 dark:text-slate-300 dark:hover:bg-white/5"
-                      }
+            )}
+
+            <div className="space-y-5">
+              {/* Difficulty */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  난이도
+                </p>
+                <div className="flex gap-2">
+                  {DIFFICULTIES.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setDifficulty(d.id)}
+                      className={cn(
+                        "flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-all",
+                        d.id === difficulty
+                          ? d.color
+                          : "border-border text-muted-foreground hover:bg-accent"
+                      )}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Topics */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  토픽 (복수 선택)
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {TOPICS.map((t) => {
+                    const checked = selectedTopics.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
                           setSelectedTopics((prev) =>
                             checked
                               ? prev.filter((x) => x !== t.id)
-                              : [...prev, t.id],
+                              : [...prev, t.id]
                           );
                         }}
-                      />
-                      <span>{t.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                최소 1개 이상 선택해 주세요.
-              </p>
-            </div>
-
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                문항 수 (5~10)
-              </div>
-              <input
-                type="number"
-                min={5}
-                max={10}
-                value={questionCount}
-                onChange={(e) =>
-                  setQuestionCount(
-                    Math.max(
-                      5,
-                      Math.min(10, Number(e.target.value) || 10),
-                    ),
-                  )
-                }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-black/20"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={onCreateSession}
-              disabled={!user || selectedTopics.length === 0 || isBusy}
-              className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 disabled:opacity-50"
-            >
-              {createSession.isPending ? "세션 생성 중…" : "세션 생성하기"}
-            </button>
-          </div>
-
-          <div className="mt-8 border-t border-slate-200 pt-6 dark:border-white/5">
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              문제 목록
-            </h3>
-            {!session ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                세션을 생성하면 문제가 표시돼요.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {questions.map((q) => {
-                  const isActive = q.id === (activeQuestion?.id ?? null);
-                  const attempted = Boolean(attemptByQuestion[q.id]);
-                  return (
-                    <button
-                      key={q.id}
-                      type="button"
-                      onClick={() => setActiveQuestionId(q.id)}
-                      className={
-                        isActive
-                          ? "flex w-full items-start justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-left"
-                          : "flex w-full items-start justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5"
-                      }
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                          {q.topic} •{" "}
-                          {q.type === "MULTIPLE_CHOICE" ? "객관식" : "주관식"}
-                        </div>
-                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {q.prompt}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-xs font-bold">
-                        {attempted ? (
-                          <span className="rounded bg-green-100 px-2 py-0.5 text-green-700">
-                            완료
-                          </span>
-                        ) : (
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                            대기
-                          </span>
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all text-left",
+                          checked
+                            ? "border-primary/30 bg-primary/5 text-foreground"
+                            : "border-border text-muted-foreground hover:bg-accent"
                         )}
-                      </div>
-                    </button>
-                  );
-                })}
+                      >
+                        <span className={cn(
+                          "material-symbols-outlined text-base",
+                          checked ? "text-primary" : "text-muted-foreground"
+                        )}>
+                          {t.icon}
+                        </span>
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  최소 1개 이상 선택해 주세요.
+                </p>
               </div>
-            )}
-          </div>
-        </div>
+
+              {/* Question count */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  문항 수 (5~10)
+                </p>
+                <input
+                  type="number"
+                  min={5}
+                  max={10}
+                  value={questionCount}
+                  onChange={(e) =>
+                    setQuestionCount(
+                      Math.max(
+                        5,
+                        Math.min(10, Number(e.target.value) || 10)
+                      )
+                    )
+                  }
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                onClick={onCreateSession}
+                disabled={!user || selectedTopics.length === 0 || isBusy}
+              >
+                {createSession.isPending ? "세션 생성 중..." : "세션 생성하기"}
+              </Button>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Question list */}
+            <div>
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                문제 목록
+              </h3>
+              {!session ? (
+                <p className="text-sm text-muted-foreground">
+                  세션을 생성하면 문제가 표시돼요.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {questions.map((q, idx) => {
+                    const isActive = q.id === (activeQuestion?.id ?? null);
+                    const attempted = Boolean(attemptByQuestion[q.id]);
+                    return (
+                      <button
+                        key={q.id}
+                        type="button"
+                        onClick={() => setActiveQuestionId(q.id)}
+                        className={cn(
+                          "flex w-full items-start justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-all",
+                          isActive
+                            ? "border-primary/30 bg-primary/5 shadow-sm"
+                            : "border-border hover:bg-accent"
+                        )}
+                      >
+                        <div className="flex items-start gap-2 min-w-0">
+                          <span className={cn(
+                            "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          )}>
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-xs text-muted-foreground">
+                              {q.topic} ·{" "}
+                              {q.type === "MULTIPLE_CHOICE"
+                                ? "객관식"
+                                : "주관식"}
+                            </div>
+                            <div className="truncate text-sm font-medium text-foreground">
+                              {q.prompt}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={attempted ? "default" : "secondary"}
+                          className="shrink-0 text-[10px]"
+                        >
+                          {attempted ? "완료" : "대기"}
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </aside>
 
+      {/* Right panel: Active question */}
       <section className="custom-scrollbar lg:col-span-8">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-white/5 dark:bg-white/5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                {session ? session.title : "CS 퀴즈"}
-              </h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {session
-                  ? `${session.difficulty} • ${session.topics.join(", ")} • ${questions.length}문항`
-                  : "세션을 생성해 시작하세요."}
-              </p>
-            </div>
-          </div>
-
-          {!activeQuestion ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-white/5 dark:bg-white/5 dark:text-slate-300">
-              아직 문제가 없습니다.
-            </div>
-          ) : (
-            <>
-              <div className="rounded-xl border border-slate-200 p-5 dark:border-white/5">
-                <div className="mb-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-                  {activeQuestion.topic} •{" "}
-                  {activeQuestion.type === "MULTIPLE_CHOICE"
-                    ? "객관식"
-                    : "주관식"}
-                </div>
-                <div className="text-base font-semibold leading-relaxed text-slate-900 dark:text-slate-100">
-                  {activeQuestion.prompt}
-                </div>
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-xl font-bold text-foreground">
+                  {session ? session.title : "CS 퀴즈"}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {session
+                    ? `${session.difficulty} · ${session.topics.join(", ")} · ${questions.length}문항`
+                    : "세션을 생성해 시작하세요."}
+                </p>
               </div>
+            </div>
 
-              {activeQuestion.type === "MULTIPLE_CHOICE" ? (
-                <div className="mt-4 space-y-3">
-                  {activeQuestion.choices.map((c, idx) => (
-                    <label
-                      key={idx}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5"
-                    >
-                      <input
-                        type="radio"
-                        name={`q-${activeQuestion.id}`}
-                        checked={
-                          mcqSelectedIndexByQuestion[activeQuestion.id] === idx
-                        }
-                        onChange={() =>
-                          setMcqSelectedIndexByQuestion((prev) => ({
-                            ...prev,
-                            [activeQuestion.id]: idx,
-                          }))
+            {!activeQuestion ? (
+              <Card className="border-dashed">
+                <CardContent className="p-4 text-sm text-muted-foreground">
+                  아직 문제가 없습니다.
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Question prompt */}
+                <Card className="border-l-4 border-l-primary bg-muted/20">
+                  <CardContent className="p-5">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        {activeQuestion.topic}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {activeQuestion.type === "MULTIPLE_CHOICE"
+                          ? "객관식"
+                          : "주관식"}
+                      </Badge>
+                    </div>
+                    <div className="text-base font-semibold leading-relaxed text-foreground">
+                      {activeQuestion.prompt}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Choices / answer */}
+                {activeQuestion.type === "MULTIPLE_CHOICE" ? (
+                  <div className="mt-4 space-y-3">
+                    {activeQuestion.choices.map((c, idx) => {
+                      const selected =
+                        mcqSelectedIndexByQuestion[activeQuestion.id] === idx;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() =>
+                            setMcqSelectedIndexByQuestion((prev) => ({
+                              ...prev,
+                              [activeQuestion.id]: idx,
+                            }))
+                          }
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all",
+                            selected
+                              ? "border-primary bg-primary/5 shadow-sm"
+                              : "border-border hover:bg-accent"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border text-muted-foreground"
+                            )}
+                          >
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <span className="text-sm font-medium text-foreground">
+                            {c}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <Textarea
+                      value={saAnswerByQuestion[activeQuestion.id] ?? ""}
+                      onChange={(e) =>
+                        setSaAnswerByQuestion((prev) => ({
+                          ...prev,
+                          [activeQuestion.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="답변을 작성해 주세요."
+                      rows={6}
+                      className="resize-none border-input bg-background"
+                    />
+                  </div>
+                )}
+
+                <div className="mt-4 flex items-center justify-end gap-3">
+                  <Button
+                    onClick={onSubmit}
+                    disabled={
+                      !activeQuestion ||
+                      submitAttempt.isPending ||
+                      (activeQuestion.type === "MULTIPLE_CHOICE" &&
+                        typeof mcqSelectedIndexByQuestion[
+                          activeQuestion.id
+                        ] !== "number") ||
+                      (activeQuestion.type === "SHORT_ANSWER" &&
+                        !(
+                          saAnswerByQuestion[activeQuestion.id] ?? ""
+                        ).trim())
+                    }
+                    className="gap-2 shadow-md shadow-primary/15"
+                  >
+                    {submitAttempt.isPending
+                      ? "제출 중..."
+                      : "제출하고 피드백 받기"}
+                  </Button>
+                </div>
+
+                {/* Feedback */}
+                {(submitAttempt.error instanceof Error ||
+                  attemptByQuestion[activeQuestion.id]) && (
+                  <div className="mt-6">
+                    {submitAttempt.error instanceof Error ? (
+                      <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                        {submitAttempt.error.message}
+                      </div>
+                    ) : null}
+
+                    {attemptByQuestion[activeQuestion.id] ? (
+                      <FeedbackPanel
+                        attempt={
+                          attemptByQuestion[
+                            activeQuestion.id
+                          ] as CsQuizAttempt
                         }
                       />
-                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {c}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4">
-                  <textarea
-                    value={saAnswerByQuestion[activeQuestion.id] ?? ""}
-                    onChange={(e) =>
-                      setSaAnswerByQuestion((prev) => ({
-                        ...prev,
-                        [activeQuestion.id]: e.target.value,
-                      }))
-                    }
-                    placeholder="답변을 작성해 주세요."
-                    rows={6}
-                    className="w-full resize-none rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-900 dark:border-white/10 dark:bg-black/20 dark:text-slate-100"
-                  />
-                </div>
-              )}
-
-              <div className="mt-4 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onSubmit}
-                  disabled={
-                    !activeQuestion ||
-                    submitAttempt.isPending ||
-                    (activeQuestion.type === "MULTIPLE_CHOICE" &&
-                      typeof mcqSelectedIndexByQuestion[activeQuestion.id] !==
-                        "number") ||
-                    (activeQuestion.type === "SHORT_ANSWER" &&
-                      !(saAnswerByQuestion[activeQuestion.id] ?? "").trim())
-                  }
-                  className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 disabled:opacity-50"
-                >
-                  {submitAttempt.isPending
-                    ? "제출 중…"
-                    : "제출하고 피드백 받기"}
-                </button>
-              </div>
-
-              {(submitAttempt.error instanceof Error ||
-                attemptByQuestion[activeQuestion.id]) && (
-                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-white/5 dark:bg-white/5">
-                  {submitAttempt.error instanceof Error ? (
-                    <div className="text-sm text-red-700 dark:text-red-200">
-                      {submitAttempt.error.message}
-                    </div>
-                  ) : null}
-
-                  {attemptByQuestion[activeQuestion.id] ? (
-                    <FeedbackPanel
-                      attempt={attemptByQuestion[activeQuestion.id] as CsQuizAttempt}
-                    />
-                  ) : null}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                    ) : null}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
@@ -390,56 +450,81 @@ function FeedbackPanel({ attempt }: { attempt: CsQuizAttempt }) {
   return (
     <div className="space-y-4">
       {typeof attempt.correct === "boolean" ? (
-        <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-          채점 결과: {attempt.correct ? "정답" : "오답"}
-        </div>
+        <Card className={cn(
+          "border-l-4",
+          attempt.correct ? "border-l-emerald-500" : "border-l-red-500"
+        )}>
+          <CardContent className="p-4">
+            <span className={cn(
+              "text-sm font-bold",
+              attempt.correct ? "text-emerald-600" : "text-red-600"
+            )}>
+              채점 결과: {attempt.correct ? "정답" : "오답"}
+            </span>
+          </CardContent>
+        </Card>
       ) : null}
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Strengths
-        </div>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-200">
-          {(attempt.strengths ?? []).map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-          {attempt.strengths.length === 0 ? <li>표시할 내용이 없습니다.</li> : null}
-        </ul>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
+              Strengths
+            </p>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+              {(attempt.strengths ?? []).map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+              {attempt.strengths.length === 0 ? (
+                <li className="text-muted-foreground">표시할 내용이 없습니다.</li>
+              ) : null}
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="p-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+              Improvements
+            </p>
+            <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+              {(attempt.improvements ?? []).map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+              {attempt.improvements.length === 0 ? (
+                <li className="text-muted-foreground">표시할 내용이 없습니다.</li>
+              ) : null}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Improvements
-        </div>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-200">
-          {(attempt.improvements ?? []).map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-          {attempt.improvements.length === 0 ? <li>표시할 내용이 없습니다.</li> : null}
-        </ul>
-      </div>
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
+            Suggested Answer
+          </p>
+          <p className="whitespace-pre-wrap text-sm text-foreground">
+            {attempt.suggestedAnswer ?? "(없음)"}
+          </p>
+        </CardContent>
+      </Card>
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Suggested Answer
-        </div>
-        <p className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200">
-          {attempt.suggestedAnswer ?? "(없음)"}
-        </p>
-      </div>
-
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Follow-ups
-        </div>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-200">
-          {(attempt.followups ?? []).map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-          {attempt.followups.length === 0 ? <li>표시할 내용이 없습니다.</li> : null}
-        </ul>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Follow-ups
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+            {(attempt.followups ?? []).map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+            {attempt.followups.length === 0 ? (
+              <li className="text-muted-foreground">표시할 내용이 없습니다.</li>
+            ) : null}
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
