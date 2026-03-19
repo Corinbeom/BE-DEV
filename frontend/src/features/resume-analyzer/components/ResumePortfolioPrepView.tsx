@@ -5,7 +5,12 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeFiles } from "@/features/profile/hooks/useResumeFiles";
-import type { PositionType, ResumeFeedback, ResumeSession } from "../api/types";
+import type {
+  PositionType,
+  ResumeFeedback,
+  ResumeQuestion,
+  ResumeSession,
+} from "../api/types";
 import {
   useCreateResumeFeedback,
   useCreateResumeSession,
@@ -17,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 export function ResumePortfolioPrepView() {
@@ -69,6 +75,7 @@ export function ResumePortfolioPrepView() {
 
   const attemptedCount = Object.keys(feedbackByQuestion).length;
   const totalCount = questions.length;
+  const progressPercent = totalCount > 0 ? (attemptedCount / totalCount) * 100 : 0;
 
   const [showOverlay, setShowOverlay] = useState(false);
 
@@ -76,6 +83,8 @@ export function ResumePortfolioPrepView() {
     createSession.isPending ||
     sessionQuery.isFetching ||
     createFeedback.isPending;
+
+  const hasNoFiles = !isLoadingFiles && resumes.length === 0;
 
   async function onCreateSession() {
     if (!selectedResumeId) {
@@ -119,22 +128,53 @@ export function ResumePortfolioPrepView() {
     setFeedbackByQuestion((prev) => ({ ...prev, [activeQuestionId]: fb }));
   }
 
-  const hasNoFiles = !isLoadingFiles && resumes.length === 0;
+  function goToNextQuestion() {
+    if (!questions.length) return;
+    const idx = questions.findIndex((q) => q.id === activeQuestionId);
+    const next = questions[(idx + 1) % questions.length];
+    setActiveQuestionId(next.id);
+  }
 
-  return (
-    <div className="flex flex-col gap-8">
-      {/* Setup cards */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Resume selection */}
-        <Card className="transition-shadow hover:shadow-md">
-          <CardContent className="p-6">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <span className="material-symbols-outlined">description</span>
-              </div>
-              <h3 className="text-lg font-bold text-foreground">이력서 선택</h3>
-            </div>
+  function resetSession() {
+    setSessionId(null);
+    setActiveQuestionId(null);
+    setAnswersByQuestion({});
+    setFeedbackByQuestion({});
+  }
 
+  // Parse comma-separated keywords string into array
+  const activeKeywords = useMemo(() => {
+    if (!activeQuestion?.keywords) return [];
+    return activeQuestion.keywords
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+  }, [activeQuestion]);
+
+  // ─── Phase 1: Session Setup ───
+  if (!session) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+        {/* Hero */}
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10">
+            <span className="material-symbols-outlined text-3xl text-primary">
+              psychology
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">
+            AI 면접 질문 생성기
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            이력서를 분석해 실제 면접에서 나올 수 있는 질문을 생성하고,
+            <br />
+            AI 피드백으로 답변을 개선해 보세요.
+          </p>
+        </div>
+
+        {/* Setup Form Card */}
+        <Card>
+          <CardContent className="flex flex-col gap-5 p-6">
             {hasNoFiles ? (
               <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-muted/30 p-8">
                 <span className="material-symbols-outlined text-4xl text-muted-foreground/50">
@@ -151,7 +191,8 @@ export function ResumePortfolioPrepView() {
                 </Link>
               </div>
             ) : (
-              <div className="flex h-full flex-col gap-4">
+              <>
+                {/* Resume select */}
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     이력서
@@ -171,376 +212,331 @@ export function ResumePortfolioPrepView() {
                       </option>
                     ))}
                   </select>
+                  <p className="text-xs text-muted-foreground">
+                    <Link
+                      href="/profile"
+                      className="font-semibold text-primary underline"
+                    >
+                      프로필 페이지
+                    </Link>
+                    에서 이력서를 업로드하면 여기에 표시됩니다.
+                  </p>
                 </label>
-                <p className="text-xs text-muted-foreground">
-                  프로필 페이지에서 이력서를 업로드하면 여기에 표시됩니다.{" "}
-                  <Link
-                    href="/profile"
-                    className="font-semibold text-primary underline"
+
+                {/* Position select */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    포지션
+                  </span>
+                  <select
+                    className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+                    value={positionType}
+                    onChange={(e) =>
+                      setPositionType(e.target.value as PositionType)
+                    }
                   >
-                    프로필로 이동
-                  </Link>
-                </p>
-              </div>
+                    <option value="BE">Backend (BE)</option>
+                    <option value="FE">Frontend (FE)</option>
+                    <option value="MOBILE">Mobile</option>
+                  </select>
+                </label>
+
+                {/* Portfolio URL */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    GitHub · Notion · 개인 웹사이트 URL
+                  </span>
+                  <input
+                    className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20"
+                    placeholder="https://github.com/username/project"
+                    value={portfolioUrl}
+                    onChange={(e) => setPortfolioUrl(e.target.value)}
+                  />
+                </label>
+
+                {/* Portfolio file */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    포트폴리오 파일 (선택)
+                  </span>
+                  <select
+                    className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
+                    value={selectedPortfolioId ?? ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setSelectedPortfolioId(v ? Number(v) : null);
+                    }}
+                  >
+                    <option value="">선택 안 함</option>
+                    {portfolios.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title} ({p.originalFilename})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {/* CTA */}
+                <Button
+                  size="lg"
+                  className={cn(
+                    "mt-2 w-full gap-2",
+                    createSession.isPending && "animate-pulse-glow"
+                  )}
+                  disabled={!user || isBusy || !selectedResumeId}
+                  onClick={() => void onCreateSession()}
+                >
+                  {createSession.isPending ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin text-sm">
+                        progress_activity
+                      </span>
+                      AI가 질문을 생성하고 있어요...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">
+                        analytics
+                      </span>
+                      질문 생성하기
+                    </>
+                  )}
+                </Button>
+                {createSession.error && (
+                  <p className="text-sm font-semibold text-destructive">
+                    생성 오류:{" "}
+                    {createSession.error instanceof Error
+                      ? createSession.error.message
+                      : String(createSession.error)}
+                  </p>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
 
-        {/* Portfolio & position */}
-        <Card className="transition-shadow hover:shadow-md">
-          <CardContent className="flex flex-col p-6">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <span className="material-symbols-outlined">link</span>
-              </div>
-              <h3 className="text-lg font-bold text-foreground">포트폴리오</h3>
-            </div>
-
-            <div className="flex flex-1 flex-col gap-4">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  포지션
-                </span>
-                <select
-                  className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
-                  value={positionType}
-                  onChange={(e) =>
-                    setPositionType(e.target.value as PositionType)
-                  }
-                >
-                  <option value="BE">Backend (BE)</option>
-                  <option value="FE">Frontend (FE)</option>
-                  <option value="MOBILE">Mobile</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  GitHub · Notion · 개인 웹사이트 URL
-                </span>
-                <input
-                  className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20"
-                  placeholder="https://github.com/username/project"
-                  value={portfolioUrl}
-                  onChange={(e) => setPortfolioUrl(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  포트폴리오 파일 (선택)
-                </span>
-                <select
-                  className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
-                  value={selectedPortfolioId ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSelectedPortfolioId(v ? Number(v) : null);
-                  }}
-                >
-                  <option value="">선택 안 함</option>
-                  {portfolios.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title} ({p.originalFilename})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Button
-                className={cn(
-                  "mt-auto w-full gap-2",
-                  createSession.isPending && "animate-pulse-glow"
-                )}
-                disabled={!user || isBusy || !selectedResumeId}
-                onClick={() => void onCreateSession()}
-              >
-                {createSession.isPending ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin text-sm">
-                      progress_activity
-                    </span>
-                    AI가 질문을 생성하고 있어요...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-sm">
-                      analytics
-                    </span>
-                    질문 생성하기
-                  </>
-                )}
-              </Button>
-              {createSession.error ? (
-                <p className="text-sm font-semibold text-destructive">
-                  생성 오류:{" "}
-                  {createSession.error instanceof Error
-                    ? createSession.error.message
-                    : String(createSession.error)}
-                </p>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
+        <AnalysisProgressOverlay
+          isActive={showOverlay && createSession.isPending}
+          isComplete={showOverlay && !createSession.isPending}
+        />
       </div>
+    );
+  }
 
-      {/* Question list + answer area */}
-      <div className="mt-4 grid grid-cols-1 gap-8 xl:grid-cols-12">
-        {/* Question sidebar */}
-        <section className="flex flex-col gap-4 xl:col-span-4">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
-              <span className="material-symbols-outlined text-primary">
-                psychology
-              </span>
-              생성된 질문
-            </h2>
-            <Badge variant="secondary">{totalCount}개</Badge>
+  // ─── Phase 2: Practice Session ───
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Session Header with Progress */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-foreground">
+            {session.title || "면접 연습"}
+          </h2>
+          {session.positionType && (
+            <Badge variant="secondary">{session.positionType}</Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Inline progress */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              <span className="font-bold text-foreground">{attemptedCount}</span>
+              {" / "}
+              {totalCount} 완료
+            </span>
+            <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           </div>
 
-          <div className="custom-scrollbar flex max-h-[800px] flex-col gap-3 overflow-y-auto pr-2">
+          <Button variant="outline" size="sm" onClick={resetSession}>
+            <span className="material-symbols-outlined mr-1 text-sm">
+              add
+            </span>
+            새 세션
+          </Button>
+        </div>
+      </div>
+
+      {/* Main: Question Nav + Answer/Feedback */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* Left: Question Navigation */}
+        <aside className="xl:col-span-3">
+          <div className="custom-scrollbar flex max-h-[calc(100vh-12rem)] flex-col gap-2 overflow-y-auto pr-1">
             {createSession.isPending ||
             (sessionQuery.isFetching && !session) ? (
               <QuestionSkeleton />
             ) : null}
-            {!createSession.isPending && !questions.length ? (
-              <Card className="border-dashed">
-                <CardContent className="p-4 text-sm text-muted-foreground">
-                  아직 생성된 질문이 없어요. 먼저 이력서를 선택하고 질문을
-                  생성해 주세요.
-                </CardContent>
-              </Card>
-            ) : null}
-            {questions.map((q) => (
-              <QuestionCard
-                key={q.id}
-                badge={q.badge}
-                badgeTone={q.id === activeQuestionId ? "primary" : "muted"}
-                likelihood={q.likelihood}
-                text={q.question ?? "(질문 내용이 비어있습니다)"}
-                active={q.id === activeQuestionId}
-                onClick={() => setActiveQuestionId(q.id)}
-              />
-            ))}
-          </div>
-        </section>
 
-        {/* Answer area */}
-        <section className="flex flex-col gap-6 xl:col-span-8">
-          <Card className="flex flex-col overflow-hidden shadow-lg">
-            {/* Question header */}
-            <div className="border-b border-border bg-muted/30 p-6">
-              <Badge variant="outline" className="mb-2 text-[10px]">
-                진행 중인 연습 세션
-              </Badge>
-              <p className="text-lg font-bold text-foreground">
-                {activeQuestion?.question ?? "왼쪽에서 질문을 선택해 주세요."}
-              </p>
-            </div>
-
-            {/* Answer input */}
-            <div className="flex flex-1 flex-col gap-4 p-6">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="material-symbols-outlined text-sm">
-                  lightbulb
-                </span>
-                팁: STAR 기법(Situation, Task, Action, Result)을 활용해 보세요.
-              </div>
-
-              <Textarea
-                className="min-h-[280px] flex-1 resize-none border-none bg-muted/30 p-5 text-base leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/20"
-                placeholder="여기에 답변을 작성해 보세요..."
-                value={activeAnswer}
-                onChange={(e) => {
-                  if (!activeQuestionId) return;
-                  const v = e.target.value;
-                  setAnswersByQuestion((prev) => ({
-                    ...prev,
-                    [activeQuestionId]: v,
-                  }));
-                }}
-              />
-
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-center gap-1">
-                  {["mic", "format_list_bulleted", "code"].map((icon) => (
-                    <button
-                      key={icon}
-                      type="button"
-                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      aria-label={icon}
-                    >
-                      <span className="material-symbols-outlined text-lg">
-                        {icon}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex flex-col items-end gap-1">
-                  <Button
-                    className="gap-2 px-8 shadow-md shadow-primary/15"
-                    disabled={!activeQuestionId || isBusy}
-                    onClick={() => void onCreateFeedback()}
-                  >
-                    {createFeedback.isPending ? (
-                      <>
-                        <span className="material-symbols-outlined animate-spin">
-                          progress_activity
-                        </span>
-                        피드백 생성 중...
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined">
-                          auto_fix_high
-                        </span>
-                        AI 피드백 받기
-                      </>
-                    )}
-                  </Button>
-                  {createFeedback.isPending && (
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                      <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
-                    </div>
+            {questions.map((q, idx) => {
+              const hasFeedback = !!feedbackByQuestion[q.id];
+              const isActive = q.id === activeQuestionId;
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all",
+                    isActive
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-transparent hover:border-border hover:bg-muted/50"
                   )}
-                </div>
-              </div>
-            </div>
+                  onClick={() => setActiveQuestionId(q.id)}
+                >
+                  {/* Number circle */}
+                  <div
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                      hasFeedback
+                        ? "bg-emerald-500 text-white"
+                        : isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {hasFeedback ? (
+                      <span className="material-symbols-outlined text-sm">
+                        check
+                      </span>
+                    ) : (
+                      idx + 1
+                    )}
+                  </div>
 
-            {/* Feedback panel */}
-            <div className="border-t border-border bg-muted/20 p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h4 className="flex items-center gap-2 font-bold text-foreground">
-                  <span className="material-symbols-outlined text-emerald-500">
-                    check_circle
-                  </span>
-                  AI 평가
-                </h4>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {/* Strengths */}
-                <Card className="border-l-4 border-l-emerald-500">
-                  <CardContent className="p-4">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
-                      잘한 점
+                  {/* Badge + truncated text */}
+                  <div className="min-w-0 flex-1">
+                    <Badge
+                      variant={isActive ? "default" : "secondary"}
+                      className="mb-0.5 text-[10px]"
+                    >
+                      {q.badge}
+                    </Badge>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {q.question ?? "(질문 없음)"}
                     </p>
-                    <ul className="space-y-2 text-sm text-foreground">
-                      {activeFeedback?.strengths?.length ? (
-                        activeFeedback.strengths.map((s, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="material-symbols-outlined text-sm text-emerald-500">
-                              done
-                            </span>
-                            {s}
-                          </li>
-                        ))
-                      ) : (
-                        <li className="text-muted-foreground">
-                          아직 피드백이 없어요.
-                        </li>
-                      )}
-                    </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
 
-                {/* Improvements */}
-                <Card className="border-l-4 border-l-amber-500">
-                  <CardContent className="p-4">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
-                      개선할 점
+        {/* Right: Question Detail + Answer + Feedback */}
+        <main className="flex flex-col gap-5 xl:col-span-9">
+          {!activeQuestion ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center gap-2 p-12 text-center">
+                <span className="material-symbols-outlined text-4xl text-muted-foreground/40">
+                  quiz
+                </span>
+                <p className="text-muted-foreground">
+                  왼쪽에서 질문을 선택해 주세요.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Question Detail Card */}
+              <QuestionDetailCard
+                question={activeQuestion}
+                keywords={activeKeywords}
+              />
+
+              {/* Answer Area */}
+              <Card>
+                <CardContent className="flex flex-col gap-4 p-5">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="material-symbols-outlined text-sm">
+                      lightbulb
+                    </span>
+                    팁: STAR 기법(Situation, Task, Action, Result)을 활용해
+                    보세요.
+                  </div>
+
+                  <Textarea
+                    className="min-h-[220px] resize-none border-none bg-muted/30 p-4 text-base leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/20"
+                    placeholder="여기에 답변을 작성해 보세요..."
+                    value={activeAnswer}
+                    onChange={(e) => {
+                      if (!activeQuestionId) return;
+                      const v = e.target.value;
+                      setAnswersByQuestion((prev) => ({
+                        ...prev,
+                        [activeQuestionId]: v,
+                      }));
+                    }}
+                  />
+
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!questions.length}
+                      onClick={goToNextQuestion}
+                    >
+                      <span className="material-symbols-outlined mr-1 text-sm">
+                        navigate_next
+                      </span>
+                      다음 질문
+                    </Button>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        className="gap-2 px-6 shadow-md shadow-primary/15"
+                        disabled={!activeQuestionId || isBusy}
+                        onClick={() => void onCreateFeedback()}
+                      >
+                        {createFeedback.isPending ? (
+                          <>
+                            <span className="material-symbols-outlined animate-spin text-sm">
+                              progress_activity
+                            </span>
+                            피드백 생성 중...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-sm">
+                              auto_fix_high
+                            </span>
+                            AI 피드백 받기
+                          </>
+                        )}
+                      </Button>
+                      {createFeedback.isPending && (
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {createFeedback.error && (
+                    <p className="text-sm font-semibold text-destructive">
+                      피드백 오류:{" "}
+                      {createFeedback.error instanceof Error
+                        ? createFeedback.error.message
+                        : String(createFeedback.error)}
                     </p>
-                    <ul className="space-y-2 text-sm text-foreground">
-                      {activeFeedback?.improvements?.length ? (
-                        activeFeedback.improvements.map((s, idx) => (
-                          <li key={idx} className="flex items-start gap-2">
-                            <span className="material-symbols-outlined text-sm text-amber-500">
-                              info
-                            </span>
-                            {s}
-                          </li>
-                        ))
-                      ) : (
-                        <li className="text-muted-foreground">
-                          아직 피드백이 없어요.
-                        </li>
-                      )}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="mt-4 border-primary/20 bg-primary/5">
-                <CardContent className="p-4">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
-                    AI 개선 예시 답변
-                  </p>
-                  <p className="text-sm italic leading-relaxed text-foreground/80">
-                    {activeFeedback?.suggestedAnswer
-                      ? activeFeedback.suggestedAnswer
-                      : "피드백을 생성하면 개선 예시 답변이 표시됩니다."}
-                  </p>
+                  )}
                 </CardContent>
               </Card>
 
-              {createFeedback.error ? (
-                <p className="mt-4 text-sm font-semibold text-destructive">
-                  피드백 오류:{" "}
-                  {createFeedback.error instanceof Error
-                    ? createFeedback.error.message
-                    : String(createFeedback.error)}
-                </p>
-              ) : null}
-            </div>
-          </Card>
-        </section>
+              {/* Feedback Tabs — only when feedback exists */}
+              {activeFeedback && (
+                <FeedbackTabs
+                  feedback={activeFeedback}
+                  modelAnswer={activeQuestion.modelAnswer}
+                  userAnswer={activeAnswer}
+                />
+              )}
+            </>
+          )}
+        </main>
       </div>
-
-      {/* Progress bar */}
-      <Card className="mt-4">
-        <CardContent className="flex flex-wrap items-center justify-between gap-6 p-6">
-          <div className="flex items-center gap-8">
-            <div className="flex flex-col">
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                시도한 질문
-              </span>
-              <span className="text-2xl font-black text-primary">
-                {attemptedCount.toString().padStart(2, "0")} /{" "}
-                {totalCount.toString().padStart(2, "0")}
-              </span>
-            </div>
-            <div className="h-10 w-px bg-border" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                피드백 상태
-              </span>
-              <span className="text-2xl font-black text-emerald-500">
-                {isBusy ? "진행 중" : "대기"}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <Button variant="ghost" disabled className="gap-2">
-              <span className="material-symbols-outlined">download</span>
-              연습 기록 내보내기
-            </Button>
-            <Button
-              className="gap-2"
-              disabled={!questions.length}
-              onClick={() => {
-                if (!questions.length) return;
-                const idx = questions.findIndex(
-                  (q) => q.id === activeQuestionId
-                );
-                const next = questions[(idx + 1) % questions.length];
-                setActiveQuestionId(next.id);
-              }}
-            >
-              <span className="material-symbols-outlined">navigate_next</span>
-              다음 연습 세션
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       <AnalysisProgressOverlay
         isActive={showOverlay && createSession.isPending}
@@ -550,55 +546,221 @@ export function ResumePortfolioPrepView() {
   );
 }
 
-function QuestionCard({
-  badge,
-  badgeTone,
-  likelihood,
-  text,
-  active,
-  onClick,
+// ─── Question Detail Card ───
+function QuestionDetailCard({
+  question,
+  keywords,
 }: {
-  badge: string;
-  badgeTone: "primary" | "muted";
-  likelihood: number;
-  text: string;
-  active?: boolean;
-  onClick?: () => void;
+  question: ResumeQuestion;
+  keywords: string[];
 }) {
   return (
-    <Card
-      className={cn(
-        "group cursor-pointer border-l-4 transition-all hover:shadow-md",
-        active
-          ? "border-l-primary bg-primary/5"
-          : "border-l-transparent hover:border-l-primary/30"
-      )}
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onClick?.();
-      }}
-    >
-      <CardContent className="p-4">
-        <div className="mb-2 flex items-start justify-between">
-          <Badge
-            variant={badgeTone === "primary" ? "default" : "secondary"}
-            className="text-[10px]"
-          >
-            {badge}
+    <Card>
+      <CardContent className="flex flex-col gap-3 p-5">
+        <div className="flex items-start justify-between gap-2">
+          <Badge variant="outline" className="text-[10px]">
+            {question.badge}
           </Badge>
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <span className="material-symbols-outlined text-xs">
               trending_up
             </span>
-            {likelihood}%
+            출제 확률 {question.likelihood}%
           </span>
         </div>
-        <p className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
-          {text}
+
+        <p className="text-lg font-bold leading-snug text-foreground">
+          {question.question ?? "(질문 내용이 비어있습니다)"}
         </p>
+
+        {/* Intention */}
+        {question.intention && (
+          <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+            <span className="material-symbols-outlined mt-0.5 text-sm text-primary">
+              visibility
+            </span>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground">
+                출제 의도
+              </p>
+              <p className="text-sm text-foreground">{question.intention}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Keywords */}
+        {keywords.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="material-symbols-outlined text-sm text-muted-foreground">
+              sell
+            </span>
+            {keywords.map((kw) => (
+              <Badge key={kw} variant="secondary" className="text-[11px]">
+                {kw}
+              </Badge>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Feedback Tabs ───
+function FeedbackTabs({
+  feedback,
+  modelAnswer,
+  userAnswer,
+}: {
+  feedback: ResumeFeedback;
+  modelAnswer: string | null;
+  userAnswer: string;
+}) {
+  return (
+    <Tabs defaultValue="evaluation">
+      <TabsList>
+        <TabsTrigger value="evaluation">
+          <span className="material-symbols-outlined mr-1 text-sm">
+            check_circle
+          </span>
+          AI 평가
+        </TabsTrigger>
+        <TabsTrigger value="model-answer">
+          <span className="material-symbols-outlined mr-1 text-sm">
+            auto_awesome
+          </span>
+          모범 답변
+        </TabsTrigger>
+        {feedback.followups.length > 0 && (
+          <TabsTrigger value="followups">
+            <span className="material-symbols-outlined mr-1 text-sm">
+              forum
+            </span>
+            후속 질문
+            <Badge variant="secondary" className="ml-1 text-[10px]">
+              {feedback.followups.length}
+            </Badge>
+          </TabsTrigger>
+        )}
+      </TabsList>
+
+      {/* Tab 1: AI Evaluation */}
+      <TabsContent value="evaluation">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
+                잘한 점
+              </p>
+              <ul className="space-y-2 text-sm text-foreground">
+                {feedback.strengths.length > 0 ? (
+                  feedback.strengths.map((s, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-sm text-emerald-500">
+                        done
+                      </span>
+                      {s}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-muted-foreground">항목이 없습니다.</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-amber-500">
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+                개선할 점
+              </p>
+              <ul className="space-y-2 text-sm text-foreground">
+                {feedback.improvements.length > 0 ? (
+                  feedback.improvements.map((s, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-sm text-amber-500">
+                        info
+                      </span>
+                      {s}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-muted-foreground">항목이 없습니다.</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Suggested Answer */}
+        {feedback.suggestedAnswer && (
+          <Card className="mt-4 border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
+                AI 개선 예시 답변
+              </p>
+              <p className="text-sm italic leading-relaxed text-foreground/80">
+                {feedback.suggestedAnswer}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+
+      {/* Tab 2: Model Answer */}
+      <TabsContent value="model-answer">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* My answer */}
+          <Card>
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                내 답변
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                {userAnswer || "(작성한 답변이 없습니다)"}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Model answer */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
+                모범 답변
+              </p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                {modelAnswer || "(모범 답변이 제공되지 않았습니다)"}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+
+      {/* Tab 3: Follow-ups */}
+      {feedback.followups.length > 0 && (
+        <TabsContent value="followups">
+          <Card>
+            <CardContent className="p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                예상 후속 질문
+              </p>
+              <ul className="space-y-3">
+                {feedback.followups.map((fq, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-3 rounded-lg bg-muted/50 p-3"
+                  >
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {idx + 1}
+                    </span>
+                    <p className="text-sm text-foreground">{fq}</p>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      )}
+    </Tabs>
   );
 }

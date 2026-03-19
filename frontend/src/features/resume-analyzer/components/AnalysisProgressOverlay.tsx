@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 type Step = {
   label: string;
@@ -14,6 +15,44 @@ const STEPS: Step[] = [
   { label: "AI 질문 생성 중", icon: "psychology", durationMs: 60_000 },
 ];
 
+const TOTAL_DURATION = STEPS.reduce((sum, s) => sum + s.durationMs, 0);
+
+function computeStep(elapsedMs: number) {
+  let accumulated = 0;
+  for (let i = 0; i < STEPS.length; i++) {
+    accumulated += STEPS[i].durationMs;
+    if (elapsedMs < accumulated) return i;
+  }
+  return STEPS.length - 1;
+}
+
+function useElapsedTimer(isActive: boolean) {
+  const [snapshot, setSnapshot] = useState({ step: 0, progress: 0 });
+  const startRef = useRef(0);
+
+  useEffect(() => {
+    if (!isActive) {
+      startRef.current = 0;
+      return;
+    }
+
+    startRef.current = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startRef.current;
+      setSnapshot({
+        step: computeStep(elapsed),
+        progress: Math.min((elapsed / TOTAL_DURATION) * 100, 95),
+      });
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  // When inactive, always return zeroed snapshot
+  if (!isActive) return { step: 0, progress: 0 };
+  return snapshot;
+}
+
 export function AnalysisProgressOverlay({
   isActive,
   isComplete,
@@ -21,48 +60,20 @@ export function AnalysisProgressOverlay({
   isActive: boolean;
   isComplete: boolean;
 }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [elapsedMs, setElapsedMs] = useState(0);
-
-  useEffect(() => {
-    if (!isActive) {
-      setCurrentStep(0);
-      setElapsedMs(0);
-      return;
-    }
-
-    const start = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - start;
-      setElapsedMs(elapsed);
-
-      let accumulated = 0;
-      for (let i = 0; i < STEPS.length; i++) {
-        accumulated += STEPS[i].durationMs;
-        if (elapsed < accumulated) {
-          setCurrentStep(i);
-          return;
-        }
-      }
-      setCurrentStep(STEPS.length - 1);
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, [isActive]);
+  const { step: currentStep, progress: timerProgress } =
+    useElapsedTimer(isActive);
+  const progress = isComplete ? 100 : timerProgress;
 
   if (!isActive && !isComplete) return null;
 
-  const totalDuration = STEPS.reduce((sum, s) => sum + s.durationMs, 0);
-  const progress = isComplete ? 100 : Math.min((elapsedMs / totalDuration) * 100, 95);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-primary/10 bg-white p-8 shadow-2xl dark:border-white/10 dark:bg-slate-900">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-background p-8 shadow-2xl">
         <div className="mb-6 text-center">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          <h3 className="text-lg font-bold text-foreground">
             {isComplete ? "분석 완료!" : "이력서를 분석하고 있어요"}
           </h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             {isComplete
               ? "질문이 생성되었습니다."
               : "AI가 맞춤형 면접 질문을 생성하고 있습니다."}
@@ -77,33 +88,37 @@ export function AnalysisProgressOverlay({
             return (
               <div key={step.label} className="flex items-center gap-3">
                 <div
-                  className={[
+                  className={cn(
                     "flex size-8 items-center justify-center rounded-full transition-colors",
                     isDone
-                      ? "bg-green-500 text-white"
+                      ? "bg-emerald-500 text-white"
                       : isCurrent
-                        ? "bg-primary text-white"
-                        : "bg-slate-100 text-slate-400 dark:bg-white/10",
-                  ].join(" ")}
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                  )}
                 >
                   <span
-                    className={[
+                    className={cn(
                       "material-symbols-outlined text-sm",
-                      isCurrent ? "animate-spin" : "",
-                    ].join(" ")}
+                      isCurrent && "animate-spin"
+                    )}
                   >
-                    {isDone ? "check" : isCurrent ? "progress_activity" : step.icon}
+                    {isDone
+                      ? "check"
+                      : isCurrent
+                        ? "progress_activity"
+                        : step.icon}
                   </span>
                 </div>
                 <span
-                  className={[
+                  className={cn(
                     "text-sm font-medium",
                     isDone
-                      ? "text-green-600 dark:text-green-400"
+                      ? "text-emerald-600 dark:text-emerald-400"
                       : isCurrent
-                        ? "text-slate-900 dark:text-white"
-                        : "text-slate-400 dark:text-slate-500",
-                  ].join(" ")}
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                  )}
                 >
                   {step.label}
                 </span>
@@ -113,18 +128,18 @@ export function AnalysisProgressOverlay({
         </div>
 
         <div className="mt-6">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>진행률</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
           {!isComplete && (
-            <p className="mt-2 text-center text-xs text-slate-400 dark:text-slate-500">
+            <p className="mt-2 text-center text-xs text-muted-foreground">
               예상 소요 시간: 약 60~90초
             </p>
           )}
