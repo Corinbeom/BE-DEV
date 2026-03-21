@@ -4,6 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { primaryNav } from "./nav";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -17,79 +28,102 @@ export function AppSidebar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-primary/10 bg-white dark:bg-background-dark/50 md:flex">
-      <div className="flex items-center gap-3 p-6">
-        <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-white">
-          <span className="material-symbols-outlined">terminal</span>
+    <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-6 py-5">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/25">
+          <span className="material-symbols-outlined text-xl">terminal</span>
         </div>
         <div>
-          <h1 className="text-lg font-bold tracking-tight text-primary">
+          <h1 className="text-lg font-bold tracking-tight text-foreground">
             Be Dev
           </h1>
-          <p className="text-xs font-medium text-slate-500">Premium Plan</p>
+          <p className="text-[11px] font-medium text-muted-foreground">
+            AI Career Platform
+          </p>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-4">
+      <Separator className="mx-4 w-auto" />
+
+      {/* Navigation */}
+      <nav className="flex-1 space-y-1 px-3 py-4">
         {primaryNav.map((item) => {
           const active = isActivePath(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={
+              className={cn(
+                buttonVariants({ variant: active ? "secondary" : "ghost", size: "default" }),
+                "w-full justify-start gap-3 h-10 px-3 text-sm font-medium transition-all",
                 active
-                  ? "flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 font-semibold text-primary"
-                  : "flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5"
-              }
+                  ? "bg-primary/10 text-primary font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
             >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="text-sm">{item.label}</span>
+              <span
+                className={cn(
+                  "material-symbols-outlined text-[20px]",
+                  active ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {item.icon}
+              </span>
+              {item.label}
             </Link>
           );
         })}
-
       </nav>
 
-      <div className="border-t border-slate-100 p-4 dark:border-white/5">
-        <Link
-          href="/profile"
-          className={[
-            "flex items-center gap-3 rounded-xl p-2 transition-colors",
-            isActivePath(pathname, "/profile")
-              ? "bg-primary/10"
-              : "hover:bg-slate-50 dark:hover:bg-white/5",
-          ].join(" ")}
-        >
-          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {user?.photoUrl ? (
-              <img
-                src={user.photoUrl}
-                alt={displayName}
-                className="size-10 rounded-full object-cover"
-              />
-            ) : (
-              initial
+      <Separator className="mx-4 w-auto" />
+
+      {/* User Profile Area */}
+      <div className="p-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={cn(
+              "flex w-full items-center gap-3 rounded-xl p-2.5 transition-all",
+              "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isActivePath(pathname, "/profile") && "bg-primary/10"
             )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">{displayName}</p>
-            <p className="truncate text-xs text-slate-500">{user?.email}</p>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              logout();
-            }}
-            className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10"
-            aria-label="로그아웃"
-            title="로그아웃"
           >
-            <span className="material-symbols-outlined text-lg">logout</span>
-          </button>
-        </Link>
+            <Avatar className="size-9 border-2 border-primary/20">
+              <AvatarImage src={user?.photoUrl ?? undefined} alt={displayName} />
+              <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {displayName}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user?.email}
+              </p>
+            </div>
+            <span className="material-symbols-outlined text-lg text-muted-foreground">
+              unfold_more
+            </span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem
+              onClick={() => window.location.href = "/profile"}
+              className="flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-lg">person</span>
+              프로필 관리
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={logout}
+              className="text-destructive focus:text-destructive"
+            >
+              <span className="material-symbols-outlined text-lg">logout</span>
+              로그아웃
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
   );

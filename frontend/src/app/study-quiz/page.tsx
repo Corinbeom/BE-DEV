@@ -1,7 +1,10 @@
-import { redirect } from "next/navigation";
+import { AppFrame } from "@/components/AppFrame";
+import { StudyQuizHubView } from "@/features/study-quiz/components/StudyQuizHubView";
 
 export default function StudyQuizIndexPage() {
-  redirect("/study-quiz/practice");
+  return (
+    <AppFrame>
+      <StudyQuizHubView />
+    </AppFrame>
+  );
 }
-
-

@@ -11,9 +11,19 @@ import {
   createRecruitmentEntryNote,
   deleteRecruitmentEntryNote,
 } from "../api/recruitmentEntryNoteApi";
-import type { PlatformType, RecruitmentEntry, RecruitmentStep } from "../api/types";
+import type {
+  PlatformType,
+  RecruitmentEntry,
+  RecruitmentStep,
+} from "../api/types";
 import { useRecruitmentEntries } from "../hooks/useRecruitmentEntries";
 import { useRecruitmentEntryNotes } from "../hooks/useRecruitmentEntryNotes";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 type ColumnKey = "APPLIED" | "IN_REVIEW" | "INTERVIEWING" | "FINAL";
 
@@ -78,18 +88,31 @@ function mapStepToColumn(step: RecruitmentStep): ColumnKey {
   }
 }
 
-function columnTitle(key: ColumnKey) {
-  switch (key) {
-    case "APPLIED":
-      return "지원 완료";
-    case "IN_REVIEW":
-      return "전형 진행";
-    case "INTERVIEWING":
-      return "면접";
-    case "FINAL":
-      return "결과";
-  }
-}
+const COLUMN_META: Record<
+  ColumnKey,
+  { title: string; color: string; borderColor: string }
+> = {
+  APPLIED: {
+    title: "지원 완료",
+    color: "bg-primary/10 text-primary",
+    borderColor: "border-l-primary",
+  },
+  IN_REVIEW: {
+    title: "전형 진행",
+    color: "bg-blue-500/10 text-blue-600",
+    borderColor: "border-l-blue-500",
+  },
+  INTERVIEWING: {
+    title: "면접",
+    color: "bg-amber-500/10 text-amber-600",
+    borderColor: "border-l-amber-500",
+  },
+  FINAL: {
+    title: "결과",
+    color: "bg-emerald-500/10 text-emerald-600",
+    borderColor: "border-l-emerald-500",
+  },
+};
 
 function defaultStepForColumn(key: ColumnKey): RecruitmentStep {
   switch (key) {
@@ -124,6 +147,21 @@ function toKoreanStep(step: RecruitmentStep) {
       return "보류";
   }
 }
+
+const statColorMap = {
+  primary: {
+    icon: "text-primary bg-primary/10",
+    border: "border-l-primary",
+  },
+  amber: {
+    icon: "text-amber-600 bg-amber-500/10",
+    border: "border-l-amber-500",
+  },
+  emerald: {
+    icon: "text-emerald-600 bg-emerald-500/10",
+    border: "border-l-emerald-500",
+  },
+} as const;
 
 export function ApplicationTrackerView() {
   const qc = useQueryClient();
@@ -182,107 +220,68 @@ export function ApplicationTrackerView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
-              지원 현황 보드
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              드래그로 단계를 옮기고, 카드 클릭으로 상세를 편집할 수 있어요.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
+      {/* Header card */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-foreground">
+                지원 현황 보드
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                드래그로 단계를 옮기고, 카드 클릭으로 상세를 편집할 수 있어요.
+              </p>
+            </div>
+            <Button
               onClick={() => {
                 createMutation.reset();
                 setIsAddOpen(true);
               }}
-              className="flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90"
+              className="gap-2"
             >
               <span className="material-symbols-outlined text-lg">add</span>
               지원 추가
-            </button>
+            </Button>
           </div>
-        </div>
 
-        {error ? (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-            <p>
-              목록 조회 오류: {error instanceof Error ? error.message : "알 수 없음"}
-            </p>
-          </div>
-        ) : null}
-      </section>
+          {error ? (
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              목록 조회 오류:{" "}
+              {error instanceof Error ? error.message : "알 수 없음"}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
-      <section className="flex flex-wrap gap-4">
+      {/* Stat cards */}
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           label="총 지원"
           value={String(entries.length)}
           icon="description"
-          iconClass="text-primary bg-primary/10"
-          footer="API 연결됨"
+          color="primary"
         />
         <StatCard
           label="면접"
           value={String(grouped.INTERVIEWING.length)}
           icon="event"
-          iconClass="text-amber-500 bg-amber-500/10"
-          footer="현재 면접 단계"
+          color="amber"
         />
         <StatCard
           label="오퍼"
           value={String(entries.filter((e) => e.step === "OFFERED").length)}
           icon="workspace_premium"
-          iconClass="text-emerald-500 bg-emerald-500/10"
-          footer="OFFERED 기준"
+          color="emerald"
         />
       </section>
 
-      <section className="flex items-center justify-between">
-        <div className="flex w-fit rounded-lg bg-slate-200/50 p-1 dark:bg-slate-800">
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-md bg-white px-4 py-1.5 text-sm font-bold text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-          >
-            <span className="material-symbols-outlined text-lg">view_kanban</span>
-            칸반
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400"
-          >
-            <span className="material-symbols-outlined text-lg">table_chart</span>
-            테이블
-          </button>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900"
-          >
-            <span className="material-symbols-outlined text-lg">filter_list</span>
-            필터
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900"
-          >
-            <span className="material-symbols-outlined text-lg">sort</span>
-            정렬
-          </button>
-        </div>
-      </section>
-
+      {/* Kanban board */}
       <section className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 xl:grid-cols-4">
         {(["APPLIED", "IN_REVIEW", "INTERVIEWING", "FINAL"] as const).map(
           (key) => (
             <KanbanColumn
               key={key}
-              title={columnTitle(key)}
+              columnKey={key}
               count={grouped[key].length}
               isDragOver={dragOver === key}
               onDragOver={() => setDragOver(key)}
@@ -293,9 +292,11 @@ export function ApplicationTrackerView() {
               }}
             >
               {isLoading ? (
-                <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500 dark:border-slate-800">
-                  불러오는 중...
-                </div>
+                <Card className="border-dashed">
+                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                    불러오는 중...
+                  </CardContent>
+                </Card>
               ) : grouped[key].length === 0 ? (
                 <EmptySlot />
               ) : (
@@ -307,25 +308,16 @@ export function ApplicationTrackerView() {
                     role={e.position}
                     step={e.step}
                     appliedDate={e.appliedDate ?? null}
-                    onStepChange={(step) => stepMutation.mutate({ id: e.id, step })}
-                    onDragStart={(id) => {
-                      // no-op: column drop handler uses dataTransfer
-                      void id;
-                    }}
-                    onOpenDetails={() => setSelected(e)}
-                    tag={toKoreanStep(e.step)}
-                    tagTone={
-                      e.step === "OFFERED"
-                        ? "emerald"
-                        : e.step === "INTERVIEWING"
-                          ? "amber"
-                          : "primary"
+                    onStepChange={(step) =>
+                      stepMutation.mutate({ id: e.id, step })
                     }
+                    onDragStart={(id) => void id}
+                    onOpenDetails={() => setSelected(e)}
                   />
                 ))
               )}
             </KanbanColumn>
-          ),
+          )
         )}
       </section>
 
@@ -352,7 +344,9 @@ export function ApplicationTrackerView() {
         }}
         isSubmitting={createMutation.isPending}
         errorMessage={
-          createMutation.error instanceof Error ? createMutation.error.message : null
+          createMutation.error instanceof Error
+            ? createMutation.error.message
+            : null
         }
         onSubmit={(payload) => createMutation.mutate(payload)}
       />
@@ -364,52 +358,31 @@ function StatCard({
   label,
   value,
   icon,
-  iconClass,
-  footer,
-  footerTone,
+  color,
 }: {
   label: string;
   value: string;
   icon: string;
-  iconClass: string;
-  footer: string;
-  footerTone?: "good";
+  color: keyof typeof statColorMap;
 }) {
+  const c = statColorMap[color];
   return (
-    <div className="min-w-[200px] flex-1 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-          {label}
-        </p>
-        <span className={["material-symbols-outlined rounded-lg p-2", iconClass].join(" ")}>
-          {icon}
-        </span>
-      </div>
-      <p className="text-3xl font-bold text-slate-900 dark:text-white">
-        {value}
-      </p>
-      <p
-        className={
-          footerTone === "good"
-            ? "mt-2 flex items-center gap-1 text-xs font-bold text-emerald-500"
-            : "mt-2 text-xs text-slate-500"
-        }
-      >
-        {footerTone === "good" ? (
-          <>
-            <span className="material-symbols-outlined text-xs">trending_up</span>
-            {footer}
-          </>
-        ) : (
-          footer
-        )}
-      </p>
-    </div>
+    <Card className={cn("border-l-4 transition-shadow hover:shadow-md", c.border)}>
+      <CardContent className="flex items-center justify-between p-5">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
+        </div>
+        <div className={cn("flex size-10 items-center justify-center rounded-lg", c.icon)}>
+          <span className="material-symbols-outlined">{icon}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function KanbanColumn({
-  title,
+  columnKey,
   count,
   children,
   isDragOver,
@@ -417,7 +390,7 @@ function KanbanColumn({
   onDragLeave,
   onDrop,
 }: {
-  title: string;
+  columnKey: ColumnKey;
   count: number;
   children: React.ReactNode;
   isDragOver: boolean;
@@ -425,28 +398,22 @@ function KanbanColumn({
   onDragLeave: () => void;
   onDrop: (entryId: number) => void;
 }) {
+  const meta = COLUMN_META[columnKey];
   return (
     <div className="flex min-h-[500px] flex-col gap-4">
-      <div className="flex items-center justify-between px-2">
+      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-slate-900 dark:text-white">{title}</h3>
-          <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold dark:bg-slate-800">
+          <h3 className="text-sm font-bold text-foreground">{meta.title}</h3>
+          <Badge variant="secondary" className="text-[10px]">
             {count}
-          </span>
+          </Badge>
         </div>
-        <button
-          type="button"
-          className="text-slate-400 hover:text-slate-600"
-          aria-label="더보기"
-        >
-          <span className="material-symbols-outlined">more_horiz</span>
-        </button>
       </div>
       <div
-        className={[
-          "flex flex-col gap-3 rounded-xl p-1",
-          isDragOver ? "bg-primary/5 ring-2 ring-primary/20" : "",
-        ].join(" ")}
+        className={cn(
+          "flex flex-col gap-3 rounded-xl p-1 transition-all",
+          isDragOver && "bg-primary/5 ring-2 ring-primary/20"
+        )}
         onDragOver={(e) => {
           e.preventDefault();
           onDragOver();
@@ -454,7 +421,9 @@ function KanbanColumn({
         onDragLeave={() => onDragLeave()}
         onDrop={(e) => {
           e.preventDefault();
-          const raw = e.dataTransfer.getData("text/devweb-recruitment-entry-id");
+          const raw = e.dataTransfer.getData(
+            "text/devweb-recruitment-entry-id"
+          );
           const id = Number(raw);
           if (!Number.isNaN(id) && id > 0) onDrop(id);
         }}
@@ -463,6 +432,19 @@ function KanbanColumn({
       </div>
     </div>
   );
+}
+
+function stepBorderColor(step: RecruitmentStep) {
+  switch (step) {
+    case "OFFERED":
+      return "border-l-emerald-500";
+    case "INTERVIEWING":
+      return "border-l-amber-500";
+    case "REJECTED":
+      return "border-l-red-500";
+    default:
+      return "border-l-primary";
+  }
 }
 
 function KanbanCard({
@@ -474,11 +456,6 @@ function KanbanCard({
   onStepChange,
   onDragStart,
   onOpenDetails,
-  tag,
-  tagTone,
-  noteCount,
-  highlight,
-  dimmed,
 }: {
   id: number;
   company: string;
@@ -488,28 +465,13 @@ function KanbanCard({
   onStepChange: (step: RecruitmentStep) => void;
   onDragStart: (id: number) => void;
   onOpenDetails: () => void;
-  tag: string;
-  tagTone: "primary" | "amber" | "emerald" | "muted";
-  noteCount?: number;
-  highlight?: boolean;
-  dimmed?: boolean;
 }) {
-  const tagClass =
-    tagTone === "primary"
-      ? "bg-primary/10 text-primary"
-      : tagTone === "amber"
-        ? "bg-amber-500/10 text-amber-600"
-        : tagTone === "emerald"
-          ? "bg-emerald-500/10 text-emerald-600"
-          : "bg-slate-100 text-slate-500 dark:bg-slate-800";
-
   return (
-    <div
-      className={[
-        "cursor-grab rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-primary/50 dark:border-slate-800 dark:bg-slate-900",
-        highlight ? "border-l-4 border-l-amber-500" : "",
-        dimmed ? "opacity-70 grayscale-[0.5] hover:opacity-100 hover:grayscale-0" : "",
-      ].join(" ")}
+    <Card
+      className={cn(
+        "cursor-grab border-l-4 transition-all hover:shadow-md hover:border-primary/30",
+        stepBorderColor(step)
+      )}
       draggable
       role="button"
       tabIndex={0}
@@ -518,79 +480,86 @@ function KanbanCard({
         if (e.key === "Enter" || e.key === " ") onOpenDetails();
       }}
       onDragStart={(e) => {
-        e.dataTransfer.setData("text/devweb-recruitment-entry-id", String(id));
+        e.dataTransfer.setData(
+          "text/devweb-recruitment-entry-id",
+          String(id)
+        );
         onDragStart(id);
       }}
     >
-      <div className="mb-3 flex items-start justify-between">
-        <div>
-          <h4 className="leading-tight font-bold text-slate-900 dark:text-white">
-            {company}
-          </h4>
-          <p className="text-sm text-slate-600 dark:text-slate-400">{role}</p>
-        </div>
-        <div className="size-8 rounded bg-slate-50 p-1" />
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm text-slate-400">
-            timeline
-          </span>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            단계: {toKoreanStep(step)}
-          </p>
+      <CardContent className="p-4">
+        <div className="mb-3 flex items-start justify-between">
+          <div>
+            <h4 className="font-bold leading-tight text-foreground">
+              {company}
+            </h4>
+            <p className="text-sm text-muted-foreground">{role}</p>
+          </div>
         </div>
 
-        <select
-          value={step}
-          onChange={(e) => onStepChange(e.target.value as RecruitmentStep)}
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-        >
-          <option value="READY">준비</option>
-          <option value="APPLIED">지원</option>
-          <option value="DOC_PASSED">서류 합격</option>
-          <option value="TEST_PHASE">테스트</option>
-          <option value="INTERVIEWING">면접</option>
-          <option value="OFFERED">오퍼</option>
-          <option value="REJECTED">불합격</option>
-          <option value="ON_HOLD">보류</option>
-        </select>
-      </div>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="material-symbols-outlined text-sm">timeline</span>
+            {toKoreanStep(step)}
+          </div>
+          <select
+            value={step}
+            onChange={(e) =>
+              onStepChange(e.target.value as RecruitmentStep)
+            }
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="h-7 rounded-md border border-input bg-background px-2 text-xs font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
+          >
+            <option value="READY">준비</option>
+            <option value="APPLIED">지원</option>
+            <option value="DOC_PASSED">서류 합격</option>
+            <option value="TEST_PHASE">테스트</option>
+            <option value="INTERVIEWING">면접</option>
+            <option value="OFFERED">오퍼</option>
+            <option value="REJECTED">불합격</option>
+            <option value="ON_HOLD">보류</option>
+          </select>
+        </div>
 
-      {appliedDate ? (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm text-slate-400">
-            calendar_today
-          </span>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+        {appliedDate ? (
+          <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="material-symbols-outlined text-sm">
+              calendar_today
+            </span>
             지원일: {appliedDate}
-          </p>
+          </div>
+        ) : null}
+
+        <Separator />
+
+        <div className="mt-3 flex items-center justify-between">
+          <Badge
+            variant={
+              step === "OFFERED"
+                ? "default"
+                : step === "REJECTED"
+                  ? "destructive"
+                  : "secondary"
+            }
+            className="text-[10px]"
+          >
+            {toKoreanStep(step)}
+          </Badge>
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-primary"
+            aria-label="메모"
+          >
+            <span className="material-symbols-outlined text-lg">
+              sticky_note_2
+            </span>
+          </button>
         </div>
-      ) : null}
-
-      <div className="flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-        <span
-          className={[
-            "rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider",
-            tagClass,
-          ].join(" ")}
-        >
-          {tag}
-        </span>
-
-        <button
-          type="button"
-          className="flex items-center gap-1 text-sm font-medium text-slate-400 transition-colors hover:text-primary"
-          aria-label="메모"
-        >
-          <span className="material-symbols-outlined text-lg">sticky_note_2</span>
-          {noteCount != null ? <span className="text-[10px]">{noteCount}</span> : null}
-        </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -646,7 +615,9 @@ function EntryDetailsModal({
     },
     onSuccess: async () => {
       setNewNote("");
-      await qc.invalidateQueries({ queryKey: ["recruitmentEntryNotes", entryId] });
+      await qc.invalidateQueries({
+        queryKey: ["recruitmentEntryNotes", entryId],
+      });
     },
   });
 
@@ -656,7 +627,9 @@ function EntryDetailsModal({
       await deleteRecruitmentEntryNote(entry.id, noteId);
     },
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["recruitmentEntryNotes", entryId] });
+      await qc.invalidateQueries({
+        queryKey: ["recruitmentEntryNotes", entryId],
+      });
     },
   });
 
@@ -666,8 +639,6 @@ function EntryDetailsModal({
       if (!companyName.trim() || !position.trim()) {
         throw new Error("회사/포지션은 필수입니다.");
       }
-      // 로컬/초고속 환경에서는 로딩 UI가 "깜빡"이는 것처럼 보일 수 있어
-      // 최소 로딩 표시 시간을 둬서 UX를 안정화한다.
       const minDelayMs = 400;
       const startedAt = Date.now();
 
@@ -703,222 +674,256 @@ function EntryDetailsModal({
       aria-modal="true"
       onMouseDown={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-[min(560px,calc(100%-24px))] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+        className="relative z-10 max-h-[90vh] w-[min(560px,calc(100%-24px))] overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <Badge variant="outline" className="mb-2 text-[10px]">
               지원 상세
-            </p>
+            </Badge>
             <div className="mt-2 grid grid-cols-1 gap-2">
-              <input
+              <Input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
                 placeholder="회사명"
                 aria-label="회사명"
+                className="font-bold"
               />
-              <input
+              <Input
                 value={position}
                 onChange={(e) => setPosition(e.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 placeholder="포지션"
                 aria-label="포지션"
               />
             </div>
           </div>
-
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5"
             aria-label="닫기"
           >
             <span className="material-symbols-outlined">close</span>
-          </button>
+          </Button>
         </div>
 
         {justSaved ? (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <span className="material-symbols-outlined text-lg">check_circle</span>
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <span className="material-symbols-outlined text-lg">
+              check_circle
+            </span>
             저장 완료
           </div>
         ) : null}
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              지원일
-            </p>
-            <input
-              type="date"
-              value={appliedDate}
-              onChange={(e) => setAppliedDate(e.target.value)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-white"
-              aria-label="지원일"
-            />
-          </div>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                지원일
+              </p>
+              <input
+                type="date"
+                value={appliedDate}
+                onChange={(e) => setAppliedDate(e.target.value)}
+                className="mt-2 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
+                aria-label="지원일"
+              />
+            </CardContent>
+          </Card>
 
-          <DetailItem label="현재 단계" value={toKoreanStep(entry.step)} icon="timeline" />
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              플랫폼
+          <Card>
+            <CardContent className="flex items-start gap-3 p-4">
+              <span className="material-symbols-outlined mt-0.5 text-lg text-muted-foreground">
+                timeline
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  현재 단계
+                </p>
+                <p className="mt-1 text-sm font-bold text-foreground">
+                  {toKoreanStep(entry.step)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                플랫폼
+              </p>
+              <select
+                value={platformType}
+                onChange={(e) =>
+                  setPlatformType(e.target.value as PlatformType)
+                }
+                className="mt-2 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
+                aria-label="플랫폼"
+              >
+                {ALL_PLATFORMS.map((p) => (
+                  <option key={p} value={p}>
+                    {platformLabel(p)}
+                  </option>
+                ))}
+              </select>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                외부 ID
+              </p>
+              <Input
+                value={externalId}
+                onChange={(e) => setExternalId(e.target.value)}
+                className="mt-2"
+                placeholder="예: 원티드/링크드인 등 externalId"
+                aria-label="외부 ID"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="mt-5 bg-muted/30">
+          <CardContent className="p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              단계 변경
             </p>
             <select
-              value={platformType}
-              onChange={(e) => setPlatformType(e.target.value as PlatformType)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-white"
-              aria-label="플랫폼"
+              value={entry.step}
+              onChange={(e) =>
+                onStepChange(entry.id, e.target.value as RecruitmentStep)
+              }
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
             >
-              {ALL_PLATFORMS.map((p) => (
-                <option key={p} value={p}>
-                  {platformLabel(p)}
-                </option>
-              ))}
+              <option value="READY">준비</option>
+              <option value="APPLIED">지원</option>
+              <option value="DOC_PASSED">서류 합격</option>
+              <option value="TEST_PHASE">테스트</option>
+              <option value="INTERVIEWING">면접</option>
+              <option value="OFFERED">오퍼</option>
+              <option value="REJECTED">불합격</option>
+              <option value="ON_HOLD">보류</option>
             </select>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              외부 ID
+            <p className="mt-2 text-xs text-muted-foreground">
+              카드 드래그로도 이동할 수 있고, 여기서는 단계 값을 정확히 선택할 수
+              있어요.
             </p>
-            <input
-              value={externalId}
-              onChange={(e) => setExternalId(e.target.value)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
-              placeholder="예: 원티드/링크드인 등 externalId"
-              aria-label="외부 ID"
-            />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-white/5">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-            단계 변경
-          </p>
-          <select
-            value={entry.step}
-            onChange={(e) => onStepChange(entry.id, e.target.value as RecruitmentStep)}
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-          >
-            <option value="READY">준비</option>
-            <option value="APPLIED">지원</option>
-            <option value="DOC_PASSED">서류 합격</option>
-            <option value="TEST_PHASE">테스트</option>
-            <option value="INTERVIEWING">면접</option>
-            <option value="OFFERED">오퍼</option>
-            <option value="REJECTED">불합격</option>
-            <option value="ON_HOLD">보류</option>
-          </select>
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            카드 드래그로도 이동할 수 있고, 여기서는 단계 값을 정확히 선택할 수 있어요.
-          </p>
-        </div>
-
-        <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg text-slate-400">
-                sticky_note_2
-              </span>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                메모
-              </p>
+        {/* Notes */}
+        <Card className="mt-5">
+          <CardContent className="p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg text-muted-foreground">
+                  sticky_note_2
+                </span>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  메모
+                </p>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">
+                {notesQuery.isLoading ? "..." : `${notes.length}개`}
+              </Badge>
             </div>
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-              {notesQuery.isLoading ? "불러오는 중..." : `${notes.length}개`}
-            </p>
-          </div>
 
-          <div className="flex gap-2">
-            <input
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              className="h-10 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
-              placeholder="메모를 입력해 주세요"
-            />
-            <button
-              type="button"
-              disabled={createNoteMutation.isPending}
-              onClick={() => createNoteMutation.mutate()}
-              className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              추가
-            </button>
-          </div>
-          {createNoteMutation.error ? (
-            <p className="mt-2 text-sm text-red-600">
-              메모 오류:{" "}
-              {createNoteMutation.error instanceof Error
-                ? createNoteMutation.error.message
-                : "알 수 없음"}
-            </p>
-          ) : null}
-
-          <div className="mt-4 space-y-2">
-            {notesQuery.isLoading ? (
-              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500 dark:border-slate-800">
-                메모 불러오는 중...
-              </div>
-            ) : notesQuery.error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-                메모 조회 오류:{" "}
-                {notesQuery.error instanceof Error
-                  ? notesQuery.error.message
+            <div className="flex gap-2">
+              <Input
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="메모를 입력해 주세요"
+              />
+              <Button
+                size="sm"
+                disabled={createNoteMutation.isPending}
+                onClick={() => createNoteMutation.mutate()}
+              >
+                추가
+              </Button>
+            </div>
+            {createNoteMutation.error ? (
+              <p className="mt-2 text-sm text-destructive">
+                메모 오류:{" "}
+                {createNoteMutation.error instanceof Error
+                  ? createNoteMutation.error.message
                   : "알 수 없음"}
-              </div>
-            ) : notes.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500 dark:border-slate-800">
-                아직 메모가 없어요.
-              </div>
-            ) : (
-              notes.map((n) => (
-                <div
-                  key={n.id}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40"
-                >
-                  <div className="min-w-0">
-                    <p className="whitespace-pre-wrap break-words text-sm text-slate-800 dark:text-slate-100">
-                      {n.content}
-                    </p>
-                    <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                      {n.createdAt ? n.createdAt.slice(0, 19).replace("T", " ") : ""}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => deleteNoteMutation.mutate(n.id)}
-                    disabled={deleteNoteMutation.isPending}
-                    className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-red-600 disabled:opacity-50 dark:hover:bg-white/5"
-                    aria-label="메모 삭제"
-                  >
-                    <span className="material-symbols-outlined text-lg">delete</span>
-                  </button>
+              </p>
+            ) : null}
+
+            <div className="mt-4 space-y-2">
+              {notesQuery.isLoading ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-4 text-center text-sm text-muted-foreground">
+                    메모 불러오는 중...
+                  </CardContent>
+                </Card>
+              ) : notesQuery.error ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  메모 조회 오류:{" "}
+                  {notesQuery.error instanceof Error
+                    ? notesQuery.error.message
+                    : "알 수 없음"}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              ) : notes.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="p-4 text-center text-sm text-muted-foreground">
+                    아직 메모가 없어요.
+                  </CardContent>
+                </Card>
+              ) : (
+                notes.map((n) => (
+                  <div
+                    key={n.id}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="whitespace-pre-wrap break-words text-sm text-foreground">
+                        {n.content}
+                      </p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        {n.createdAt
+                          ? n.createdAt.slice(0, 19).replace("T", " ")
+                          : ""}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteNoteMutation.mutate(n.id)}
+                      disabled={deleteNoteMutation.isPending}
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
+                      aria-label="메모 삭제"
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        delete
+                      </span>
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-          >
+          <Button variant="outline" onClick={onClose}>
             닫기
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="gap-2"
           >
             {saveMutation.isPending ? (
               <>
-                <span className="material-symbols-outlined text-lg animate-spin">
+                <span className="material-symbols-outlined animate-spin text-lg">
                   progress_activity
                 </span>
                 저장 중...
@@ -926,41 +931,17 @@ function EntryDetailsModal({
             ) : (
               "저장"
             )}
-          </button>
+          </Button>
         </div>
 
         {saveMutation.error ? (
-          <p className="mt-3 text-sm text-red-600">
+          <p className="mt-3 text-sm text-destructive">
             저장 오류:{" "}
-            {saveMutation.error instanceof Error ? saveMutation.error.message : "알 수 없음"}
+            {saveMutation.error instanceof Error
+              ? saveMutation.error.message
+              : "알 수 없음"}
           </p>
         ) : null}
-      </div>
-    </div>
-  );
-}
-
-function DetailItem({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: string;
-}) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <span className="material-symbols-outlined mt-0.5 text-lg text-slate-400">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-          {label}
-        </p>
-        <p className="mt-1 truncate text-sm font-bold text-slate-900 dark:text-white">
-          {value}
-        </p>
       </div>
     </div>
   );
@@ -1006,76 +987,77 @@ function AddEntryModal({
       aria-modal="true"
       onMouseDown={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-[min(560px,calc(100%-24px))] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+        className="relative z-10 w-[min(560px,calc(100%-24px))] rounded-2xl border border-border bg-background p-6 shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <Badge variant="outline" className="mb-2 text-[10px]">
               지원 추가
-            </p>
-            <h3 className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+            </Badge>
+            <h3 className="mt-1 text-xl font-bold text-foreground">
               새로운 지원을 기록해요
             </h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               저장 후에는 카드에서 단계 이동/상세 편집이 가능해요.
             </p>
           </div>
-
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/5"
             aria-label="닫기"
           >
             <span className="material-symbols-outlined">close</span>
-          </button>
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               회사명
-            </p>
-            <input
+            </label>
+            <Input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+              className="mt-1.5"
               placeholder="예: 네이버"
             />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               포지션
-            </p>
-            <input
+            </label>
+            <Input
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+              className="mt-1.5"
               placeholder="예: 백엔드 엔지니어"
             />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               지원일
-            </p>
+            </label>
             <input
               type="date"
               value={appliedDate}
               onChange={(e) => setAppliedDate(e.target.value)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
             />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               지원 플랫폼
-            </p>
+            </label>
             <select
               value={platformType}
-              onChange={(e) => setPlatformType(e.target.value as PlatformType)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 outline-none focus:border-primary focus:ring-1 focus:ring-primary dark:border-white/10 dark:bg-slate-900 dark:text-white"
+              onChange={(e) =>
+                setPlatformType(e.target.value as PlatformType)
+              }
+              className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
             >
               {ALL_PLATFORMS.map((p) => (
                 <option key={p} value={p}>
@@ -1087,32 +1069,28 @@ function AddEntryModal({
         </div>
 
         {errorMessage ? (
-          <p className="mt-3 text-sm text-red-600">생성 오류: {errorMessage}</p>
+          <p className="mt-3 text-sm text-destructive">
+            생성 오류: {errorMessage}
+          </p>
         ) : null}
 
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-          >
+          <Button variant="outline" onClick={onClose}>
             취소
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             disabled={isSubmitting}
             onClick={() =>
               onSubmit({
                 companyName,
                 position,
                 appliedDate: appliedDate ? appliedDate : null,
-              platformType,
+                platformType,
               })
             }
-            className="h-10 rounded-lg bg-primary px-4 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             저장
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -1121,11 +1099,13 @@ function AddEntryModal({
 
 function EmptySlot() {
   return (
-    <div className="group flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 p-6 text-slate-400 transition-colors hover:border-primary/30 dark:border-slate-800">
-      <span className="material-symbols-outlined mb-1 text-3xl">add_circle</span>
-      <p className="text-xs font-medium">여기에 추가</p>
-    </div>
+    <Card className="border-2 border-dashed">
+      <CardContent className="flex flex-col items-center justify-center p-6 text-muted-foreground">
+        <span className="material-symbols-outlined mb-1 text-3xl">
+          add_circle
+        </span>
+        <p className="text-xs font-medium">여기에 추가</p>
+      </CardContent>
+    </Card>
   );
 }
-
-

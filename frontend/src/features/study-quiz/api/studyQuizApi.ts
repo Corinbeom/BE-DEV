@@ -1,5 +1,5 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
-import type { CsQuizAttempt, CsQuizDifficulty, CsQuizSession, CsQuizTopic } from "./types";
+import type { CsQuizAttempt, CsQuizDifficulty, CsQuizSession, CsQuizStatsResponse, CsQuizTopic } from "./types";
 
 export async function listCsQuizSessions() {
   const res = await apiFetch<ApiResponse<CsQuizSession[]>>("/api/cs-quiz-sessions");
@@ -31,6 +31,24 @@ export async function getCsQuizSession(sessionId: number) {
   );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message ?? "CS 퀴즈 세션 조회에 실패했습니다.");
+  }
+  return res.data;
+}
+
+export async function deleteCsQuizSession(sessionId: number) {
+  const res = await apiFetch<ApiResponse<null>>(
+    `/api/cs-quiz-sessions/${sessionId}`,
+    { method: "DELETE" },
+  );
+  if (!res.success) {
+    throw new Error(res.error?.message ?? "CS 퀴즈 세션 삭제에 실패했습니다.");
+  }
+}
+
+export async function getCsQuizStats() {
+  const res = await apiFetch<ApiResponse<CsQuizStatsResponse>>("/api/cs-quiz-sessions/stats");
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "CS 퀴즈 통계 조회에 실패했습니다.");
   }
   return res.data;
 }
