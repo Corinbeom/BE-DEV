@@ -5,6 +5,7 @@ import { useRecruitmentEntries } from "@/features/application-tracker/hooks/useR
 import { useCsQuizSessions } from "@/features/study-quiz/hooks/useCsQuizSessions";
 import { useResumeSessions } from "@/features/resume-analyzer/hooks/useResumeSessions";
 import type { CsQuizSession } from "@/features/study-quiz/api/types";
+import { LearningInsights } from "./LearningInsights";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -45,7 +46,11 @@ export function DashboardView() {
               </p>
             )}
             <Link
-              href="/resume-analyzer"
+              href={
+                latestResumeSession
+                  ? `/resume-analyzer/practice?sessionId=${latestResumeSession.id}`
+                  : "/resume-analyzer/practice"
+              }
               className={cn(
                 buttonVariants(),
                 "gap-2 bg-white text-primary shadow-lg hover:bg-white/90"
@@ -105,7 +110,7 @@ export function DashboardView() {
       </section>
 
       {/* Stats Strip */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard
           label="총 지원"
           value={entries.length}
@@ -130,7 +135,19 @@ export function DashboardView() {
           icon="quiz"
           color="violet"
         />
+        <StatCard
+          label="면접 세션"
+          value={resumeSessions.length}
+          icon="psychology"
+          color="primary"
+        />
       </section>
+
+      {/* Learning Insights */}
+      <LearningInsights
+        quizSessions={quizSessions}
+        resumeSessions={resumeSessions}
+      />
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* CS Quiz Sessions */}
@@ -140,10 +157,10 @@ export function DashboardView() {
               최근 CS 퀴즈
             </h3>
             <Link
-              href="/study-quiz/practice"
+              href="/study-quiz"
               className="text-sm font-semibold text-primary hover:underline"
             >
-              새 퀴즈
+              전체 보기
             </Link>
           </div>
 
@@ -158,7 +175,7 @@ export function DashboardView() {
                     아직 CS 퀴즈 기록이 없어요.
                   </p>
                   <Link
-                    href="/study-quiz/practice"
+                    href="/study-quiz"
                     className="text-sm font-semibold text-primary hover:underline"
                   >
                     퀴즈 시작하기
@@ -384,7 +401,7 @@ function QuizSessionItem({ session }: { session: CsQuizSession }) {
   const extraCount = topics.length - 2;
 
   return (
-    <Link href="/study-quiz/practice">
+    <Link href={`/study-quiz/practice?sessionId=${session.id}`}>
       <Card className="group transition-all hover:shadow-md hover:border-primary/30">
         <CardContent className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3 min-w-0">

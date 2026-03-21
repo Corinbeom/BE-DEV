@@ -165,6 +165,11 @@ public class ResumeSessionService {
         return sessionRepository.findAllByMemberId(memberId);
     }
 
+    public void delete(Long id) {
+        get(id);
+        sessionRepository.deleteById(id);
+    }
+
     private static void validateSize(MultipartFile file) {
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new IllegalArgumentException("파일 크기는 최대 5MB 입니다. filename=" + file.getOriginalFilename());

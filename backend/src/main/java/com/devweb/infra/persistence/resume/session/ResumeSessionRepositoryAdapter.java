@@ -30,5 +30,10 @@ public class ResumeSessionRepositoryAdapter implements ResumeSessionRepository {
     public List<ResumeSession> findAllByMemberId(Long memberId) {
         return repo.findAllByMemberIdOrderByCreatedAtDesc(memberId);
     }
+
+    @Override
+    public void deleteById(Long id) {
+        repo.deleteById(id);
+    }
 }
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useResumeFiles } from "@/features/profile/hooks/useResumeFiles";
@@ -28,6 +29,8 @@ import { cn } from "@/lib/utils";
 export function ResumePortfolioPrepView() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const initialSessionId = searchParams.get("sessionId");
 
   const [positionType, setPositionType] = useState<PositionType>("BE");
   const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null);
@@ -35,7 +38,9 @@ export function ResumePortfolioPrepView() {
     null
   );
   const [portfolioUrl, setPortfolioUrl] = useState<string>("");
-  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(
+    initialSessionId ? Number(initialSessionId) : null
+  );
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
   const [answersByQuestion, setAnswersByQuestion] = useState<
     Record<number, string>

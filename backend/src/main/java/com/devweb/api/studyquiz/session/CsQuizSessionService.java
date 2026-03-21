@@ -11,6 +11,8 @@ import com.devweb.domain.studyquiz.session.port.CsQuizSessionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.devweb.api.studyquiz.session.dto.CsQuizStatsResponse;
+
 import java.util.*;
 
 @Service
@@ -76,6 +78,49 @@ public class CsQuizSessionService {
     @Transactional(readOnly = true)
     public List<CsQuizSession> listByMember(Long memberId) {
         return sessionRepository.findAllByMemberId(memberId);
+    }
+
+    public void delete(Long id) {
+        get(id);
+        sessionRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public CsQuizStatsResponse getStats(Long memberId) {
+        List<CsQuizSession> sessions = sessionRepository.findAllByMemberId(memberId);
+
+        int totalAttempts = 0;
+        int correctCount = 0;
+        Map<String, int[]> topicMap = new LinkedHashMap<>(); // [attempts, correct]
+
+        for (CsQuizSession session : sessions) {
+            for (CsQuizQuestion question : session.getQuestions()) {
+                String topic = question.getTopic().name();
+                for (CsQuizAttempt attempt : question.getAttempts()) {
+                    if (attempt.isCorrect() == null) continue;
+                    totalAttempts++;
+                    int[] counts = topicMap.computeIfAbsent(topic, k -> new int[2]);
+                    counts[0]++;
+                    if (Boolean.TRUE.equals(attempt.isCorrect())) {
+                        correctCount++;
+                        counts[1]++;
+                    }
+                }
+            }
+        }
+
+        double overallAccuracy = totalAttempts > 0 ? (double) correctCount / totalAttempts : 0.0;
+
+        List<CsQuizStatsResponse.TopicAccuracy> topicAccuracies = topicMap.entrySet().stream()
+                .map(e -> new CsQuizStatsResponse.TopicAccuracy(
+                        e.getKey(),
+                        e.getValue()[0],
+                        e.getValue()[1],
+                        e.getValue()[0] > 0 ? (double) e.getValue()[1] / e.getValue()[0] : 0.0
+                ))
+                .toList();
+
+        return new CsQuizStatsResponse(totalAttempts, correctCount, overallAccuracy, topicAccuracies);
     }
 
     private List<CsQuizQuestion> pickMultipleChoiceQuestionsWithFallback(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, int count, int startIndex) {
