@@ -32,6 +32,11 @@ public class CsQuizSessionRepositoryAdapter implements CsQuizSessionRepository {
     }
 
     @Override
+    public List<Object[]> findStatsGroupedByTopic(Long memberId) {
+        return repo.findStatsGroupedByTopic(memberId);
+    }
+
+    @Override
     public void deleteById(Long id) {
         repo.deleteById(id);
     }

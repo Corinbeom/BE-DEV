@@ -1,8 +1,10 @@
 package com.devweb.api.studyquiz.session;
 
+import com.devweb.api.studyquiz.session.dto.CsQuizSessionResponse;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizSession;
+import com.devweb.domain.studyquiz.session.model.CsQuizSessionStatus;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -63,7 +65,12 @@ class CsQuizSessionControllerTest {
     @Test
     @DisplayName("GET /api/cs-quiz-sessions → 200")
     void listByCurrentMember_성공() throws Exception {
-        given(service.listByMember(1L)).willReturn(List.of(session));
+        CsQuizSessionResponse dto = new CsQuizSessionResponse(
+                30L, "CS Quiz (MID)", "MID", Set.of("OS"),
+                CsQuizSessionStatus.CREATED, List.of(),
+                LocalDateTime.now(), LocalDateTime.now()
+        );
+        given(service.listByMemberCached(1L)).willReturn(List.of(dto));
 
         mockMvc.perform(get("/api/cs-quiz-sessions"))
                 .andExpect(status().isOk())

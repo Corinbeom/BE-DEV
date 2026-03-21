@@ -15,6 +15,9 @@ import com.devweb.domain.resume.session.port.ResumeSessionRepository;
 import com.devweb.domain.resume.session.port.TextExtractorPort;
 import com.devweb.domain.resume.session.port.UrlTextFetcherPort;
 import com.devweb.domain.resume.session.service.QuestionGenerator;
+import com.devweb.api.resume.session.dto.ResumeSessionResponse;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -165,6 +168,15 @@ public class ResumeSessionService {
         return sessionRepository.findAllByMemberId(memberId);
     }
 
+    @Cacheable(value = "resumeSessions", key = "#memberId")
+    @Transactional(readOnly = true)
+    public List<ResumeSessionResponse> listByMemberCached(Long memberId) {
+        return new java.util.ArrayList<>(sessionRepository.findAllByMemberId(memberId).stream()
+                .map(ResumeSessionResponse::from)
+                .toList());
+    }
+
+    @CacheEvict(value = "resumeSessions", allEntries = true)
     public void delete(Long id) {
         get(id);
         sessionRepository.deleteById(id);

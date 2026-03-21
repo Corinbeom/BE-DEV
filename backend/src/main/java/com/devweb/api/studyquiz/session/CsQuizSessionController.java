@@ -24,11 +24,7 @@ public class CsQuizSessionController {
     @GetMapping
     public ApiResponse<List<CsQuizSessionResponse>> listByCurrentMember() {
         Long memberId = AuthUtils.currentMemberId();
-        return ApiResponse.success(
-                service.listByMember(memberId).stream()
-                        .map(CsQuizSessionResponse::from)
-                        .toList()
-        );
+        return ApiResponse.success(service.listByMemberCached(memberId));
     }
 
     @PostMapping

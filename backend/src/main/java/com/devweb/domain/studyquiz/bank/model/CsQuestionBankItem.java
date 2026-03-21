@@ -4,6 +4,7 @@ import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestionType;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ public class CsQuestionBankItem {
     @Column(nullable = false)
     private String prompt;
 
+    @BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "cs_question_bank_choices", joinColumns = @JoinColumn(name = "item_id"))
     @OrderColumn(name = "idx")
@@ -47,6 +49,7 @@ public class CsQuestionBankItem {
     @Column(name = "reference_answer")
     private String referenceAnswer;
 
+    @BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "cs_question_bank_rubric_keywords", joinColumns = @JoinColumn(name = "item_id"))
     @OrderColumn(name = "idx")

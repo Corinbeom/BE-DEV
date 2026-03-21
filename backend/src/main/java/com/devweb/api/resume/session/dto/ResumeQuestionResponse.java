@@ -3,6 +3,8 @@ package com.devweb.api.resume.session.dto;
 import com.devweb.domain.resume.model.InterviewQuestion;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 
+import java.io.Serializable;
+
 public record ResumeQuestionResponse(
         Long id,
         int orderIndex,
@@ -12,7 +14,7 @@ public record ResumeQuestionResponse(
         String intention,
         String keywords,
         String modelAnswer
-) {
+) implements Serializable {
     public static ResumeQuestionResponse from(ResumeQuestion q) {
         InterviewQuestion vo = q.getInterviewQuestion();
         return new ResumeQuestionResponse(

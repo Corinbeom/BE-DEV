@@ -5,6 +5,7 @@ import com.devweb.domain.studyquiz.bank.port.CsQuestionBankRepository;
 import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestionType;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class CsQuestionBankRepositoryAdapter implements CsQuestionBankRepository
         this.repo = repo;
     }
 
+    @Cacheable(value = "questionBank", key = "#topic.name() + ':' + #difficulty.name() + ':' + #type.name()")
     @Override
     public List<CsQuestionBankItem> findAllBy(CsQuizTopic topic, CsQuizDifficulty difficulty, CsQuizQuestionType type) {
         return repo.findAllByTopicAndDifficultyAndType(topic, difficulty, type);

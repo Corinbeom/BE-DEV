@@ -2,6 +2,7 @@ package com.devweb.api.auth;
 
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
+import com.devweb.infra.auth.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class AuthControllerTest {
 
     @MockBean
     MemberRepository memberRepository;
+
+    @MockBean
+    JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
     void setUpAuth() {

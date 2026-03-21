@@ -2,6 +2,7 @@ package com.devweb.domain.resume.session.model;
 
 import com.devweb.domain.member.model.Member;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -66,6 +67,7 @@ public class ResumeSession {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<ResumeQuestion> questions = new ArrayList<>();
