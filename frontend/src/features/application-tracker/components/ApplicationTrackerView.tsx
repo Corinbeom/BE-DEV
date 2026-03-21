@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   createRecruitmentEntry,
   updateRecruitmentEntry,
@@ -322,6 +322,7 @@ export function ApplicationTrackerView() {
       </section>
 
       <EntryDetailsModal
+        key={selected?.id ?? "closed"}
         open={selected != null}
         entry={selected}
         onClose={() => setSelected(null)}
@@ -337,6 +338,7 @@ export function ApplicationTrackerView() {
       />
 
       <AddEntryModal
+        key={isAddOpen ? "open" : "closed"}
         open={isAddOpen}
         onClose={() => {
           createMutation.reset();
@@ -585,24 +587,13 @@ function EntryDetailsModal({
   }) => Promise<void>;
 }) {
   const qc = useQueryClient();
-  const [companyName, setCompanyName] = useState("");
-  const [position, setPosition] = useState("");
-  const [appliedDate, setAppliedDate] = useState("");
-  const [externalId, setExternalId] = useState("");
-  const [platformType, setPlatformType] = useState<PlatformType>("MANUAL");
+  const [companyName, setCompanyName] = useState(entry?.companyName ?? "");
+  const [position, setPosition] = useState(entry?.position ?? "");
+  const [appliedDate, setAppliedDate] = useState(entry?.appliedDate ?? "");
+  const [externalId, setExternalId] = useState(entry?.externalId ?? "");
+  const [platformType, setPlatformType] = useState<PlatformType>(entry?.platformType ?? "MANUAL");
   const [justSaved, setJustSaved] = useState(false);
   const [newNote, setNewNote] = useState("");
-
-  useEffect(() => {
-    if (!open || !entry) return;
-    setCompanyName(entry.companyName);
-    setPosition(entry.position);
-    setAppliedDate(entry.appliedDate ?? "");
-    setExternalId(entry.externalId ?? "");
-    setPlatformType(entry.platformType);
-    setJustSaved(false);
-    setNewNote("");
-  }, [open, entry]);
 
   const entryId = entry?.id ?? null;
   const notesQuery = useRecruitmentEntryNotes(entryId, open);
@@ -969,14 +960,6 @@ function AddEntryModal({
   const [position, setPosition] = useState("");
   const [appliedDate, setAppliedDate] = useState(todayLocalISODate());
   const [platformType, setPlatformType] = useState<PlatformType>("MANUAL");
-
-  useEffect(() => {
-    if (!open) return;
-    setCompanyName("");
-    setPosition("");
-    setAppliedDate(todayLocalISODate());
-    setPlatformType("MANUAL");
-  }, [open]);
 
   if (!open) return null;
 
