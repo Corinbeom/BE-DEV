@@ -11,5 +11,7 @@ public interface ResumeSessionRepository {
     Optional<ResumeSession> findById(Long id);
 
     List<ResumeSession> findAllByMemberId(Long memberId);
+
+    void deleteById(Long id);
 }
 

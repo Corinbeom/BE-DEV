@@ -11,5 +11,7 @@ public interface CsQuizSessionRepository {
     Optional<CsQuizSession> findById(Long id);
 
     List<CsQuizSession> findAllByMemberId(Long memberId);
+
+    void deleteById(Long id);
 }
 

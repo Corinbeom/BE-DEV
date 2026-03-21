@@ -46,3 +46,17 @@ export type CsQuizAttempt = {
   followups: string[];
 };
 
+export type TopicAccuracy = {
+  topic: string;
+  totalAttempts: number;
+  correctCount: number;
+  accuracy: number;
+};
+
+export type CsQuizStatsResponse = {
+  totalAttempts: number;
+  correctCount: number;
+  overallAccuracy: number;
+  topicAccuracies: TopicAccuracy[];
+};
+

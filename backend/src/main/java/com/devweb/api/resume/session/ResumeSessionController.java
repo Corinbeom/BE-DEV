@@ -47,4 +47,10 @@ public class ResumeSessionController {
     public ApiResponse<ResumeSessionResponse> get(@PathVariable Long id) {
         return ApiResponse.success(ResumeSessionResponse.from(service.get(id)));
     }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ApiResponse.success(null);
+    }
 }

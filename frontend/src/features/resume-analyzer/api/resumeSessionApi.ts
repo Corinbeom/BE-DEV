@@ -45,6 +45,16 @@ export async function getResumeSession(sessionId: number) {
   return res.data;
 }
 
+export async function deleteResumeSession(sessionId: number) {
+  const res = await apiFetch<ApiResponse<null>>(
+    `/api/resume-sessions/${sessionId}`,
+    { method: "DELETE" },
+  );
+  if (!res.success) {
+    throw new Error(res.error?.message ?? "이력서 세션 삭제에 실패했습니다.");
+  }
+}
+
 export async function createResumeFeedback(input: {
   questionId: number;
   answerText: string;

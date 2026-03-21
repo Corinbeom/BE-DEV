@@ -1,12 +1,10 @@
 import { AppFrame } from "@/components/AppFrame";
-import { ResumePortfolioPrepView } from "@/features/resume-analyzer/components/ResumePortfolioPrepView";
+import { ResumeAnalyzerHubView } from "@/features/resume-analyzer/components/ResumeAnalyzerHubView";
 
 export default function ResumeAnalyzerPage() {
   return (
     <AppFrame>
-      <ResumePortfolioPrepView />
+      <ResumeAnalyzerHubView />
     </AppFrame>
   );
 }
-
-

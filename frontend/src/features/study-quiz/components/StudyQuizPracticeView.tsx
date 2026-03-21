@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   useCreateCsQuizSession,
   useSubmitCsQuizAttempt,
 } from "../hooks/useCsQuizMutations";
+import { useCsQuizSession } from "../hooks/useCsQuizSession";
 import type {
   CsQuizAttempt,
   CsQuizDifficulty,
@@ -13,39 +15,33 @@ import type {
   CsQuizSession,
   CsQuizTopic,
 } from "../api/types";
-
-const TOPICS: { id: CsQuizTopic; label: string }[] = [
-  { id: "OS", label: "운영체제" },
-  { id: "NETWORK", label: "네트워크" },
-  { id: "DB", label: "데이터베이스" },
-  { id: "SPRING", label: "Spring" },
-  { id: "JAVA", label: "Java" },
-  { id: "DATA_STRUCTURE", label: "자료구조" },
-  { id: "ALGORITHM", label: "알고리즘" },
-  { id: "ARCHITECTURE", label: "아키텍처 설계" },
-  { id: "CLOUD", label: "클라우드 설계" },
-];
-
-const DIFFICULTIES: { id: CsQuizDifficulty; label: string }[] = [
-  { id: "LOW", label: "하" },
-  { id: "MID", label: "중" },
-  { id: "HIGH", label: "상" },
-];
+import { TOPICS, DIFFICULTIES, TOPIC_LABEL, DIFFICULTY_META } from "../constants";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export function StudyQuizPracticeView() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const initialSessionId = searchParams.get("sessionId");
   const createSession = useCreateCsQuizSession();
   const submitAttempt = useSubmitCsQuizAttempt();
 
   const [difficulty, setDifficulty] = useState<CsQuizDifficulty>("MID");
-  const [selectedTopics, setSelectedTopics] = useState<CsQuizTopic[]>([
-    "OS",
-    "DB",
-  ]);
+  const [selectedTopics, setSelectedTopics] = useState<CsQuizTopic[]>(["OS", "DB"]);
   const [questionCount, setQuestionCount] = useState<number>(5);
 
   const [session, setSession] = useState<CsQuizSession | null>(null);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
+
+  // Load session from URL param for re-entry
+  const loadedSessionQuery = useCsQuizSession(
+    !session && initialSessionId ? Number(initialSessionId) : null
+  );
+  const effectiveSession = session ?? loadedSessionQuery.data ?? null;
   const [mcqSelectedIndexByQuestion, setMcqSelectedIndexByQuestion] = useState<
     Record<number, number | null>
   >({});
@@ -56,11 +52,15 @@ export function StudyQuizPracticeView() {
     Record<number, CsQuizAttempt | undefined>
   >({});
 
-  const questions = useMemo(() => session?.questions ?? [], [session]);
+  const questions = useMemo(() => effectiveSession?.questions ?? [], [effectiveSession]);
   const activeQuestion: CsQuizQuestion | null =
     questions.find((q) => q.id === activeQuestionId) ?? (questions[0] ?? null);
 
-  const isBusy = createSession.isPending || submitAttempt.isPending;
+  const attemptedCount = Object.values(attemptByQuestion).filter(Boolean).length;
+  const totalCount = questions.length;
+  const progressPercent = totalCount > 0 ? (attemptedCount / totalCount) * 100 : 0;
+
+  const isBusy = createSession.isPending || submitAttempt.isPending || loadedSessionQuery.isFetching;
 
   async function onCreateSession() {
     const created = await createSession.mutateAsync({
@@ -100,43 +100,68 @@ export function StudyQuizPracticeView() {
     setAttemptByQuestion((prev) => ({ ...prev, [q.id]: attempt }));
   }
 
-  return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-      <aside className="custom-scrollbar lg:col-span-4 lg:pr-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-white/5 dark:bg-white/5">
-          <div className="mb-6">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              CS 퀴즈 세션 만들기
-            </h3>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              객관식 60% + 주관식 40%로 세션을 생성해요.
-            </p>
+  function goToNextQuestion() {
+    if (!questions.length) return;
+    const idx = questions.findIndex((q) => q.id === activeQuestionId);
+    const next = questions[(idx + 1) % questions.length];
+    setActiveQuestionId(next.id);
+  }
+
+  function resetSession() {
+    setSession(null);
+    setActiveQuestionId(null);
+    setMcqSelectedIndexByQuestion({});
+    setSaAnswerByQuestion({});
+    setAttemptByQuestion({});
+  }
+
+  // ─── Phase 1: Session Setup ───
+  if (!effectiveSession) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+        {/* Hero */}
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10">
+            <span className="material-symbols-outlined text-3xl text-primary">
+              school
+            </span>
           </div>
+          <h1 className="text-2xl font-bold text-foreground">CS 퀴즈</h1>
+          <p className="mt-2 text-muted-foreground">
+            객관식 60% + 주관식 40%로 CS 지식을 점검하고,
+            <br />
+            AI 피드백으로 부족한 부분을 보완하세요.
+          </p>
+        </div>
 
-          {createSession.error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-200">
-              {createSession.error instanceof Error
-                ? createSession.error.message
-                : "세션 생성 오류"}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                난이도
+        {/* Setup Form Card */}
+        <Card>
+          <CardContent className="flex flex-col gap-5 p-6">
+            {createSession.error && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {createSession.error instanceof Error
+                  ? createSession.error.message
+                  : "세션 생성 오류"}
               </div>
+            )}
+
+            {/* Difficulty */}
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                난이도
+              </p>
               <div className="flex gap-2">
                 {DIFFICULTIES.map((d) => (
                   <button
                     key={d.id}
                     type="button"
                     onClick={() => setDifficulty(d.id)}
-                    className={
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-all",
                       d.id === difficulty
-                        ? "rounded-lg bg-primary/10 px-3 py-2 text-sm font-bold text-primary"
-                        : "rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5"
-                    }
+                        ? d.color
+                        : "border-border text-muted-foreground hover:bg-accent"
+                    )}
                   >
                     {d.label}
                   </button>
@@ -144,47 +169,55 @@ export function StudyQuizPracticeView() {
               </div>
             </div>
 
+            {/* Topics */}
             <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 토픽 (복수 선택)
-              </div>
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {TOPICS.map((t) => {
                   const checked = selectedTopics.includes(t.id);
                   return (
-                    <label
+                    <button
                       key={t.id}
-                      className={
-                        checked
-                          ? "flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-semibold text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                          : "flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/5 dark:text-slate-300 dark:hover:bg-white/5"
+                      type="button"
+                      onClick={() =>
+                        setSelectedTopics((prev) =>
+                          checked
+                            ? prev.filter((x) => x !== t.id)
+                            : [...prev, t.id]
+                        )
                       }
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all text-left",
+                        checked
+                          ? "border-primary/30 bg-primary/5 text-foreground"
+                          : "border-border text-muted-foreground hover:bg-accent"
+                      )}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          setSelectedTopics((prev) =>
-                            checked
-                              ? prev.filter((x) => x !== t.id)
-                              : [...prev, t.id],
-                          );
-                        }}
-                      />
-                      <span>{t.label}</span>
-                    </label>
+                      <span
+                        className={cn(
+                          "material-symbols-outlined text-base",
+                          checked ? "text-primary" : "text-muted-foreground"
+                        )}
+                      >
+                        {t.icon}
+                      </span>
+                      {t.label}
+                    </button>
                   );
                 })}
               </div>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-2 text-xs text-muted-foreground">
                 최소 1개 이상 선택해 주세요.
               </p>
             </div>
 
+            {/* Question count */}
             <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 문항 수 (5~10)
-              </div>
+              </p>
               <input
                 type="number"
                 min={5}
@@ -192,254 +225,541 @@ export function StudyQuizPracticeView() {
                 value={questionCount}
                 onChange={(e) =>
                   setQuestionCount(
-                    Math.max(
-                      5,
-                      Math.min(10, Number(e.target.value) || 10),
-                    ),
+                    Math.max(5, Math.min(10, Number(e.target.value) || 10))
                   )
                 }
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-black/20"
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
               />
             </div>
 
-            <button
-              type="button"
-              onClick={onCreateSession}
+            {/* CTA */}
+            <Button
+              size="lg"
+              className={cn(
+                "mt-2 w-full gap-2",
+                createSession.isPending && "animate-pulse-glow"
+              )}
               disabled={!user || selectedTopics.length === 0 || isBusy}
-              className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 disabled:opacity-50"
+              onClick={() => void onCreateSession()}
             >
-              {createSession.isPending ? "세션 생성 중…" : "세션 생성하기"}
-            </button>
-          </div>
+              {createSession.isPending ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">
+                    progress_activity
+                  </span>
+                  AI가 문제를 생성하고 있어요...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm">
+                    play_arrow
+                  </span>
+                  세션 생성하기
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-          <div className="mt-8 border-t border-slate-200 pt-6 dark:border-white/5">
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              문제 목록
-            </h3>
-            {!session ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                세션을 생성하면 문제가 표시돼요.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {questions.map((q) => {
-                  const isActive = q.id === (activeQuestion?.id ?? null);
-                  const attempted = Boolean(attemptByQuestion[q.id]);
-                  return (
-                    <button
-                      key={q.id}
-                      type="button"
-                      onClick={() => setActiveQuestionId(q.id)}
-                      className={
-                        isActive
-                          ? "flex w-full items-start justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-left"
-                          : "flex w-full items-start justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 text-left hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5"
-                      }
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                          {q.topic} •{" "}
-                          {q.type === "MULTIPLE_CHOICE" ? "객관식" : "주관식"}
-                        </div>
-                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {q.prompt}
-                        </div>
-                      </div>
-                      <div className="shrink-0 text-xs font-bold">
-                        {attempted ? (
-                          <span className="rounded bg-green-100 px-2 py-0.5 text-green-700">
-                            완료
-                          </span>
-                        ) : (
-                          <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                            대기
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+  // ─── Phase 2: Practice Session ───
+  const diffMeta = DIFFICULTY_META[effectiveSession.difficulty];
+  const activeAttempt = activeQuestion
+    ? attemptByQuestion[activeQuestion.id]
+    : undefined;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Session Header with Progress */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold text-foreground">
+            {effectiveSession.title || "CS 퀴즈"}
+          </h2>
+          {diffMeta && (
+            <Badge
+              variant="outline"
+              className={cn("text-xs font-semibold", diffMeta.color)}
+            >
+              난이도: {diffMeta.label}
+            </Badge>
+          )}
         </div>
-      </aside>
 
-      <section className="custom-scrollbar lg:col-span-8">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-white/5 dark:bg-white/5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                {session ? session.title : "CS 퀴즈"}
-              </h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {session
-                  ? `${session.difficulty} • ${session.topics.join(", ")} • ${questions.length}문항`
-                  : "세션을 생성해 시작하세요."}
-              </p>
+        <div className="flex items-center gap-4">
+          {/* Inline progress */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              <span className="font-bold text-foreground">{attemptedCount}</span>
+              {" / "}
+              {totalCount} 완료
+            </span>
+            <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
           </div>
 
+          <Button variant="outline" size="sm" onClick={resetSession}>
+            <span className="material-symbols-outlined mr-1 text-sm">add</span>
+            새 세션
+          </Button>
+        </div>
+      </div>
+
+      {/* Main: Question Nav + Answer/Feedback */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        {/* Left: Question Navigation */}
+        <aside className="xl:col-span-3">
+          <div className="custom-scrollbar flex max-h-[calc(100vh-12rem)] flex-col gap-2 overflow-y-auto pr-1">
+            {questions.map((q, idx) => {
+              const attempt = attemptByQuestion[q.id];
+              const isActive = q.id === (activeQuestion?.id ?? null);
+
+              // Determine indicator state
+              let indicatorClass = "bg-muted text-muted-foreground";
+              let indicatorContent: React.ReactNode = idx + 1;
+
+              if (attempt) {
+                if (q.type === "MULTIPLE_CHOICE") {
+                  if (attempt.correct) {
+                    indicatorClass = "bg-emerald-500 text-white";
+                    indicatorContent = (
+                      <span className="material-symbols-outlined text-sm">
+                        check
+                      </span>
+                    );
+                  } else {
+                    indicatorClass = "bg-red-500 text-white";
+                    indicatorContent = (
+                      <span className="material-symbols-outlined text-sm">
+                        close
+                      </span>
+                    );
+                  }
+                } else {
+                  indicatorClass = "bg-primary text-primary-foreground";
+                  indicatorContent = (
+                    <span className="material-symbols-outlined text-sm">
+                      check
+                    </span>
+                  );
+                }
+              } else if (isActive) {
+                indicatorClass = "bg-primary text-primary-foreground";
+              }
+
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all",
+                    isActive
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-transparent hover:border-border hover:bg-muted/50"
+                  )}
+                  onClick={() => setActiveQuestionId(q.id)}
+                >
+                  {/* Number circle */}
+                  <div
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                      indicatorClass
+                    )}
+                  >
+                    {indicatorContent}
+                  </div>
+
+                  {/* Topic + type + truncated prompt */}
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-0.5 flex items-center gap-1">
+                      <Badge
+                        variant={isActive ? "default" : "secondary"}
+                        className="text-[10px]"
+                      >
+                        {TOPIC_LABEL[q.topic] ?? q.topic}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {q.type === "MULTIPLE_CHOICE" ? "객관식" : "주관식"}
+                      </Badge>
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {q.prompt}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Right: Question Detail + Answer + Feedback */}
+        <main className="flex flex-col gap-5 xl:col-span-9">
           {!activeQuestion ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-white/5 dark:bg-white/5 dark:text-slate-300">
-              아직 문제가 없습니다.
-            </div>
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center gap-2 p-12 text-center">
+                <span className="material-symbols-outlined text-4xl text-muted-foreground/40">
+                  quiz
+                </span>
+                <p className="text-muted-foreground">
+                  왼쪽에서 문제를 선택해 주세요.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <>
-              <div className="rounded-xl border border-slate-200 p-5 dark:border-white/5">
-                <div className="mb-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-                  {activeQuestion.topic} •{" "}
-                  {activeQuestion.type === "MULTIPLE_CHOICE"
-                    ? "객관식"
-                    : "주관식"}
-                </div>
-                <div className="text-base font-semibold leading-relaxed text-slate-900 dark:text-slate-100">
-                  {activeQuestion.prompt}
-                </div>
-              </div>
+              {/* Question Card */}
+              <Card>
+                <CardContent className="flex flex-col gap-3 p-5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      {TOPIC_LABEL[activeQuestion.topic] ?? activeQuestion.topic}
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {activeQuestion.type === "MULTIPLE_CHOICE"
+                        ? "객관식"
+                        : "주관식"}
+                    </Badge>
+                  </div>
+                  <p className="text-lg font-bold leading-snug text-foreground">
+                    {activeQuestion.prompt}
+                  </p>
+                </CardContent>
+              </Card>
 
-              {activeQuestion.type === "MULTIPLE_CHOICE" ? (
-                <div className="mt-4 space-y-3">
-                  {activeQuestion.choices.map((c, idx) => (
-                    <label
-                      key={idx}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-4 hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/5"
-                    >
-                      <input
-                        type="radio"
-                        name={`q-${activeQuestion.id}`}
-                        checked={
-                          mcqSelectedIndexByQuestion[activeQuestion.id] === idx
+              {/* Answer Area */}
+              <Card>
+                <CardContent className="flex flex-col gap-4 p-5">
+                  {activeQuestion.type === "MULTIPLE_CHOICE" ? (
+                    <div className="space-y-3">
+                      {activeQuestion.choices.map((c, idx) => {
+                        const selected =
+                          mcqSelectedIndexByQuestion[activeQuestion.id] === idx;
+                        const hasAttempt = !!activeAttempt;
+
+                        // Post-submit visual feedback
+                        let choiceStyle =
+                          "border-border hover:bg-accent";
+                        if (selected && !hasAttempt) {
+                          choiceStyle =
+                            "border-primary bg-primary/5 shadow-sm";
+                        } else if (hasAttempt && selected) {
+                          choiceStyle = activeAttempt.correct
+                            ? "border-emerald-500 bg-emerald-500/10"
+                            : "border-red-500 bg-red-500/10";
                         }
-                        onChange={() =>
-                          setMcqSelectedIndexByQuestion((prev) => ({
+
+                        let circleStyle =
+                          "border-border text-muted-foreground";
+                        if (selected && !hasAttempt) {
+                          circleStyle =
+                            "border-primary bg-primary text-primary-foreground";
+                        } else if (hasAttempt && selected) {
+                          circleStyle = activeAttempt.correct
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-red-500 bg-red-500 text-white";
+                        }
+
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            disabled={hasAttempt}
+                            onClick={() =>
+                              setMcqSelectedIndexByQuestion((prev) => ({
+                                ...prev,
+                                [activeQuestion.id]: idx,
+                              }))
+                            }
+                            className={cn(
+                              "flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all",
+                              hasAttempt
+                                ? "cursor-default"
+                                : "cursor-pointer",
+                              choiceStyle
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "flex size-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
+                                circleStyle
+                              )}
+                            >
+                              {hasAttempt && selected ? (
+                                <span className="material-symbols-outlined text-sm">
+                                  {activeAttempt.correct ? "check" : "close"}
+                                </span>
+                              ) : (
+                                String.fromCharCode(65 + idx)
+                              )}
+                            </span>
+                            <span className="text-sm font-medium text-foreground">
+                              {c}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="material-symbols-outlined text-sm">
+                          lightbulb
+                        </span>
+                        팁: 핵심 개념을 먼저 언급하고, 예시를 들어 설명해 보세요.
+                      </div>
+                      <Textarea
+                        className="min-h-[180px] resize-none border-none bg-muted/30 p-4 text-base leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/20"
+                        placeholder="답변을 작성해 주세요."
+                        value={saAnswerByQuestion[activeQuestion.id] ?? ""}
+                        onChange={(e) =>
+                          setSaAnswerByQuestion((prev) => ({
                             ...prev,
-                            [activeQuestion.id]: idx,
+                            [activeQuestion.id]: e.target.value,
                           }))
                         }
                       />
-                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {c}
+                    </>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!questions.length}
+                      onClick={goToNextQuestion}
+                    >
+                      <span className="material-symbols-outlined mr-1 text-sm">
+                        navigate_next
                       </span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4">
-                  <textarea
-                    value={saAnswerByQuestion[activeQuestion.id] ?? ""}
-                    onChange={(e) =>
-                      setSaAnswerByQuestion((prev) => ({
-                        ...prev,
-                        [activeQuestion.id]: e.target.value,
-                      }))
-                    }
-                    placeholder="답변을 작성해 주세요."
-                    rows={6}
-                    className="w-full resize-none rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-900 dark:border-white/10 dark:bg-black/20 dark:text-slate-100"
-                  />
-                </div>
-              )}
+                      다음 문제
+                    </Button>
 
-              <div className="mt-4 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onSubmit}
-                  disabled={
-                    !activeQuestion ||
-                    submitAttempt.isPending ||
-                    (activeQuestion.type === "MULTIPLE_CHOICE" &&
-                      typeof mcqSelectedIndexByQuestion[activeQuestion.id] !==
-                        "number") ||
-                    (activeQuestion.type === "SHORT_ANSWER" &&
-                      !(saAnswerByQuestion[activeQuestion.id] ?? "").trim())
-                  }
-                  className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 disabled:opacity-50"
-                >
-                  {submitAttempt.isPending
-                    ? "제출 중…"
-                    : "제출하고 피드백 받기"}
-                </button>
-              </div>
-
-              {(submitAttempt.error instanceof Error ||
-                attemptByQuestion[activeQuestion.id]) && (
-                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-white/5 dark:bg-white/5">
-                  {submitAttempt.error instanceof Error ? (
-                    <div className="text-sm text-red-700 dark:text-red-200">
-                      {submitAttempt.error.message}
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        className="gap-2 px-6 shadow-md shadow-primary/15"
+                        disabled={
+                          !activeQuestion ||
+                          submitAttempt.isPending ||
+                          !!activeAttempt ||
+                          (activeQuestion.type === "MULTIPLE_CHOICE" &&
+                            typeof mcqSelectedIndexByQuestion[
+                              activeQuestion.id
+                            ] !== "number") ||
+                          (activeQuestion.type === "SHORT_ANSWER" &&
+                            !(
+                              saAnswerByQuestion[activeQuestion.id] ?? ""
+                            ).trim())
+                        }
+                        onClick={() => void onSubmit()}
+                      >
+                        {submitAttempt.isPending ? (
+                          <>
+                            <span className="material-symbols-outlined animate-spin text-sm">
+                              progress_activity
+                            </span>
+                            채점 중...
+                          </>
+                        ) : activeAttempt ? (
+                          <>
+                            <span className="material-symbols-outlined text-sm">
+                              check_circle
+                            </span>
+                            제출 완료
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-sm">
+                              send
+                            </span>
+                            제출하고 피드백 받기
+                          </>
+                        )}
+                      </Button>
+                      {submitAttempt.isPending && (
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
+                        </div>
+                      )}
                     </div>
-                  ) : null}
+                  </div>
 
-                  {attemptByQuestion[activeQuestion.id] ? (
-                    <FeedbackPanel
-                      attempt={attemptByQuestion[activeQuestion.id] as CsQuizAttempt}
-                    />
-                  ) : null}
-                </div>
+                  {submitAttempt.error && (
+                    <p className="text-sm font-semibold text-destructive">
+                      제출 오류:{" "}
+                      {submitAttempt.error instanceof Error
+                        ? submitAttempt.error.message
+                        : String(submitAttempt.error)}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Feedback Tabs — only when attempt exists */}
+              {activeAttempt && (
+                <FeedbackTabs attempt={activeAttempt} />
               )}
             </>
           )}
-        </div>
-      </section>
+        </main>
+      </div>
     </div>
   );
 }
 
-function FeedbackPanel({ attempt }: { attempt: CsQuizAttempt }) {
+// ─── Feedback Tabs ───
+function FeedbackTabs({ attempt }: { attempt: CsQuizAttempt }) {
   return (
-    <div className="space-y-4">
-      {typeof attempt.correct === "boolean" ? (
-        <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-          채점 결과: {attempt.correct ? "정답" : "오답"}
-        </div>
-      ) : null}
+    <Tabs defaultValue="evaluation">
+      <TabsList>
+        <TabsTrigger value="evaluation">
+          <span className="material-symbols-outlined mr-1 text-sm">
+            check_circle
+          </span>
+          AI 평가
+        </TabsTrigger>
+        <TabsTrigger value="suggested-answer">
+          <span className="material-symbols-outlined mr-1 text-sm">
+            auto_awesome
+          </span>
+          모범 답변
+        </TabsTrigger>
+        {attempt.followups.length > 0 && (
+          <TabsTrigger value="followups">
+            <span className="material-symbols-outlined mr-1 text-sm">
+              forum
+            </span>
+            후속 질문
+            <Badge variant="secondary" className="ml-1 text-[10px]">
+              {attempt.followups.length}
+            </Badge>
+          </TabsTrigger>
+        )}
+      </TabsList>
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Strengths
-        </div>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-200">
-          {(attempt.strengths ?? []).map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-          {attempt.strengths.length === 0 ? <li>표시할 내용이 없습니다.</li> : null}
-        </ul>
-      </div>
+      {/* Tab 1: AI Evaluation */}
+      <TabsContent value="evaluation">
+        {/* Correct/Incorrect banner */}
+        {typeof attempt.correct === "boolean" && (
+          <Card
+            className={cn(
+              "mb-4 border-l-4",
+              attempt.correct ? "border-l-emerald-500" : "border-l-red-500"
+            )}
+          >
+            <CardContent className="flex items-center gap-2 p-4">
+              <span
+                className={cn(
+                  "material-symbols-outlined text-lg",
+                  attempt.correct ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                {attempt.correct ? "check_circle" : "cancel"}
+              </span>
+              <span
+                className={cn(
+                  "text-sm font-bold",
+                  attempt.correct ? "text-emerald-600" : "text-red-600"
+                )}
+              >
+                채점 결과: {attempt.correct ? "정답" : "오답"}
+              </span>
+            </CardContent>
+          </Card>
+        )}
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Improvements
-        </div>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-200">
-          {(attempt.improvements ?? []).map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-          {attempt.improvements.length === 0 ? <li>표시할 내용이 없습니다.</li> : null}
-        </ul>
-      </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
+                잘한 점
+              </p>
+              <ul className="space-y-2 text-sm text-foreground">
+                {attempt.strengths.length > 0 ? (
+                  attempt.strengths.map((s, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-sm text-emerald-500">
+                        done
+                      </span>
+                      {s}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-muted-foreground">항목이 없습니다.</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Suggested Answer
+          <Card className="border-l-4 border-l-amber-500">
+            <CardContent className="p-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+                개선할 점
+              </p>
+              <ul className="space-y-2 text-sm text-foreground">
+                {attempt.improvements.length > 0 ? (
+                  attempt.improvements.map((s, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-sm text-amber-500">
+                        info
+                      </span>
+                      {s}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-muted-foreground">항목이 없습니다.</li>
+                )}
+              </ul>
+            </CardContent>
+          </Card>
         </div>
-        <p className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200">
-          {attempt.suggestedAnswer ?? "(없음)"}
-        </p>
-      </div>
+      </TabsContent>
 
-      <div>
-        <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-          Follow-ups
-        </div>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-200">
-          {(attempt.followups ?? []).map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-          {attempt.followups.length === 0 ? <li>표시할 내용이 없습니다.</li> : null}
-        </ul>
-      </div>
-    </div>
+      {/* Tab 2: Suggested Answer */}
+      <TabsContent value="suggested-answer">
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
+              모범 답변
+            </p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              {attempt.suggestedAnswer ?? "(모범 답변이 제공되지 않았습니다)"}
+            </p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Tab 3: Follow-ups */}
+      {attempt.followups.length > 0 && (
+        <TabsContent value="followups">
+          <Card>
+            <CardContent className="p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                예상 후속 질문
+              </p>
+              <ul className="space-y-3">
+                {attempt.followups.map((fq, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-3 rounded-lg bg-muted/50 p-3"
+                  >
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {idx + 1}
+                    </span>
+                    <p className="text-sm text-foreground">{fq}</p>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      )}
+    </Tabs>
   );
 }
-
