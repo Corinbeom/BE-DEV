@@ -3,18 +3,26 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:true}
   datasource:
     url: ${DB_URL}
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD}
   jpa:
+    defer-datasource-initialization: false
     hibernate:
       ddl-auto: update
     show-sql: false
     properties:
       hibernate:
         format_sql: false
+        generate_statistics: false
+  sql:
+    init:
+      mode: never
   h2:
     console:
       enabled: false
@@ -24,6 +32,15 @@ logging:
     org.hibernate.SQL: warn
     root: warn
     com.devweb: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
 
 devweb:
   storage:
