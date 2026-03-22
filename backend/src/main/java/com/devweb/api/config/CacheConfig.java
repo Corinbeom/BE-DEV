@@ -50,6 +50,7 @@ public class CacheConfig implements CachingConfigurer {
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(jsonConfig.entryTtl(Duration.ofMinutes(10)))
                 .withInitialCacheConfigurations(cacheConfigs)
+                .enableStatistics()
                 .build();
     }
 
