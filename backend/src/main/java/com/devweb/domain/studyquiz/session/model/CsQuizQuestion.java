@@ -1,6 +1,7 @@
 package com.devweb.domain.studyquiz.session.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class CsQuizQuestion {
     @Column(nullable = false)
     private String prompt;
 
+    @BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "cs_quiz_question_choices", joinColumns = @JoinColumn(name = "question_id"))
     @OrderColumn(name = "idx")
@@ -51,12 +53,14 @@ public class CsQuizQuestion {
     @Column(name = "reference_answer")
     private String referenceAnswer;
 
+    @BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "cs_quiz_question_rubric_keywords", joinColumns = @JoinColumn(name = "question_id"))
     @OrderColumn(name = "idx")
     @Column(name = "keyword", length = 200)
     private List<String> rubricKeywords = new ArrayList<>();
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<CsQuizAttempt> attempts = new ArrayList<>();

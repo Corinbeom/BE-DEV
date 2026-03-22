@@ -2,7 +2,9 @@ package com.devweb.api.studyquiz.session.dto;
 
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestion;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public record CsQuizQuestionResponse(
@@ -14,7 +16,7 @@ public record CsQuizQuestionResponse(
         String prompt,
         List<String> choices,
         LocalDateTime createdAt
-) {
+) implements Serializable {
     public static CsQuizQuestionResponse from(CsQuizQuestion q) {
         return new CsQuizQuestionResponse(
                 q.getId(),
@@ -23,7 +25,7 @@ public record CsQuizQuestionResponse(
                 q.getDifficulty().name(),
                 q.getType().name(),
                 q.getPrompt(),
-                q.isMultipleChoice() ? q.getChoices() : List.of(),
+                q.isMultipleChoice() ? new ArrayList<>(q.getChoices()) : new ArrayList<>(),
                 q.getCreatedAt()
         );
     }

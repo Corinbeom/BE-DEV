@@ -2,6 +2,7 @@ package com.devweb.domain.studyquiz.session.model;
 
 import com.devweb.domain.member.model.Member;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,6 +26,7 @@ public class CsQuizSession {
     @Column(nullable = false, length = 10)
     private CsQuizDifficulty difficulty;
 
+    @BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "cs_quiz_session_topics", joinColumns = @JoinColumn(name = "session_id"))
     @Enumerated(EnumType.STRING)
@@ -41,6 +43,7 @@ public class CsQuizSession {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<CsQuizQuestion> questions = new ArrayList<>();

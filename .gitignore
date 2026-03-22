@@ -35,4 +35,5 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-
+# Portfolio notes (personal, not committed)
+PORTFOLIO.md

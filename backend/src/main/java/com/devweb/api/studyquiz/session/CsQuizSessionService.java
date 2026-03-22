@@ -8,9 +8,13 @@ import com.devweb.domain.studyquiz.bank.port.CsQuestionBankRepository;
 import com.devweb.domain.studyquiz.session.model.*;
 import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
 import com.devweb.domain.studyquiz.session.port.CsQuizSessionRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.devweb.api.studyquiz.session.dto.CsQuizSessionResponse;
 import com.devweb.api.studyquiz.session.dto.CsQuizStatsResponse;
 
 import java.util.*;
@@ -36,6 +40,10 @@ public class CsQuizSessionService {
         this.aiPort = aiPort;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "stats", key = "#memberId"),
+            @CacheEvict(value = "csQuizSessions", key = "#memberId")
+    })
     public CsQuizSession create(Long memberId, String difficultyRaw, List<String> topicsRaw, Integer questionCount, String title) {
         if (memberId == null) throw new IllegalArgumentException("memberId는 필수입니다.");
         if (topicsRaw == null || topicsRaw.isEmpty()) throw new IllegalArgumentException("topics는 1개 이상 필요합니다.");
@@ -80,46 +88,46 @@ public class CsQuizSessionService {
         return sessionRepository.findAllByMemberId(memberId);
     }
 
+    @Cacheable(value = "csQuizSessions", key = "#memberId")
+    @Transactional(readOnly = true)
+    public List<CsQuizSessionResponse> listByMemberCached(Long memberId) {
+        return new ArrayList<>(sessionRepository.findAllByMemberId(memberId).stream()
+                .map(CsQuizSessionResponse::from)
+                .toList());
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = "stats", allEntries = true),
+            @CacheEvict(value = "csQuizSessions", allEntries = true)
+    })
     public void delete(Long id) {
         get(id);
         sessionRepository.deleteById(id);
     }
 
+    @Cacheable(value = "stats", key = "#memberId")
     @Transactional(readOnly = true)
     public CsQuizStatsResponse getStats(Long memberId) {
-        List<CsQuizSession> sessions = sessionRepository.findAllByMemberId(memberId);
+        // JPQL 집계 쿼리 1회로 topic별 통계 산출 (엔티티 로딩 없음)
+        List<Object[]> rows = sessionRepository.findStatsGroupedByTopic(memberId);
 
         int totalAttempts = 0;
         int correctCount = 0;
-        Map<String, int[]> topicMap = new LinkedHashMap<>(); // [attempts, correct]
+        List<CsQuizStatsResponse.TopicAccuracy> topicAccuracies = new ArrayList<>();
 
-        for (CsQuizSession session : sessions) {
-            for (CsQuizQuestion question : session.getQuestions()) {
-                String topic = question.getTopic().name();
-                for (CsQuizAttempt attempt : question.getAttempts()) {
-                    if (attempt.isCorrect() == null) continue;
-                    totalAttempts++;
-                    int[] counts = topicMap.computeIfAbsent(topic, k -> new int[2]);
-                    counts[0]++;
-                    if (Boolean.TRUE.equals(attempt.isCorrect())) {
-                        correctCount++;
-                        counts[1]++;
-                    }
-                }
-            }
+        for (Object[] row : rows) {
+            String topic = ((CsQuizTopic) row[0]).name();
+            int topicTotal = ((Long) row[1]).intValue();
+            int topicCorrect = ((Long) row[2]).intValue();
+            totalAttempts += topicTotal;
+            correctCount += topicCorrect;
+            topicAccuracies.add(new CsQuizStatsResponse.TopicAccuracy(
+                    topic, topicTotal, topicCorrect,
+                    topicTotal > 0 ? (double) topicCorrect / topicTotal : 0.0
+            ));
         }
 
         double overallAccuracy = totalAttempts > 0 ? (double) correctCount / totalAttempts : 0.0;
-
-        List<CsQuizStatsResponse.TopicAccuracy> topicAccuracies = topicMap.entrySet().stream()
-                .map(e -> new CsQuizStatsResponse.TopicAccuracy(
-                        e.getKey(),
-                        e.getValue()[0],
-                        e.getValue()[1],
-                        e.getValue()[0] > 0 ? (double) e.getValue()[1] / e.getValue()[0] : 0.0
-                ))
-                .toList();
-
         return new CsQuizStatsResponse(totalAttempts, correctCount, overallAccuracy, topicAccuracies);
     }
 

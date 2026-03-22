@@ -34,11 +34,17 @@ spring:
     username: sa
     password:
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         format_sql: true
+        generate_statistics: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   h2:
     console:
       enabled: true
@@ -56,7 +62,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,loggers
+        include: health,info,metrics,loggers,prometheus
   endpoint:
     health:
       show-details: always

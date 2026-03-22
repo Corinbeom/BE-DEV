@@ -1,8 +1,10 @@
 package com.devweb.api.resume.session;
 
+import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeSession;
+import com.devweb.domain.resume.session.model.ResumeSessionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,7 +60,12 @@ class ResumeSessionControllerTest {
     @Test
     @DisplayName("GET /api/resume-sessions → 200")
     void listByCurrentMember_성공() throws Exception {
-        given(service.listByMember(1L)).willReturn(List.of(session));
+        ResumeSessionResponse dto = new ResumeSessionResponse(
+                20L, "테스트 세션", "BE", null,
+                ResumeSessionStatus.CREATED, List.of(),
+                LocalDateTime.now(), LocalDateTime.now()
+        );
+        given(service.listByMemberCached(1L)).willReturn(List.of(dto));
 
         mockMvc.perform(get("/api/resume-sessions"))
                 .andExpect(status().isOk())

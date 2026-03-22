@@ -12,6 +12,9 @@ public interface CsQuizSessionRepository {
 
     List<CsQuizSession> findAllByMemberId(Long memberId);
 
+    /** 반환: List of [CsQuizTopic, Long(totalAttempts), Long(correctCount)] */
+    List<Object[]> findStatsGroupedByTopic(Long memberId);
+
     void deleteById(Long id);
 }
 

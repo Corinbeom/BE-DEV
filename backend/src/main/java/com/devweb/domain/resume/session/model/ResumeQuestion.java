@@ -2,6 +2,7 @@ package com.devweb.domain.resume.session.model;
 
 import com.devweb.domain.resume.model.InterviewQuestion;
 import jakarta.persistence.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class ResumeQuestion {
     @Embedded
     private InterviewQuestion interviewQuestion;
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<ResumeAnswerAttempt> attempts = new ArrayList<>();

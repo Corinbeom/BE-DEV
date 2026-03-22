@@ -7,6 +7,7 @@ import com.devweb.domain.studyquiz.session.model.CsQuizFeedback;
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestion;
 import com.devweb.domain.studyquiz.session.service.CsQuizFeedbackGenerator;
 import com.devweb.domain.studyquiz.session.port.CsQuizQuestionRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class CsQuizQuestionService {
         this.feedbackGenerator = feedbackGenerator;
     }
 
+    @CacheEvict(value = "stats", allEntries = true)
     public CsQuizAttempt submitAttempt(Long questionId, CreateCsQuizAttemptRequest req) {
         CsQuizQuestion q = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("CsQuizQuestion을 찾을 수 없습니다. id=" + questionId));

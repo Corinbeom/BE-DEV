@@ -22,11 +22,7 @@ public class ResumeSessionController {
     @GetMapping
     public ApiResponse<List<ResumeSessionResponse>> listByCurrentMember() {
         Long memberId = AuthUtils.currentMemberId();
-        return ApiResponse.success(
-                service.listByMember(memberId).stream()
-                        .map(ResumeSessionResponse::from)
-                        .toList()
-        );
+        return ApiResponse.success(service.listByMemberCached(memberId));
     }
 
     @PostMapping
