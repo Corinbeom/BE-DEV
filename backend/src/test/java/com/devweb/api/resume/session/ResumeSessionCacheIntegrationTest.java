@@ -31,6 +31,8 @@ import static org.assertj.core.api.Assertions.*;
 @SpringBootTest
 @TestPropertySource(properties = {
         "spring.cache.type=simple",
+        "spring.data.redis.host=",
+        "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration",
         "spring.jpa.defer-datasource-initialization=false",
         "spring.sql.init.mode=never"
 })
