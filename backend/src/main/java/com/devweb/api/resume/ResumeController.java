@@ -5,12 +5,15 @@ import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
 import com.devweb.domain.resume.model.Resume;
 import com.devweb.domain.resume.model.ResumeFileType;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+@Tag(name = "이력서 파일", description = "이력서/포트폴리오 파일 업로드 및 관리")
 @RestController
 @RequestMapping("/api/resumes")
 public class ResumeController {
@@ -21,6 +24,7 @@ public class ResumeController {
         this.service = service;
     }
 
+    @Operation(summary = "이력서 업로드", description = "이력서 또는 포트폴리오 파일을 업로드합니다. (최대 10MB)")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<ResumeResponse> upload(
             @RequestPart("file") MultipartFile file,
@@ -33,6 +37,7 @@ public class ResumeController {
         return ApiResponse.success(ResumeResponse.from(resume));
     }
 
+    @Operation(summary = "내 이력서 목록 조회", description = "로그인한 사용자의 업로드된 이력서 목록을 조회합니다.")
     @GetMapping
     public ApiResponse<List<ResumeResponse>> list() {
         Long memberId = AuthUtils.currentMemberId();
@@ -43,11 +48,13 @@ public class ResumeController {
         );
     }
 
+    @Operation(summary = "이력서 조회", description = "ID로 이력서 정보를 조회합니다.")
     @GetMapping("/{id}")
     public ApiResponse<ResumeResponse> get(@PathVariable Long id) {
         return ApiResponse.success(ResumeResponse.from(service.get(id)));
     }
 
+    @Operation(summary = "이력서 삭제", description = "이력서 파일과 메타데이터를 삭제합니다.")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         Long memberId = AuthUtils.currentMemberId();

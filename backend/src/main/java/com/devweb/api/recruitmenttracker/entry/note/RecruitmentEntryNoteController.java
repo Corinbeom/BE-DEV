@@ -5,11 +5,14 @@ import com.devweb.api.recruitmenttracker.entry.note.dto.RecruitmentEntryNoteResp
 import com.devweb.api.recruitmenttracker.entry.note.dto.UpdateRecruitmentEntryNoteRequest;
 import com.devweb.common.ApiResponse;
 import com.devweb.domain.recruitmenttracker.note.model.RecruitmentEntryNote;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "지원 메모", description = "채용 지원 항목별 메모 관리")
 @RestController
 @RequestMapping("/api/recruitment-entries/{entryId}/notes")
 public class RecruitmentEntryNoteController {
@@ -20,6 +23,7 @@ public class RecruitmentEntryNoteController {
         this.service = service;
     }
 
+    @Operation(summary = "메모 목록 조회", description = "지원 항목에 달린 모든 메모를 조회합니다.")
     @GetMapping
     public ApiResponse<List<RecruitmentEntryNoteResponse>> list(@PathVariable Long entryId) {
         List<RecruitmentEntryNoteResponse> result = service.list(entryId).stream()
@@ -28,6 +32,7 @@ public class RecruitmentEntryNoteController {
         return ApiResponse.success(result);
     }
 
+    @Operation(summary = "메모 생성", description = "지원 항목에 새 메모를 추가합니다.")
     @PostMapping
     public ApiResponse<RecruitmentEntryNoteResponse> create(
             @PathVariable Long entryId,
@@ -37,6 +42,7 @@ public class RecruitmentEntryNoteController {
         return ApiResponse.success(RecruitmentEntryNoteResponse.from(created));
     }
 
+    @Operation(summary = "메모 수정", description = "메모 내용을 수정합니다.")
     @PutMapping("/{noteId}")
     public ApiResponse<RecruitmentEntryNoteResponse> update(
             @PathVariable Long entryId,
@@ -47,6 +53,7 @@ public class RecruitmentEntryNoteController {
         return ApiResponse.success(RecruitmentEntryNoteResponse.from(updated));
     }
 
+    @Operation(summary = "메모 삭제", description = "메모를 삭제합니다.")
     @DeleteMapping("/{noteId}")
     public ApiResponse<Void> delete(
             @PathVariable Long entryId,

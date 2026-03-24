@@ -27,6 +27,10 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+springdoc:
+  api-docs:
+    enabled: false
+
 devweb:
   frontend-url: http://localhost:3000
   jwt:
