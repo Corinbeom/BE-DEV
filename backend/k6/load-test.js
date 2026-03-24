@@ -10,7 +10,7 @@ import { check, sleep } from 'k6';
 //      아래 환경변수로 토큰 전달
 //
 // 실행:
-//   k6 run --env JWT_TOKEN=<your-token> backend/k6/load-test.js
+//   k6 run --env BASE_URL=https://bedev-chi.vercel.app --env JWT_TOKEN=$TOKEN backend/k6/load-test.js
 //
 // Redis 캐싱 테스트:
 //   docker run -d -p 6379:6379 redis:7-alpine
@@ -19,27 +19,29 @@ import { check, sleep } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const JWT_TOKEN = __ENV.JWT_TOKEN || '';
+const VUS = parseInt(__ENV.VUS || '30');
+const DURATION = __ENV.DURATION || '30s';
 
 export const options = {
   scenarios: {
     stats: {
       executor: 'constant-vus',
-      vus: 30,
-      duration: '30s',
+      vus: VUS,
+      duration: DURATION,
       exec: 'statsEndpoint',
       tags: { endpoint: 'stats' },
     },
     sessions: {
       executor: 'constant-vus',
-      vus: 30,
-      duration: '30s',
+      vus: VUS,
+      duration: DURATION,
       exec: 'sessionsEndpoint',
       tags: { endpoint: 'sessions' },
     },
     resumeSessions: {
       executor: 'constant-vus',
-      vus: 30,
-      duration: '30s',
+      vus: VUS,
+      duration: DURATION,
       exec: 'resumeSessionsEndpoint',
       tags: { endpoint: 'resume-sessions' },
     },
