@@ -125,3 +125,13 @@ SELECT
     CONCAT('모범 답안 #', x.id) AS model_answer,
     CURRENT_TIMESTAMP AS created_at
 FROM (SELECT ROWNUM AS id FROM SYSTEM_RANGE(1, 50)) x;
+
+-- ===================== Reset IDENTITY sequences =====================
+-- H2 IDENTITY auto-increment must be restarted past the max seeded ID
+-- to prevent PK collisions when new rows are inserted at runtime.
+ALTER TABLE members ALTER COLUMN id RESTART WITH 100;
+ALTER TABLE cs_quiz_sessions ALTER COLUMN id RESTART WITH 100;
+ALTER TABLE cs_quiz_questions ALTER COLUMN id RESTART WITH 300;
+ALTER TABLE cs_quiz_attempts ALTER COLUMN id RESTART WITH 700;
+ALTER TABLE resume_sessions ALTER COLUMN id RESTART WITH 100;
+ALTER TABLE resume_questions ALTER COLUMN id RESTART WITH 100;
