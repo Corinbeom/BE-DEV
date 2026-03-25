@@ -18,6 +18,7 @@ export type PlatformType =
   | "JUMPIT"
   | "ROCKETPUNCH"
   | "PROGRAMMERS"
+  | "GROUPBY"
   | "ETC";
 
 export type RecruitmentEntry = {

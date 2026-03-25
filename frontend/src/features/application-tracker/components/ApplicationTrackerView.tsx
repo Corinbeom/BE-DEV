@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   createRecruitmentEntry,
@@ -55,6 +56,8 @@ function platformLabel(p: PlatformType) {
       return "프로그래머스";
     case "ETC":
       return "기타";
+    case "GROUPBY":
+      return "그룹바이";
   }
 }
 
@@ -68,7 +71,18 @@ const ALL_PLATFORMS: PlatformType[] = [
   "JUMPIT",
   "ROCKETPUNCH",
   "PROGRAMMERS",
+  "GROUPBY",
   "ETC",
+];
+
+const JOB_PLATFORMS = [
+  { key: "wanted", name: "원티드", url: "https://www.wanted.co.kr", logo: "/logos/wanted.png" },
+  { key: "linkedin", name: "LinkedIn", url: "https://www.linkedin.com/jobs", logo: "/logos/linkedin.png" },
+  { key: "jobkorea", name: "잡코리아", url: "https://www.jobkorea.co.kr", logo: "/logos/jobkorea.svg" },
+  { key: "saramin", name: "사람인", url: "https://www.saramin.co.kr", logo: "/logos/saramin.svg" },
+  { key: "remember", name: "리멤버", url: "https://rememberapp.co.kr", logo: "/logos/remember.png" },
+  { key: "jumpit", name: "점핏", url: "https://www.jumpit.co.kr", logo: "/logos/jumpit.webp" },
+  { key: "groupby", name: "그룹바이", url: "https://www.groupby.kr", logo: "/logos/groupby.jpeg" },
 ];
 
 function mapStepToColumn(step: RecruitmentStep): ColumnKey {
@@ -169,6 +183,7 @@ export function ApplicationTrackerView() {
   const [dragOver, setDragOver] = useState<ColumnKey | null>(null);
   const [selected, setSelected] = useState<RecruitmentEntry | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isPlatformsOpen, setIsPlatformsOpen] = useState(false);
 
   const grouped = useMemo(() => {
     const init: Record<ColumnKey, RecruitmentEntry[]> = {
@@ -233,13 +248,14 @@ export function ApplicationTrackerView() {
               </p>
             </div>
             <Button
+              size="lg"
               onClick={() => {
                 createMutation.reset();
                 setIsAddOpen(true);
               }}
-              className="gap-2"
+              className="gap-2 px-6 text-base font-semibold shadow-sm"
             >
-              <span className="material-symbols-outlined text-lg">add</span>
+              <span className="material-symbols-outlined text-xl">add_circle</span>
               지원 추가
             </Button>
           </div>
@@ -250,6 +266,52 @@ export function ApplicationTrackerView() {
               {error instanceof Error ? error.message : "알 수 없음"}
             </div>
           ) : null}
+        </CardContent>
+      </Card>
+
+      {/* Platform shortcuts */}
+      <Card>
+        <CardContent className="p-5">
+          <button
+            type="button"
+            onClick={() => setIsPlatformsOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg text-primary">link</span>
+              <h3 className="text-sm font-bold text-foreground">지원하러 가기</h3>
+            </div>
+            <span
+              className={cn(
+                "material-symbols-outlined text-xl text-muted-foreground transition-transform",
+                isPlatformsOpen && "rotate-180"
+              )}
+            >
+              expand_more
+            </span>
+          </button>
+          {isPlatformsOpen && (
+            <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
+              {JOB_PLATFORMS.map((platform) => (
+                <a
+                  key={platform.key}
+                  href={platform.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col items-center gap-2 rounded-lg p-2 transition-all hover:-translate-y-1 hover:bg-muted/50"
+                >
+                  <PlatformLogo
+                    src={platform.logo}
+                    name={platform.name}
+                    platformKey={platform.key}
+                  />
+                  <span className="text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                    {platform.name}
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -322,7 +384,7 @@ export function ApplicationTrackerView() {
       </section>
 
       <EntryDetailsModal
-        key={selected?.id ?? "closed"}
+        key={selected?.id ?? "details-closed"}
         open={selected != null}
         entry={selected}
         onClose={() => setSelected(null)}
@@ -338,7 +400,7 @@ export function ApplicationTrackerView() {
       />
 
       <AddEntryModal
-        key={isAddOpen ? "open" : "closed"}
+        key={isAddOpen ? "add-open" : "add-closed"}
         open={isAddOpen}
         onClose={() => {
           createMutation.reset();
@@ -1076,6 +1138,38 @@ function AddEntryModal({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PlatformLogo({
+  src,
+  name,
+}: {
+  src: string;
+  name: string;
+  platformKey: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className="flex size-10 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+        {name.charAt(0).toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex size-10 items-center justify-center">
+      <Image
+        src={src}
+        alt={`${name} 로고`}
+        width={40}
+        height={40}
+        className="size-10 object-contain"
+        onError={() => setHasError(true)}
+      />
     </div>
   );
 }

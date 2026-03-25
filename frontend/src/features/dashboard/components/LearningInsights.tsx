@@ -134,43 +134,29 @@ export function LearningInsights({
         </h3>
       </div>
 
-      {/* Summary Badges */}
-      <div className="flex flex-wrap gap-2">
+      {/* Summary Strip */}
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
         {totalQuizQuestions > 0 && (
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-            <span className="material-symbols-outlined text-xs">quiz</span>
-            CS 퀴즈 {totalQuizQuestions}문항
-          </Badge>
+          <p className="text-sm text-muted-foreground">
+            CS 퀴즈 <span className="font-bold text-foreground">{totalQuizQuestions}</span>문항
+          </p>
         )}
         {totalResumeQuestions > 0 && (
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-            <span className="material-symbols-outlined text-xs">
-              psychology
-            </span>
-            면접 질문 {totalResumeQuestions}개
-          </Badge>
+          <p className="text-sm text-muted-foreground">
+            면접 질문 <span className="font-bold text-foreground">{totalResumeQuestions}</span>개
+          </p>
         )}
         {streak > 0 && (
-          <Badge
-            variant="secondary"
-            className="gap-1.5 border-amber-500/30 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-400"
-          >
-            <span className="material-symbols-outlined text-xs">
-              local_fire_department
-            </span>
-            {streak}일 연속 학습
-          </Badge>
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            <span className="font-bold">{streak}</span>일 연속 학습 중
+          </p>
         )}
         {difficultyStats.map(
           (d) =>
             d.count > 0 && (
-              <Badge
-                key={d.id}
-                variant="outline"
-                className={`gap-1 px-2.5 py-1 ${d.color}`}
-              >
-                난이도 {d.label} {d.count}회
-              </Badge>
+              <p key={d.id} className="text-sm text-muted-foreground">
+                난이도 {d.label} <span className="font-bold text-foreground">{d.count}</span>회
+              </p>
             )
         )}
       </div>

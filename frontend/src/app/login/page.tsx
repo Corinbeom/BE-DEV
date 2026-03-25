@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { apiBaseUrl } from "@/lib/api";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -83,16 +84,16 @@ export default function LoginPage() {
       <Card className="relative w-full max-w-sm border-border/50 shadow-2xl shadow-primary/5">
         <CardContent className="p-8">
           {/* Logo */}
-          <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-              <span className="material-symbols-outlined text-3xl">
-                terminal
-              </span>
-            </div>
-            <h1 className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent">
-              Be Dev
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <Image
+              src="/logos/BeDevLogo.png"
+              alt="Be Dev"
+              width={180}
+              height={52}
+              className="mb-3 dark:invert"
+              priority
+            />
+            <p className="text-sm text-muted-foreground">
               AI 기반 취업 준비 플랫폼
             </p>
           </div>
