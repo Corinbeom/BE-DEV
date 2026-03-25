@@ -7,6 +7,7 @@ export async function createResumeSession(input: {
   portfolioResumeId?: number | null;
   portfolioUrl?: string | null;
   title?: string;
+  targetTechnologies?: string[];
 }) {
   const res = await apiFetch<ApiResponse<ResumeSession>>(
     "/api/resume-sessions",
@@ -18,6 +19,7 @@ export async function createResumeSession(input: {
         portfolioResumeId: input.portfolioResumeId ?? null,
         portfolioUrl: input.portfolioUrl ?? null,
         title: input.title ?? null,
+        targetTechnologies: input.targetTechnologies ?? [],
       }),
     },
   );

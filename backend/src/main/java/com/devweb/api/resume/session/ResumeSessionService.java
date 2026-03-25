@@ -97,7 +97,7 @@ public class ResumeSessionService {
 
         session.markExtracted(resumeText, portfolioText);
 
-        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl);
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl, List.of());
         session.markQuestionsReady(questions);
 
         return sessionRepository.save(session);
@@ -109,7 +109,8 @@ public class ResumeSessionService {
             String title,
             Long resumeId,
             Long portfolioResumeId,
-            String portfolioUrl
+            String portfolioUrl,
+            List<String> targetTechnologies
     ) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
@@ -151,7 +152,8 @@ public class ResumeSessionService {
         session.attachFiles(resumeRef, portfolioRef);
         session.markExtracted(resumeText, portfolioText);
 
-        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl);
+        List<String> safeTechs = targetTechnologies != null ? targetTechnologies : List.of();
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl, safeTechs);
         session.markQuestionsReady(questions);
 
         return sessionRepository.save(session);

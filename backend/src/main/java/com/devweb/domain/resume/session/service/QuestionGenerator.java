@@ -22,13 +22,13 @@ public class QuestionGenerator {
         this.promptStrategies = promptStrategies;
     }
 
-    public List<ResumeQuestion> generate(PositionType positionType, String resumeText, String portfolioText, String portfolioUrl) {
+    public List<ResumeQuestion> generate(PositionType positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
         String systemInstruction = promptStrategies.systemInstructionFor(positionType);
         String safeResumeText = trimToMaxChars(resumeText, MAX_CONTEXT_CHARS);
         String safePortfolioText = trimToMaxChars(portfolioText, MAX_CONTEXT_CHARS);
 
         List<InterviewAiPort.GeneratedQuestion> generated =
-                aiPort.generateQuestions(systemInstruction, safeResumeText, safePortfolioText, portfolioUrl);
+                aiPort.generateQuestions(systemInstruction, safeResumeText, safePortfolioText, portfolioUrl, targetTechnologies);
 
         List<ResumeQuestion> questions = new ArrayList<>();
         int idx = 0;

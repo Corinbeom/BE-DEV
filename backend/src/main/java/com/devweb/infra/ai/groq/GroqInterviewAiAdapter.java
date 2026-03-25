@@ -76,9 +76,9 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     // ===== InterviewAiPort =====
 
     @Override
-    public List<GeneratedQuestion> generateQuestions(String systemInstruction, String resumeText, String portfolioText, String portfolioUrl) {
+    public List<GeneratedQuestion> generateQuestions(String systemInstruction, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
         requireApiKey();
-        String prompt = AiPromptBuilder.buildQuestionsPrompt(resumeText, portfolioText, portfolioUrl);
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(resumeText, portfolioText, portfolioUrl, targetTechnologies);
         JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, RetryProfile.QUESTIONS);
         JsonNode questions = json.get("questions");
         if (questions == null || !questions.isArray()) {

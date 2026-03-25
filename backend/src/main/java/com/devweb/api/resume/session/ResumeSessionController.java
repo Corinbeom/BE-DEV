@@ -39,7 +39,8 @@ public class ResumeSessionController {
                 request.title(),
                 request.resumeId(),
                 request.portfolioResumeId(),
-                request.portfolioUrl()
+                request.portfolioUrl(),
+                request.targetTechnologies()
         );
         return ApiResponse.success(ResumeSessionResponse.from(created));
     }
