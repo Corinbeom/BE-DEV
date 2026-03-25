@@ -78,7 +78,7 @@ class ResumeSessionControllerTest {
     @DisplayName("POST /api/resume-sessions JSON body → 200")
     void create_성공() throws Exception {
         given(service.createFromResume(eq(1L), eq("BACKEND"), eq("세션 제목"),
-                eq(5L), isNull(), isNull()))
+                eq(5L), isNull(), isNull(), any()))
                 .willReturn(session);
 
         mockMvc.perform(post("/api/resume-sessions")
