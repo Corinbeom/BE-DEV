@@ -6,6 +6,7 @@ import com.devweb.common.ApiResponse;
 import com.devweb.domain.studyquiz.session.model.CsQuizAttempt;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "CS 퀴즈 답변", description = "CS 퀴즈 문제 답변 제출")
@@ -23,7 +24,7 @@ public class CsQuizQuestionController {
     @PostMapping("/{id}/attempts")
     public ApiResponse<CsQuizAttemptResponse> submitAttempt(
             @PathVariable Long id,
-            @RequestBody CreateCsQuizAttemptRequest req
+            @Valid @RequestBody CreateCsQuizAttemptRequest req
     ) {
         CsQuizAttempt attempt = service.submitAttempt(id, req);
         return ApiResponse.success(CsQuizAttemptResponse.from(attempt));

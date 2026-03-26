@@ -7,6 +7,7 @@ import com.devweb.common.AuthUtils;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public class ResumeSessionController {
 
     @Operation(summary = "분석 세션 생성", description = "업로드된 이력서를 기반으로 AI 면접 질문을 생성합니다.")
     @PostMapping
-    public ApiResponse<ResumeSessionResponse> create(@RequestBody CreateResumeSessionRequest request) {
+    public ApiResponse<ResumeSessionResponse> create(@Valid @RequestBody CreateResumeSessionRequest request) {
         Long memberId = AuthUtils.currentMemberId();
         ResumeSession created = service.createFromResume(
                 memberId,
