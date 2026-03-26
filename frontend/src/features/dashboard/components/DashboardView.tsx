@@ -28,9 +28,11 @@ const LEARNING_RESOURCES = [
 ];
 
 export function DashboardView() {
-  const { data: entries = [] } = useRecruitmentEntries();
-  const { data: quizSessions = [] } = useCsQuizSessions();
-  const { data: resumeSessions = [] } = useResumeSessions();
+  const { data: entries = [], error: entriesError } = useRecruitmentEntries();
+  const { data: quizSessions = [], error: quizError } = useCsQuizSessions();
+  const { data: resumeSessions = [], error: resumeError } = useResumeSessions();
+
+  const hasDataError = !!(entriesError || quizError || resumeError);
 
   const recentEntries = entries.slice(0, 4);
   const recentQuizSessions = quizSessions.slice(0, 3);
@@ -147,6 +149,16 @@ export function DashboardView() {
           ))}
         </CarouselContent>
       </Carousel>
+
+      {/* Data Error Banner */}
+      {hasDataError && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3">
+          <span className="material-symbols-outlined text-destructive">warning</span>
+          <p className="text-sm text-destructive">
+            일부 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+          </p>
+        </div>
+      )}
 
       {/* Summary Strip */}
       <section className="flex flex-wrap items-baseline gap-x-8 gap-y-3 px-1">
@@ -342,11 +354,9 @@ function toKoreanStep(step: string) {
     case "INTERVIEWING":
       return "면접";
     case "OFFERED":
-      return "오퍼";
+      return "최종 합격";
     case "REJECTED":
       return "불합격";
-    case "ON_HOLD":
-      return "보류";
     default:
       return step;
   }

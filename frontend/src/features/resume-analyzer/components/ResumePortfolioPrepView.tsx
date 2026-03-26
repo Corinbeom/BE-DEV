@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const TECH_PRESETS: Record<PositionType, string[]> = {
   BE: ["Java", "Spring", "JPA", "MySQL", "PostgreSQL", "Redis", "Kafka", "Docker", "K8s", "AWS", "MongoDB", "gRPC"],
@@ -101,7 +102,7 @@ export function ResumePortfolioPrepView() {
 
   async function onCreateSession() {
     if (!selectedResumeId) {
-      alert("이력서를 먼저 선택해 주세요.");
+      toast.warning("이력서를 먼저 선택해 주세요.");
       return;
     }
 
@@ -131,7 +132,7 @@ export function ResumePortfolioPrepView() {
   async function onCreateFeedback() {
     if (!activeQuestionId) return;
     if (!activeAnswer.trim()) {
-      alert("답변을 작성해 주세요.");
+      toast.warning("답변을 작성해 주세요.");
       return;
     }
 
