@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const manrope = Manrope({
@@ -29,6 +30,7 @@ export default function RootLayout({
       </head>
       <body className={`${manrope.variable} antialiased`}>
         <Providers>{children}</Providers>
+        <Toaster richColors position="top-right" />
         <SpeedInsights />
       </body>
     </html>

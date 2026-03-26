@@ -37,7 +37,7 @@ function statusVariant(status: string) {
 }
 
 export function StudyQuizHubView() {
-  const { data: sessions = [], isLoading } = useCsQuizSessions();
+  const { data: sessions = [], isLoading, error } = useCsQuizSessions();
   const deleteSession = useDeleteCsQuizSession();
 
   function onDelete(e: React.MouseEvent, sessionId: number) {
@@ -77,7 +77,17 @@ export function StudyQuizHubView() {
       <div className="mx-auto w-full max-w-3xl space-y-4">
         <h2 className="text-lg font-bold text-foreground">세션 이력</h2>
 
-        {isLoading ? (
+        {error ? (
+          <Card className="border-destructive/50 bg-destructive/5">
+            <CardContent className="flex items-center gap-3 p-4">
+              <span className="material-symbols-outlined text-destructive">error</span>
+              <p className="text-sm text-destructive">
+                세션 목록을 불러오지 못했습니다.{" "}
+                {error instanceof Error ? error.message : ""}
+              </p>
+            </CardContent>
+          </Card>
+        ) : isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="animate-pulse">

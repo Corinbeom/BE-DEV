@@ -5,8 +5,7 @@ export type RecruitmentStep =
   | "TEST_PHASE"
   | "INTERVIEWING"
   | "OFFERED"
-  | "REJECTED"
-  | "ON_HOLD";
+  | "REJECTED";
 
 export type PlatformType =
   | "MANUAL"
