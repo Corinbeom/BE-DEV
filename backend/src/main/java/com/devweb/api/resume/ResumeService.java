@@ -87,7 +87,11 @@ public class ResumeService {
         if (!resume.getMember().getId().equals(memberId)) {
             throw new IllegalArgumentException("본인의 파일만 삭제할 수 있습니다.");
         }
+        String storageKey = resume.getStoredFile() != null ? resume.getStoredFile().getStorageKey() : null;
         resumeRepository.delete(resume);
+        if (storageKey != null) {
+            fileStorage.delete(storageKey);
+        }
     }
 
     private static byte[] readBytes(MultipartFile file) {

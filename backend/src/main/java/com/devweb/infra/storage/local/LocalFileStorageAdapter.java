@@ -43,5 +43,17 @@ public class LocalFileStorageAdapter implements FileStoragePort {
 
         return new StoredFileRef(key, originalFilename, contentType, (long) bytes.length);
     }
+
+    @Override
+    public void delete(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) return;
+        try {
+            Path target = baseDir.resolve(storageKey).normalize();
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            // 파일 삭제 실패는 DB 삭제를 롤백할 정도는 아님 — 로그만 남김
+            System.err.println("파일 삭제 실패: " + storageKey + " — " + e.getMessage());
+        }
+    }
 }
 

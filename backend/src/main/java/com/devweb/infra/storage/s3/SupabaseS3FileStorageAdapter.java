@@ -10,6 +10,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.net.URI;
@@ -62,5 +63,14 @@ public class SupabaseS3FileStorageAdapter implements FileStoragePort {
         s3Client.putObject(request, RequestBody.fromBytes(bytes));
 
         return new StoredFileRef(key, originalFilename, contentType, (long) bytes.length);
+    }
+
+    @Override
+    public void delete(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) return;
+        s3Client.deleteObject(DeleteObjectRequest.builder()
+                .bucket(bucket)
+                .key(storageKey)
+                .build());
     }
 }
