@@ -37,7 +37,7 @@ function todayLocalISODate() {
 function platformLabel(p: PlatformType) {
   switch (p) {
     case "MANUAL":
-      return "직접 입력";
+      return "기업 사이트 지원";
     case "WANTED":
       return "원티드";
     case "LINKEDIN":
@@ -97,7 +97,6 @@ function mapStepToColumn(step: RecruitmentStep): ColumnKey {
       return "INTERVIEWING";
     case "OFFERED":
     case "REJECTED":
-    case "ON_HOLD":
       return "FINAL";
   }
 }
@@ -137,7 +136,7 @@ function defaultStepForColumn(key: ColumnKey): RecruitmentStep {
     case "INTERVIEWING":
       return "INTERVIEWING";
     case "FINAL":
-      return "ON_HOLD";
+      return "OFFERED";
   }
 }
 
@@ -154,11 +153,9 @@ function toKoreanStep(step: RecruitmentStep) {
     case "INTERVIEWING":
       return "면접";
     case "OFFERED":
-      return "오퍼";
+      return "최종 합격";
     case "REJECTED":
       return "불합격";
-    case "ON_HOLD":
-      return "보류";
   }
 }
 
@@ -581,9 +578,8 @@ function KanbanCard({
             <option value="DOC_PASSED">서류 합격</option>
             <option value="TEST_PHASE">테스트</option>
             <option value="INTERVIEWING">면접</option>
-            <option value="OFFERED">오퍼</option>
+            <option value="OFFERED">최종 합격</option>
             <option value="REJECTED">불합격</option>
-            <option value="ON_HOLD">보류</option>
           </select>
         </div>
 
@@ -781,6 +777,7 @@ function EntryDetailsModal({
               <input
                 type="date"
                 value={appliedDate}
+                max={todayLocalISODate()}
                 onChange={(e) => setAppliedDate(e.target.value)}
                 className="mt-2 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
                 aria-label="지원일"
@@ -859,9 +856,8 @@ function EntryDetailsModal({
               <option value="DOC_PASSED">서류 합격</option>
               <option value="TEST_PHASE">테스트</option>
               <option value="INTERVIEWING">면접</option>
-              <option value="OFFERED">오퍼</option>
+              <option value="OFFERED">최종 합격</option>
               <option value="REJECTED">불합격</option>
-              <option value="ON_HOLD">보류</option>
             </select>
             <p className="mt-2 text-xs text-muted-foreground">
               카드 드래그로도 이동할 수 있고, 여기서는 단계 값을 정확히 선택할 수
@@ -1089,6 +1085,7 @@ function AddEntryModal({
             <input
               type="date"
               value={appliedDate}
+              max={todayLocalISODate()}
               onChange={(e) => setAppliedDate(e.target.value)}
               className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring"
             />
