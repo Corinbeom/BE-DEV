@@ -22,13 +22,16 @@ public class AuthController {
     private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final Environment environment;
+    private final String cookieDomain;
 
     public AuthController(MemberRepository memberRepository,
                           JwtTokenProvider jwtTokenProvider,
-                          Environment environment) {
+                          Environment environment,
+                          @org.springframework.beans.factory.annotation.Value("${devweb.cookie-domain:}") String cookieDomain) {
         this.memberRepository = memberRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.environment = environment;
+        this.cookieDomain = cookieDomain;
     }
 
     @Operation(summary = "현재 사용자 조회", description = "JWT 쿠키 기반으로 로그인된 사용자 정보를 반환합니다.")
@@ -57,13 +60,12 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "JWT 쿠키를 삭제하여 로그아웃합니다.")
     @PostMapping("/logout")
     public ApiResponse<Void> logout(HttpServletResponse response) {
-        String cookieHeader = "devweb_token="
-                + "; Max-Age=0"
-                + "; Path=/"
-                + "; HttpOnly"
-                + "; Secure"
-                + "; SameSite=None";
-        response.addHeader("Set-Cookie", cookieHeader);
+        StringBuilder cookie = new StringBuilder("devweb_token=")
+                .append("; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None");
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            cookie.append("; Domain=").append(cookieDomain);
+        }
+        response.addHeader("Set-Cookie", cookie.toString());
         return ApiResponse.ok();
     }
 }
