@@ -17,8 +17,9 @@ public final class AiPromptBuilder {
 
     private AiPromptBuilder() {}
 
-    public static String buildQuestionsPrompt(String resumeText, String portfolioText, String portfolioUrl) {
-        return """
+    public static String buildQuestionsPrompt(String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("""
                 아래 입력을 기반으로 실제 면접에서 나올 법한 질문 %d개를 만들어 주세요.
 
                 출력은 반드시 아래 JSON 스키마를 정확히 따르세요:
@@ -36,7 +37,7 @@ public final class AiPromptBuilder {
                 }
 
                 각 필드 설명:
-                - badge: 질문 분류(예: 프로젝트 기반, 기술적 난관, 협업/행동, 기술 스택, 아키텍처, 성능/최적화, 운영/장애대응)
+                - badge: 질문 분류(예: 프로젝트 기반, 기술적 난관, 협업/행동, 기술 스택, 아키텍처, 성능/최적화, 운영/장애대응, 채용공고 기술)
                 - likelihood: 출제 확률(0~100 정수)
                 - question: 질문 본문
                 - intention: 출제 의도(한두 문장)
@@ -46,6 +47,10 @@ public final class AiPromptBuilder {
                 규칙:
                 - 과장/추측 금지. 제공된 텍스트에서만 근거를 잡아주세요.
                 - 질문은 가능한 한 구체적으로(프로젝트/기술/의사결정/성과 검증).
+                - [PortfolioText]나 [PortfolioUrl]이 제공된 경우, 포트폴리오 내용에서도 반드시 질문을 생성하세요.
+                  - 이력서만 있으면: 이력서 기반 질문 %d개.
+                  - 이력서 + 포트폴리오 모두 있으면: 이력서 기반 최소 2개 + 포트폴리오 기반 최소 2개, 나머지는 양쪽을 교차하여 구성.
+                  - 포트폴리오 기반 질문의 badge에는 '포트폴리오 기반'을 포함해 주세요.
                 - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
                 - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
                 - 모든 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
@@ -54,6 +59,23 @@ public final class AiPromptBuilder {
                   - intention: 350자 이내
                   - keywords: 200자 이내
                   - modelAnswer: 500자 이내(단락 1개)
+                """.formatted(QUESTIONS_TARGET, QUESTIONS_TARGET));
+
+        if (targetTechnologies != null && !targetTechnologies.isEmpty()) {
+            String techsCsv = String.join(", ", targetTechnologies);
+            sb.append("""
+
+                [TargetTechnologies]
+                %s
+
+                - 위 기술 스택은 지원 대상 회사의 채용공고에 명시된 요구 기술입니다.
+                - 이력서/포트폴리오에서 해당 기술 관련 경험이 있으면, 그 경험을 깊이 파고드는 질문을 우선 생성하세요.
+                - 해당 기술 경험이 없더라도, 지원자의 유사 경험과 연결하여 '이 기술을 어떻게 학습/적용할 것인지' 묻는 질문을 1개 이상 포함하세요.
+                - 채용공고 기술 관련 질문의 badge에는 '채용공고 기술'을 포함해 주세요.
+                """.formatted(techsCsv));
+        }
+
+        sb.append("""
 
                 [ResumeText]
                 %s
@@ -64,11 +86,12 @@ public final class AiPromptBuilder {
                 [PortfolioUrl]
                 %s
                 """.formatted(
-                QUESTIONS_TARGET,
                 nullToEmpty(resumeText),
                 nullToEmpty(portfolioText),
                 nullToEmpty(portfolioUrl)
-        );
+        ));
+
+        return sb.toString();
     }
 
     public static String buildFeedbackPrompt(String question, String intention, String keywords, String modelAnswer, String answerText) {
@@ -226,6 +249,34 @@ public final class AiPromptBuilder {
                 nullToEmpty(referenceAnswer),
                 nullToEmpty(userAnswer)
         );
+    }
+
+    private static final int MAX_PREVIOUS_QUESTIONS = 50;
+
+    public static String buildQuestionsPromptWithHistory(String resumeText, String portfolioText,
+                                                          String portfolioUrl, List<String> targetTechnologies,
+                                                          List<String> previousQuestions) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(buildQuestionsPrompt(resumeText, portfolioText, portfolioUrl, targetTechnologies));
+
+        if (previousQuestions != null && !previousQuestions.isEmpty()) {
+            List<String> limited = previousQuestions.size() > MAX_PREVIOUS_QUESTIONS
+                    ? previousQuestions.subList(0, MAX_PREVIOUS_QUESTIONS)
+                    : previousQuestions;
+
+            sb.append("""
+
+                    [PreviouslyAskedQuestions]
+                    아래는 이전에 이미 출제한 질문 목록입니다.
+                    이 질문들과 동일하거나 유사한 질문은 절대 생성하지 마세요.
+                    대신, 아직 다루지 않은 새로운 관점/주제/기술적 깊이에서 질문을 만들어 주세요.
+                    """);
+            for (String q : limited) {
+                sb.append("- ").append(q).append("\n");
+            }
+        }
+
+        return sb.toString();
     }
 
     public static String nullToEmpty(String s) {

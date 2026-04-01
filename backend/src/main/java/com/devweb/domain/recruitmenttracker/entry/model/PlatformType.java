@@ -10,6 +10,7 @@ public enum PlatformType {
     JUMPIT,
     ROCKETPUNCH,
     PROGRAMMERS,
+    GROUPBY,
     ETC
 }
 

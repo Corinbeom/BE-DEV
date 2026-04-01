@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRecruitmentEntries } from "@/features/application-tracker/hooks/useRecruitmentEntries";
 import { useCsQuizSessions } from "@/features/study-quiz/hooks/useCsQuizSessions";
@@ -9,138 +10,211 @@ import { LearningInsights } from "./LearningInsights";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import { cn } from "@/lib/utils";
 
+const LEARNING_RESOURCES = [
+  { key: "programmers", name: "프로그래머스", url: "https://school.programmers.co.kr/learn/challenges", icon: "code", color: "text-blue-600 bg-blue-500/10" },
+  { key: "baekjoon", name: "백준", url: "https://www.acmicpc.net", icon: "terminal", color: "text-sky-600 bg-sky-500/10" },
+  { key: "leetcode", name: "LeetCode", url: "https://leetcode.com/problemset", icon: "data_object", color: "text-amber-600 bg-amber-500/10" },
+  { key: "swea", name: "SWEA", url: "https://swexpertacademy.com/main/main.do", icon: "developer_board", color: "text-indigo-600 bg-indigo-500/10" },
+  { key: "codeforces", name: "Codeforces", url: "https://codeforces.com", icon: "emoji_events", color: "text-red-600 bg-red-500/10" },
+];
+
 export function DashboardView() {
-  const { data: entries = [] } = useRecruitmentEntries();
-  const { data: quizSessions = [] } = useCsQuizSessions();
-  const { data: resumeSessions = [] } = useResumeSessions();
+  const { data: entries = [], error: entriesError } = useRecruitmentEntries();
+  const { data: quizSessions = [], error: quizError } = useCsQuizSessions();
+  const { data: resumeSessions = [], error: resumeError } = useResumeSessions();
+
+  const hasDataError = !!(entriesError || quizError || resumeError);
 
   const recentEntries = entries.slice(0, 4);
   const recentQuizSessions = quizSessions.slice(0, 3);
   const latestResumeSession = resumeSessions[0] ?? null;
 
+  /* ── Hero Carousel ── */
+  const heroSlides = useHeroSlides({
+    latestResumeSession,
+    quizCount: quizSessions.length,
+    entryCount: entries.length,
+  });
+
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    if (!carouselApi) return;
+    const onSelect = () => setCurrentSlide(carouselApi.selectedScrollSnap());
+    carouselApi.on("select", onSelect);
+    onSelect();
+    return () => { carouselApi.off("select", onSelect); };
+  }, [carouselApi]);
+
   return (
     <>
-      {/* AI Hero Banner */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 p-8 text-primary-foreground shadow-xl shadow-primary/15">
-        <div className="relative z-10 flex flex-col items-center justify-between gap-6 md:flex-row">
-          <div className="max-w-xl">
-            <Badge className="mb-3 border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/20">
-              AI Interview Coach
-            </Badge>
-            <h3 className="mb-2 text-2xl font-bold">이력서 기반 모의 면접</h3>
-            {latestResumeSession ? (
-              <p className="mb-6 leading-relaxed text-primary-foreground/80">
-                최근 분석:{" "}
-                <span className="font-semibold text-primary-foreground">
-                  {latestResumeSession.title}
-                </span>
-                {latestResumeSession.questions.length > 0
-                  ? ` · 질문 ${latestResumeSession.questions.length}개 준비됨`
-                  : ""}
-              </p>
-            ) : (
-              <p className="mb-6 leading-relaxed text-primary-foreground/80">
-                이력서를 업로드하면 AI가 분석해 맞춤 면접 질문을 생성해 드립니다.
-              </p>
-            )}
-            <Link
-              href={
-                latestResumeSession
-                  ? `/resume-analyzer/practice?sessionId=${latestResumeSession.id}`
-                  : "/resume-analyzer/practice"
-              }
-              className={cn(
-                buttonVariants(),
-                "gap-2 bg-white text-primary shadow-lg hover:bg-white/90"
-              )}
-            >
-              <span className="material-symbols-outlined text-lg">
-                play_circle
-              </span>
-              {latestResumeSession ? "이어서 연습하기" : "분석 시작하기"}
-            </Link>
-          </div>
+      {/* AI Hero Banner — Embla Carousel with drag/swipe + autoplay */}
+      <Carousel
+        opts={{ loop: true }}
+        plugins={[Autoplay({ delay: 8000, stopOnInteraction: false, stopOnMouseEnter: true })]}
+        setApi={setCarouselApi}
+        className="rounded-2xl shadow-xl shadow-primary/15"
+      >
+        <CarouselContent className="ml-0">
+          {heroSlides.map((slide, i) => (
+            <CarouselItem key={i} className="pl-0">
+              <section
+                className={cn(
+                  "relative overflow-hidden rounded-2xl p-8 text-primary-foreground bg-gradient-to-br transition-colors duration-500",
+                  slide.gradient,
+                )}
+              >
+                <div className="relative z-10 flex flex-col items-center justify-between gap-6 md:flex-row">
+                  <div className="max-w-xl">
+                    <Badge className="mb-3 border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/20">
+                      {slide.badge}
+                    </Badge>
+                    <h3 className="mb-2 text-2xl font-bold">{slide.title}</h3>
+                    <p className="mb-6 leading-relaxed text-primary-foreground/80">
+                      {slide.description}
+                    </p>
+                    <Link
+                      href={slide.href}
+                      className={cn(
+                        buttonVariants(),
+                        "gap-2 bg-white text-primary shadow-lg hover:bg-white/90",
+                      )}
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        {slide.buttonIcon}
+                      </span>
+                      {slide.buttonText}
+                    </Link>
+                  </div>
 
-          <Card className="hidden border-primary-foreground/20 bg-primary-foreground/10 shadow-none backdrop-blur-sm lg:block">
-            <CardContent className="flex h-40 w-64 flex-col justify-between p-4">
-              {latestResumeSession ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="size-2.5 rounded-full bg-green-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
-                      최근 분석 완료
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-primary-foreground/60">세션</p>
-                    <p className="truncate text-sm font-semibold text-primary-foreground">
-                      {latestResumeSession.title}
-                    </p>
-                    <p className="text-xs text-primary-foreground/60">
-                      {latestResumeSession.positionType ?? "포지션 미지정"} ·{" "}
-                      {new Date(
-                        latestResumeSession.createdAt
-                      ).toLocaleDateString("ko-KR")}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <div className="size-2.5 animate-pulse rounded-full bg-green-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
-                      AI 코치 대기 중
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-2 w-full rounded-full bg-primary-foreground/15" />
-                    <div className="h-2 w-4/5 rounded-full bg-primary-foreground/15" />
-                    <div className="h-2 w-3/4 rounded-full bg-primary-foreground/15" />
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  {/* Right mini card */}
+                  <Card className="hidden border-primary-foreground/20 bg-primary-foreground/10 shadow-none backdrop-blur-sm lg:block">
+                    <CardContent className="flex h-40 w-64 flex-col justify-between p-4">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("size-2.5 rounded-full", slide.card.dotColor)} />
+                        <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
+                          {slide.card.label}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {slide.card.lines.map((line, li) => (
+                          <p
+                            key={li}
+                            className={cn(
+                              "text-xs",
+                              li === 1
+                                ? "truncate text-sm font-semibold text-primary-foreground"
+                                : "text-primary-foreground/60",
+                            )}
+                          >
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Slide indicators */}
+                <div className="relative z-10 mt-5 flex justify-center gap-2 md:justify-start">
+                  {heroSlides.map((_, di) => (
+                    <button
+                      key={di}
+                      onClick={() => carouselApi?.scrollTo(di)}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all duration-300",
+                        di === currentSlide
+                          ? "w-6 bg-white"
+                          : "w-1.5 bg-white/40 hover:bg-white/60",
+                      )}
+                      aria-label={`슬라이드 ${di + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <div className="pointer-events-none absolute -right-20 -top-20 size-80 rounded-full bg-white/5 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-20 -left-20 size-80 rounded-full bg-white/8 blur-3xl" />
+              </section>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+
+      {/* Data Error Banner */}
+      {hasDataError && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3">
+          <span className="material-symbols-outlined text-destructive">warning</span>
+          <p className="text-sm text-destructive">
+            일부 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+          </p>
         </div>
+      )}
 
-        <div className="pointer-events-none absolute -right-20 -top-20 size-80 rounded-full bg-white/5 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-20 size-80 rounded-full bg-white/8 blur-3xl" />
+      {/* Summary Strip */}
+      <section className="flex flex-wrap items-baseline gap-x-8 gap-y-3 px-1">
+        <div>
+          <span className="text-3xl font-extrabold text-foreground">{entries.length}</span>
+          <span className="ml-1.5 text-sm text-muted-foreground">총 지원</span>
+        </div>
+        {entries.filter((e) => e.step === "INTERVIEWING").length > 0 && (
+          <div>
+            <span className="text-3xl font-extrabold text-amber-600">{entries.filter((e) => e.step === "INTERVIEWING").length}</span>
+            <span className="ml-1.5 text-sm text-muted-foreground">면접 진행</span>
+          </div>
+        )}
+        {entries.filter((e) => e.step === "OFFERED").length > 0 && (
+          <div>
+            <span className="text-3xl font-extrabold text-emerald-600">{entries.filter((e) => e.step === "OFFERED").length}</span>
+            <span className="ml-1.5 text-sm text-muted-foreground">오퍼</span>
+          </div>
+        )}
+        <div>
+          <span className="text-3xl font-extrabold text-violet-600">{quizSessions.length}</span>
+          <span className="ml-1.5 text-sm text-muted-foreground">퀴즈 세션</span>
+        </div>
+        <div>
+          <span className="text-3xl font-extrabold text-primary">{resumeSessions.length}</span>
+          <span className="ml-1.5 text-sm text-muted-foreground">면접 세션</span>
+        </div>
       </section>
 
-      {/* Stats Strip */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard
-          label="총 지원"
-          value={entries.length}
-          icon="description"
-          color="primary"
-        />
-        <StatCard
-          label="면접 진행"
-          value={entries.filter((e) => e.step === "INTERVIEWING").length}
-          icon="event"
-          color="amber"
-        />
-        <StatCard
-          label="오퍼"
-          value={entries.filter((e) => e.step === "OFFERED").length}
-          icon="workspace_premium"
-          color="emerald"
-        />
-        <StatCard
-          label="퀴즈 세션"
-          value={quizSessions.length}
-          icon="quiz"
-          color="violet"
-        />
-        <StatCard
-          label="면접 세션"
-          value={resumeSessions.length}
-          icon="psychology"
-          color="primary"
-        />
+      {/* Learning Resources */}
+      <section>
+        <h3 className="mb-4 text-lg font-bold tracking-tight text-foreground">
+          학습 리소스
+        </h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {LEARNING_RESOURCES.map((res) => (
+            <a
+              key={res.key}
+              href={res.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group"
+            >
+              <Card className="transition-all hover:-translate-y-1 hover:shadow-md hover:border-primary/30">
+                <CardContent className="flex flex-col items-center gap-2 p-4">
+                  <div className={cn("flex size-10 items-center justify-center rounded-lg", res.color)}>
+                    <span className="material-symbols-outlined text-xl">{res.icon}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
+                    {res.name}
+                  </span>
+                </CardContent>
+              </Card>
+            </a>
+          ))}
+        </div>
       </section>
 
       {/* Learning Insights */}
@@ -267,57 +341,6 @@ export function DashboardView() {
   );
 }
 
-const colorMap = {
-  primary: {
-    icon: "text-primary bg-primary/10",
-    border: "border-l-primary",
-  },
-  amber: {
-    icon: "text-amber-600 bg-amber-500/10",
-    border: "border-l-amber-500",
-  },
-  emerald: {
-    icon: "text-emerald-600 bg-emerald-500/10",
-    border: "border-l-emerald-500",
-  },
-  violet: {
-    icon: "text-violet-600 bg-violet-500/10",
-    border: "border-l-violet-500",
-  },
-} as const;
-
-function StatCard({
-  label,
-  value,
-  icon,
-  color,
-}: {
-  label: string;
-  value: number;
-  icon: string;
-  color: keyof typeof colorMap;
-}) {
-  const c = colorMap[color];
-  return (
-    <Card className={cn("border-l-4 transition-shadow hover:shadow-md", c.border)}>
-      <CardContent className="flex items-center justify-between p-5">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
-        </div>
-        <div
-          className={cn(
-            "flex size-10 items-center justify-center rounded-lg",
-            c.icon
-          )}
-        >
-          <span className="material-symbols-outlined">{icon}</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function toKoreanStep(step: string) {
   switch (step) {
     case "READY":
@@ -331,11 +354,9 @@ function toKoreanStep(step: string) {
     case "INTERVIEWING":
       return "면접";
     case "OFFERED":
-      return "오퍼";
+      return "최종 합격";
     case "REJECTED":
       return "불합격";
-    case "ON_HOLD":
-      return "보류";
     default:
       return step;
   }
@@ -430,6 +451,105 @@ function QuizSessionItem({ session }: { session: CsQuizSession }) {
       </Card>
     </Link>
   );
+}
+
+/* ── Hero slide data ── */
+interface HeroSlide {
+  badge: string;
+  title: string;
+  description: string;
+  buttonText: string;
+  buttonIcon: string;
+  href: string;
+  gradient: string;
+  card: {
+    dotColor: string;
+    label: string;
+    lines: string[];
+  };
+}
+
+function useHeroSlides({
+  latestResumeSession,
+  quizCount,
+  entryCount,
+}: {
+  latestResumeSession: import("@/features/resume-analyzer/api/types").ResumeSession | null;
+  quizCount: number;
+  entryCount: number;
+}): HeroSlide[] {
+  return [
+    {
+      badge: "AI Interview Coach",
+      title: "이력서 기반 모의 면접",
+      gradient: "from-primary via-primary to-primary/80",
+      description: latestResumeSession
+        ? `최근 분석: ${latestResumeSession.title}${latestResumeSession.questions.length > 0 ? ` · 질문 ${latestResumeSession.questions.length}개 준비됨` : ""}`
+        : "이력서를 업로드하면 AI가 분석해 맞춤 면접 질문을 생성해 드립니다.",
+      buttonText: latestResumeSession ? "이어서 연습하기" : "분석 시작하기",
+      buttonIcon: "play_circle",
+      href: latestResumeSession
+        ? `/resume-analyzer/practice?sessionId=${latestResumeSession.id}`
+        : "/resume-analyzer/practice",
+      card: latestResumeSession
+        ? {
+            dotColor: "bg-green-400",
+            label: "최근 분석 완료",
+            lines: [
+              "세션",
+              latestResumeSession.title,
+              `${latestResumeSession.positionType ?? "포지션 미지정"} · ${new Date(latestResumeSession.createdAt).toLocaleDateString("ko-KR")}`,
+            ],
+          }
+        : {
+            dotColor: "bg-green-400 animate-pulse",
+            label: "AI 코치 대기 중",
+            lines: ["이력서를 업로드하고", "맞춤 면접 질문을", "받아보세요"],
+          },
+    },
+    {
+      badge: "CS Quiz",
+      title: "CS 기술 면접 준비",
+      gradient: "from-violet-700 via-violet-700 to-violet-600/80",
+      description:
+        quizCount > 0
+          ? `지금까지 ${quizCount}개 퀴즈 세션을 진행했어요. 더 풀어볼까요?`
+          : "9가지 토픽의 CS 문제로 기술 면접 실력을 키워보세요.",
+      buttonText: "퀴즈 풀기",
+      buttonIcon: "code",
+      href: "/study-quiz",
+      card: {
+        dotColor: "bg-violet-400",
+        label: "CS 퀴즈",
+        lines: [
+          "진행 세션",
+          `${quizCount}개`,
+          "OS · 네트워크 · DB · Spring 외 5개",
+        ],
+      },
+    },
+    {
+      badge: "Tracker",
+      title: "지원 현황 관리",
+      gradient: "from-emerald-600 via-emerald-600 to-emerald-500/80",
+      description:
+        entryCount > 0
+          ? `현재 ${entryCount}개 지원을 관리 중이에요. 새 지원을 추가해 보세요.`
+          : "칸반 보드로 전형 단계를 한눈에 관리하세요.",
+      buttonText: "지원 현황 보기",
+      buttonIcon: "work",
+      href: "/application-tracker",
+      card: {
+        dotColor: "bg-amber-400",
+        label: "지원 현황",
+        lines: [
+          "총 지원",
+          `${entryCount}건`,
+          "준비 · 지원 · 면접 · 오퍼",
+        ],
+      },
+    },
+  ];
 }
 
 function RecentRow({

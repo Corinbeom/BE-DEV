@@ -25,6 +25,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+const TECH_PRESETS: Record<PositionType, string[]> = {
+  BE: ["Java", "Spring", "JPA", "MySQL", "PostgreSQL", "Redis", "Kafka", "Docker", "K8s", "AWS", "MongoDB", "gRPC"],
+  FE: ["React", "Next.js", "TypeScript", "Vue", "Webpack", "Tailwind", "Redux", "GraphQL"],
+  MOBILE: ["Kotlin", "Swift", "Flutter", "React Native", "Jetpack Compose"],
+};
 
 export function ResumePortfolioPrepView() {
   const queryClient = useQueryClient();
@@ -38,6 +45,8 @@ export function ResumePortfolioPrepView() {
     null
   );
   const [portfolioUrl, setPortfolioUrl] = useState<string>("");
+  const [targetTechs, setTargetTechs] = useState<string[]>([]);
+  const [customTechInput, setCustomTechInput] = useState<string>("");
   const [sessionId, setSessionId] = useState<number | null>(
     initialSessionId ? Number(initialSessionId) : null
   );
@@ -93,7 +102,7 @@ export function ResumePortfolioPrepView() {
 
   async function onCreateSession() {
     if (!selectedResumeId) {
-      alert("이력서를 먼저 선택해 주세요.");
+      toast.warning("이력서를 먼저 선택해 주세요.");
       return;
     }
 
@@ -105,6 +114,7 @@ export function ResumePortfolioPrepView() {
         resumeId: selectedResumeId,
         portfolioResumeId: selectedPortfolioId,
         portfolioUrl: portfolioUrl.trim() ? portfolioUrl.trim() : null,
+        targetTechnologies: targetTechs.length > 0 ? targetTechs : undefined,
       });
 
       setSessionId(created.id);
@@ -122,7 +132,7 @@ export function ResumePortfolioPrepView() {
   async function onCreateFeedback() {
     if (!activeQuestionId) return;
     if (!activeAnswer.trim()) {
-      alert("답변을 작성해 주세요.");
+      toast.warning("답변을 작성해 주세요.");
       return;
     }
 
@@ -171,10 +181,60 @@ export function ResumePortfolioPrepView() {
             AI 면접 질문 생성기
           </h1>
           <p className="mt-2 text-muted-foreground">
-            이력서를 분석해 실제 면접에서 나올 수 있는 질문을 생성하고,
+            이력서와 포트폴리오를 분석해 실제 면접에서 나올 수 있는 질문을
+            생성하고,
             <br />
             AI 피드백으로 답변을 개선해 보세요.
           </p>
+        </div>
+
+        {/* How it works */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {[
+            {
+              icon: "upload_file",
+              step: "Step 1",
+              title: "이력서 · 포트폴리오 선택",
+              desc: "프로필에서 업로드한 파일을 선택하세요.",
+              color: "text-blue-600 bg-blue-500/10",
+            },
+            {
+              icon: "auto_awesome",
+              step: "Step 2",
+              title: "AI 질문 생성",
+              desc: "이력서와 포트폴리오를 분석해 맞춤 질문을 만들어요.",
+              color: "text-amber-600 bg-amber-500/10",
+            },
+            {
+              icon: "rate_review",
+              step: "Step 3",
+              title: "답변 연습 · 피드백",
+              desc: "답변을 작성하면 AI가 강점과 개선점을 알려줘요.",
+              color: "text-emerald-600 bg-emerald-500/10",
+            },
+          ].map((item) => (
+            <Card key={item.step} className="transition-shadow hover:shadow-md">
+              <CardContent className="flex flex-col items-center gap-3 p-5 text-center">
+                <div
+                  className={cn(
+                    "flex size-10 items-center justify-center rounded-lg",
+                    item.color
+                  )}
+                >
+                  <span className="material-symbols-outlined text-xl">
+                    {item.icon}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="text-[10px]">
+                  {item.step}
+                </Badge>
+                <h3 className="text-sm font-bold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Setup Form Card */}
@@ -236,15 +296,115 @@ export function ResumePortfolioPrepView() {
                   <select
                     className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
                     value={positionType}
-                    onChange={(e) =>
-                      setPositionType(e.target.value as PositionType)
-                    }
+                    onChange={(e) => {
+                      setPositionType(e.target.value as PositionType);
+                      setTargetTechs([]);
+                      setCustomTechInput("");
+                    }}
                   >
                     <option value="BE">Backend (BE)</option>
                     <option value="FE">Frontend (FE)</option>
                     <option value="MOBILE">Mobile</option>
                   </select>
                 </label>
+
+                {/* Target Technologies */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    채용공고 기술 스택 (선택)
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    채용공고에 명시된 기술을 선택하면 해당 기술 중심의 맞춤 질문이 생성됩니다.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TECH_PRESETS[positionType].map((tech) => {
+                      const selected = targetTechs.includes(tech);
+                      return (
+                        <button
+                          key={tech}
+                          type="button"
+                          className={cn(
+                            "rounded-full border px-3 py-1 text-xs font-medium transition-all",
+                            selected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                          )}
+                          onClick={() =>
+                            setTargetTechs((prev) =>
+                              selected
+                                ? prev.filter((t) => t !== tech)
+                                : [...prev, tech]
+                            )
+                          }
+                        >
+                          {tech}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 rounded-lg border border-input bg-background p-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20"
+                      placeholder="직접 입력 (예: Elasticsearch)"
+                      value={customTechInput}
+                      onChange={(e) => setCustomTechInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = customTechInput.trim();
+                          if (val && !targetTechs.includes(val)) {
+                            setTargetTechs((prev) => [...prev, val]);
+                          }
+                          setCustomTechInput("");
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!customTechInput.trim()}
+                      onClick={() => {
+                        const val = customTechInput.trim();
+                        if (val && !targetTechs.includes(val)) {
+                          setTargetTechs((prev) => [...prev, val]);
+                        }
+                        setCustomTechInput("");
+                      }}
+                    >
+                      추가
+                    </Button>
+                  </div>
+                  {targetTechs.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">선택됨:</span>
+                      {targetTechs.map((tech) => (
+                        <Badge
+                          key={tech}
+                          variant="secondary"
+                          className="cursor-pointer gap-1 pr-1 text-xs"
+                          onClick={() =>
+                            setTargetTechs((prev) =>
+                              prev.filter((t) => t !== tech)
+                            )
+                          }
+                        >
+                          {tech}
+                          <span className="material-symbols-outlined text-xs">
+                            close
+                          </span>
+                        </Badge>
+                      ))}
+                      <button
+                        type="button"
+                        className="text-xs text-muted-foreground underline hover:text-foreground"
+                        onClick={() => setTargetTechs([])}
+                      >
+                        전체 해제
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Portfolio URL */}
                 <label className="flex flex-col gap-1.5">

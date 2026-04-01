@@ -7,8 +7,7 @@ public enum RecruitmentStep {
     TEST_PHASE,
     INTERVIEWING,
     OFFERED,
-    REJECTED,
-    ON_HOLD
+    REJECTED
 }
 
 

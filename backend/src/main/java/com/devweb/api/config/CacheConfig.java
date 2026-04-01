@@ -6,6 +6,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -23,8 +24,9 @@ import java.util.Map;
 public class CacheConfig implements CachingConfigurer {
 
     @Bean
+    @ConditionalOnBean(RedisConnectionFactory.class)
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // JSON serializer: simple types (stats, questionBank)
+        // JSON serializer: simple types (stats)
         RedisCacheConfiguration jsonConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair
@@ -32,7 +34,7 @@ public class CacheConfig implements CachingConfigurer {
                 )
                 .disableCachingNullValues();
 
-        // JDK serializer: Java record DTOs (sessions lists)
+        // JDK serializer: JPA entities & Java record DTOs (questionBank, sessions)
         RedisCacheConfiguration jdkConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair
@@ -42,7 +44,8 @@ public class CacheConfig implements CachingConfigurer {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
                 "stats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
-                "questionBank", jsonConfig.entryTtl(Duration.ofHours(1)),
+                "resumeInterviewStats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
+                "questionBank", jdkConfig.entryTtl(Duration.ofHours(1)),
                 "csQuizSessions", jdkConfig.entryTtl(Duration.ofMinutes(2)),
                 "resumeSessions", jdkConfig.entryTtl(Duration.ofMinutes(2))
         );

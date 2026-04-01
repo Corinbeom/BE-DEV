@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { primaryNav } from "./nav";
@@ -28,23 +29,28 @@ export function AppSidebar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+    <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-border bg-sidebar md:flex">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/25">
-          <span className="material-symbols-outlined text-xl">terminal</span>
-        </div>
+        <Image
+          src="/logos/bluehour-logo.png"
+          alt="Bluehour"
+          width={44}
+          height={44}
+          className="rounded-xl shadow-md"
+          priority
+        />
         <div>
           <h1 className="text-lg font-bold tracking-tight text-foreground">
-            Be Dev
+            Bluehour
           </h1>
           <p className="text-[11px] font-medium text-muted-foreground">
-            AI Career Platform
+            Before Your Sunrise
           </p>
         </div>
       </div>
 
-      <Separator className="mx-4 w-auto" />
+      <div className="px-6"><Separator /></div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
@@ -76,7 +82,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <Separator className="mx-4 w-auto" />
+      <div className="px-6"><Separator /></div>
 
       {/* User Profile Area */}
       <div className="p-3">

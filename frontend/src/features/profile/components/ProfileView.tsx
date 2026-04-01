@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { InterviewMailScheduleCard } from "./InterviewMailScheduleCard";
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null) return "-";
@@ -99,6 +101,13 @@ export function ProfileView() {
   const uploadMutation = useUploadResumeFile();
   const deleteMutation = useDeleteResumeFile();
 
+  function onDeleteFile(file: ResumeFile) {
+    if (!confirm(`정말 "${file.originalFilename}"을(를) 삭제하시겠습니까?`)) return;
+    deleteMutation.mutate(file.id, {
+      onSuccess: () => toast.success(`"${file.originalFilename}" 삭제가 완료되었습니다.`),
+    });
+  }
+
   const [uploadType, setUploadType] = useState<ResumeFileType>("RESUME");
   const [uploadTitle, setUploadTitle] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -143,6 +152,9 @@ export function ProfileView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Interview Mail Schedule */}
+      <InterviewMailScheduleCard />
 
       {/* File Upload */}
       <Card>
@@ -290,7 +302,7 @@ export function ProfileView() {
                 <FileCard
                   key={f.id}
                   file={f}
-                  onDelete={() => deleteMutation.mutate(f.id)}
+                  onDelete={() => onDeleteFile(f)}
                   isDeleting={deleteMutation.isPending}
                 />
               ))}
@@ -326,7 +338,7 @@ export function ProfileView() {
                 <FileCard
                   key={f.id}
                   file={f}
-                  onDelete={() => deleteMutation.mutate(f.id)}
+                  onDelete={() => onDeleteFile(f)}
                   isDeleting={deleteMutation.isPending}
                 />
               ))}

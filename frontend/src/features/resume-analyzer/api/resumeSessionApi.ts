@@ -1,5 +1,10 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
-import type { PositionType, ResumeFeedback, ResumeSession } from "./types";
+import type {
+  PositionType,
+  ResumeFeedback,
+  ResumeInterviewStats,
+  ResumeSession,
+} from "./types";
 
 export async function createResumeSession(input: {
   positionType: PositionType;
@@ -7,6 +12,7 @@ export async function createResumeSession(input: {
   portfolioResumeId?: number | null;
   portfolioUrl?: string | null;
   title?: string;
+  targetTechnologies?: string[];
 }) {
   const res = await apiFetch<ApiResponse<ResumeSession>>(
     "/api/resume-sessions",
@@ -18,6 +24,7 @@ export async function createResumeSession(input: {
         portfolioResumeId: input.portfolioResumeId ?? null,
         portfolioUrl: input.portfolioUrl ?? null,
         title: input.title ?? null,
+        targetTechnologies: input.targetTechnologies ?? [],
       }),
     },
   );
@@ -53,6 +60,16 @@ export async function deleteResumeSession(sessionId: number) {
   if (!res.success) {
     throw new Error(res.error?.message ?? "이력서 세션 삭제에 실패했습니다.");
   }
+}
+
+export async function getResumeInterviewStats() {
+  const res = await apiFetch<ApiResponse<ResumeInterviewStats>>(
+    "/api/resume-sessions/stats",
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "면접 통계 조회에 실패했습니다.");
+  }
+  return res.data;
 }
 
 export async function createResumeFeedback(input: {

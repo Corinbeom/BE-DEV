@@ -69,7 +69,7 @@ class ResumeSessionServiceTest {
         StoredFileRef resumeRef = new StoredFileRef("storage/resume/test.pdf", "resume.pdf", "application/pdf", 100L);
         given(fileStorage.save(any(), anyString(), anyString())).willReturn(resumeRef);
         given(textExtractor.extract(any(), anyString())).willReturn("이력서 텍스트 내용");
-        given(questionGenerator.generate(any(), anyString(), any(), any()))
+        given(questionGenerator.generate(any(), anyString(), any(), any(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -93,7 +93,7 @@ class ResumeSessionServiceTest {
         given(fileStorage.save(any(), anyString(), anyString())).willReturn(resumeRef);
         given(textExtractor.extract(any(), anyString())).willReturn("이력서 텍스트");
         given(urlTextFetcher.fetch("https://github.com/user")).willReturn("포트폴리오 텍스트");
-        given(questionGenerator.generate(any(), anyString(), anyString(), anyString()))
+        given(questionGenerator.generate(any(), anyString(), anyString(), anyString(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -120,7 +120,7 @@ class ResumeSessionServiceTest {
         given(textExtractor.extract(any(), anyString()))
                 .willReturn("이력서 텍스트")
                 .willReturn("포트폴리오 텍스트");
-        given(questionGenerator.generate(any(), anyString(), anyString(), any()))
+        given(questionGenerator.generate(any(), anyString(), anyString(), any(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -140,7 +140,7 @@ class ResumeSessionServiceTest {
         StoredFileRef ref = new StoredFileRef("key", "resume.pdf", "application/pdf", 100L);
         given(fileStorage.save(any(), anyString(), anyString())).willReturn(ref);
         given(textExtractor.extract(any(), anyString())).willReturn("이력서 텍스트");
-        given(questionGenerator.generate(any(), anyString(), any(), any()))
+        given(questionGenerator.generate(any(), anyString(), any(), any(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
@@ -272,12 +272,12 @@ class ResumeSessionServiceTest {
         resume.markExtracted("이력서 텍스트 내용");
         given(resumeRepository.findById(10L)).willReturn(Optional.of(resume));
 
-        given(questionGenerator.generate(any(), anyString(), any(), any()))
+        given(questionGenerator.generate(any(), anyString(), any(), any(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
         // when
-        ResumeSession result = sut.createFromResume(1L, "BE", "세션 제목", 10L, null, null);
+        ResumeSession result = sut.createFromResume(1L, "BE", "세션 제목", 10L, null, null, List.of());
 
         // then
         assertThat(result).isNotNull();
@@ -304,12 +304,12 @@ class ResumeSessionServiceTest {
         given(resumeRepository.findById(20L)).willReturn(Optional.of(portfolio));
 
         given(urlTextFetcher.fetch("https://github.com/user")).willReturn("URL 텍스트");
-        given(questionGenerator.generate(any(), anyString(), anyString(), anyString()))
+        given(questionGenerator.generate(any(), anyString(), anyString(), anyString(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
         // when
-        ResumeSession result = sut.createFromResume(1L, "FE", "제목", 10L, 20L, "https://github.com/user");
+        ResumeSession result = sut.createFromResume(1L, "FE", "제목", 10L, 20L, "https://github.com/user", List.of());
 
         // then
         assertThat(result).isNotNull();
@@ -328,12 +328,12 @@ class ResumeSessionServiceTest {
         resume.markExtracted("이력서 텍스트");
         given(resumeRepository.findById(10L)).willReturn(Optional.of(resume));
 
-        given(questionGenerator.generate(any(), anyString(), any(), any()))
+        given(questionGenerator.generate(any(), anyString(), any(), any(), anyList()))
                 .willReturn(List.of(dummyQuestion()));
         given(sessionRepository.save(any(ResumeSession.class))).willAnswer(inv -> inv.getArgument(0));
 
         // when
-        ResumeSession result = sut.createFromResume(1L, "BE", null, 10L, null, null);
+        ResumeSession result = sut.createFromResume(1L, "BE", null, 10L, null, null, List.of());
 
         // then
         assertThat(result.getTitle()).isEqualTo("원래 이력서 제목");
@@ -351,7 +351,7 @@ class ResumeSessionServiceTest {
         given(resumeRepository.findById(99L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> sut.createFromResume(1L, "BE", "제목", 99L, null, null))
+        assertThatThrownBy(() -> sut.createFromResume(1L, "BE", "제목", 99L, null, null, List.of()))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
     }
@@ -367,7 +367,7 @@ class ResumeSessionServiceTest {
         given(resumeRepository.findById(10L)).willReturn(Optional.of(resume));
 
         // when & then
-        assertThatThrownBy(() -> sut.createFromResume(1L, "BE", "제목", 10L, null, null))
+        assertThatThrownBy(() -> sut.createFromResume(1L, "BE", "제목", 10L, null, null, List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("추출");
     }
@@ -385,7 +385,7 @@ class ResumeSessionServiceTest {
         given(resumeRepository.findById(99L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> sut.createFromResume(1L, "BE", "제목", 10L, 99L, null))
+        assertThatThrownBy(() -> sut.createFromResume(1L, "BE", "제목", 10L, 99L, null, List.of()))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
     }

@@ -4,11 +4,14 @@ import com.devweb.api.recruitmenttracker.entry.dto.*;
 import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
 import com.devweb.domain.recruitmenttracker.entry.model.RecruitmentEntry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "지원 현황", description = "채용 지원 현황 CRUD")
 @RestController
 @RequestMapping("/api/recruitment-entries")
 public class RecruitmentEntryController {
@@ -19,6 +22,7 @@ public class RecruitmentEntryController {
         this.service = service;
     }
 
+    @Operation(summary = "지원 항목 생성", description = "새로운 채용 지원 항목을 생성합니다.")
     @PostMapping
     public ApiResponse<RecruitmentEntryResponse> create(@Valid @RequestBody CreateRecruitmentEntryRequest req) {
         Long memberId = AuthUtils.currentMemberId();
@@ -34,11 +38,13 @@ public class RecruitmentEntryController {
         return ApiResponse.success(RecruitmentEntryResponse.from(created));
     }
 
+    @Operation(summary = "지원 항목 조회", description = "ID로 지원 항목을 조회합니다.")
     @GetMapping("/{id}")
     public ApiResponse<RecruitmentEntryResponse> get(@PathVariable Long id) {
         return ApiResponse.success(RecruitmentEntryResponse.from(service.get(id)));
     }
 
+    @Operation(summary = "내 지원 목록 조회", description = "로그인한 사용자의 모든 지원 항목을 조회합니다.")
     @GetMapping("/by-member/me")
     public ApiResponse<List<RecruitmentEntryResponse>> listByCurrentMember() {
         Long memberId = AuthUtils.currentMemberId();
@@ -48,6 +54,7 @@ public class RecruitmentEntryController {
         return ApiResponse.success(result);
     }
 
+    @Operation(summary = "지원 항목 수정", description = "지원 항목의 전체 정보를 수정합니다.")
     @PutMapping("/{id}")
     public ApiResponse<RecruitmentEntryResponse> update(
             @PathVariable Long id,
@@ -65,6 +72,7 @@ public class RecruitmentEntryController {
         return ApiResponse.success(RecruitmentEntryResponse.from(updated));
     }
 
+    @Operation(summary = "채용 단계 변경", description = "지원 항목의 채용 단계(step)만 변경합니다.")
     @PatchMapping("/{id}/step")
     public ApiResponse<RecruitmentEntryResponse> changeStep(
             @PathVariable Long id,
@@ -73,6 +81,7 @@ public class RecruitmentEntryController {
         return ApiResponse.success(RecruitmentEntryResponse.from(service.changeStep(id, req.step())));
     }
 
+    @Operation(summary = "지원 항목 삭제", description = "지원 항목을 삭제합니다.")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.delete(id);

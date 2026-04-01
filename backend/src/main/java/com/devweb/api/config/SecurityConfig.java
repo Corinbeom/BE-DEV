@@ -68,6 +68,9 @@ public class SecurityConfig {
                     "/api/auth/**",
                     "/h2-console/**",
                     "/actuator/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
                     "/error"
                 ).permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/members").permitAll()
@@ -95,6 +98,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
                 frontendUrl,
+                "https://bluehour.my",
+                "https://www.bluehour.my",
+                "https://api.bluehour.my",
                 "https://*.vercel.app",
                 "http://localhost:*",
                 "http://127.0.0.1:*"

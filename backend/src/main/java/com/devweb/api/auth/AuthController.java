@@ -7,11 +7,14 @@ import com.devweb.common.ResourceNotFoundException;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
 import com.devweb.infra.auth.JwtTokenProvider;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.env.Environment;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "인증", description = "OAuth2 로그인, JWT 토큰, 로그아웃")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -28,6 +31,7 @@ public class AuthController {
         this.environment = environment;
     }
 
+    @Operation(summary = "현재 사용자 조회", description = "JWT 쿠키 기반으로 로그인된 사용자 정보를 반환합니다.")
     @GetMapping("/me")
     public ApiResponse<MemberResponse> me() {
         Long memberId = AuthUtils.currentMemberId();
@@ -36,10 +40,7 @@ public class AuthController {
         return ApiResponse.success(MemberResponse.from(member));
     }
 
-    /**
-     * Dev-only: 시드 유저(memberId=1)의 JWT 토큰 발급.
-     * prod 프로필에서는 404 반환.
-     */
+    @Operation(summary = "개발용 토큰 발급", description = "시드 유저(memberId=1)의 JWT 토큰을 발급합니다. prod 환경에서는 사용 불가.")
     @PostMapping("/dev-token")
     public ApiResponse<String> devToken() {
         for (String profile : environment.getActiveProfiles()) {
@@ -53,6 +54,7 @@ public class AuthController {
         return ApiResponse.success(token);
     }
 
+    @Operation(summary = "로그아웃", description = "JWT 쿠키를 삭제하여 로그아웃합니다.")
     @PostMapping("/logout")
     public ApiResponse<Void> logout(HttpServletResponse response) {
         String cookieHeader = "devweb_token="

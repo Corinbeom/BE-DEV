@@ -12,7 +12,10 @@ import {
 import type { CsQuizSession } from "@/features/study-quiz/api/types";
 import type { ResumeSession } from "@/features/resume-analyzer/api/types";
 import { TOPICS, DIFFICULTY_META } from "@/features/study-quiz/constants";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useCsQuizStats } from "@/features/study-quiz/hooks/useCsQuizStats";
+import { useResumeInterviewStats } from "@/features/resume-analyzer/hooks/useResumeInterviewStats";
 import { TopicRadarChart } from "./TopicRadarChart";
 
 interface LearningInsightsProps {
@@ -25,6 +28,7 @@ export function LearningInsights({
   resumeSessions,
 }: LearningInsightsProps) {
   const { data: statsData } = useCsQuizStats();
+  const { data: interviewStats } = useResumeInterviewStats();
 
   const topicStats = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -118,6 +122,8 @@ export function LearningInsights({
 
   const hasAnyData = quizSessions.length > 0 || resumeSessions.length > 0;
   const hasRadarData = (statsData?.totalAttempts ?? 0) > 0;
+  const hasInterviewStats =
+    interviewStats && interviewStats.badgeStats.length > 0 && interviewStats.attemptedQuestions > 0;
 
   if (!hasAnyData) return null;
 
@@ -134,43 +140,29 @@ export function LearningInsights({
         </h3>
       </div>
 
-      {/* Summary Badges */}
-      <div className="flex flex-wrap gap-2">
+      {/* Summary Strip */}
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
         {totalQuizQuestions > 0 && (
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-            <span className="material-symbols-outlined text-xs">quiz</span>
-            CS 퀴즈 {totalQuizQuestions}문항
-          </Badge>
+          <p className="text-sm text-muted-foreground">
+            CS 퀴즈 <span className="font-bold text-foreground">{totalQuizQuestions}</span>문항
+          </p>
         )}
         {totalResumeQuestions > 0 && (
-          <Badge variant="secondary" className="gap-1.5 px-3 py-1">
-            <span className="material-symbols-outlined text-xs">
-              psychology
-            </span>
-            면접 질문 {totalResumeQuestions}개
-          </Badge>
+          <p className="text-sm text-muted-foreground">
+            면접 질문 <span className="font-bold text-foreground">{totalResumeQuestions}</span>개
+          </p>
         )}
         {streak > 0 && (
-          <Badge
-            variant="secondary"
-            className="gap-1.5 border-amber-500/30 bg-amber-500/10 px-3 py-1 text-amber-700 dark:text-amber-400"
-          >
-            <span className="material-symbols-outlined text-xs">
-              local_fire_department
-            </span>
-            {streak}일 연속 학습
-          </Badge>
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            <span className="font-bold">{streak}</span>일 연속 학습 중
+          </p>
         )}
         {difficultyStats.map(
           (d) =>
             d.count > 0 && (
-              <Badge
-                key={d.id}
-                variant="outline"
-                className={`gap-1 px-2.5 py-1 ${d.color}`}
-              >
-                난이도 {d.label} {d.count}회
-              </Badge>
+              <p key={d.id} className="text-sm text-muted-foreground">
+                난이도 {d.label} <span className="font-bold text-foreground">{d.count}</span>회
+              </p>
             )
         )}
       </div>
@@ -382,6 +374,24 @@ export function LearningInsights({
           </Card>
         )}
       </div>
+
+      {/* Interview Practice Stats — 리포트 링크 */}
+      {hasInterviewStats && interviewStats && (
+        <Card>
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">면접 연습 분석</h4>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {interviewStats.attemptedQuestions}/{interviewStats.totalQuestions}문항 완료
+                · 연습률 {Math.round(interviewStats.practiceRate * 100)}%
+              </p>
+            </div>
+            <Link href="/resume-analyzer/report">
+              <Button variant="outline" size="sm">리포트 보기</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </section>
   );
 }

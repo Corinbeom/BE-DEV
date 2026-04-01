@@ -6,6 +6,7 @@ import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
 import jakarta.persistence.*;
 import org.hibernate.annotations.BatchSize;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,7 +14,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "cs_question_bank_items")
-public class CsQuestionBankItem {
+public class CsQuestionBankItem implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
