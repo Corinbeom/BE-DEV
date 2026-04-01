@@ -1,0 +1,104 @@
+package com.devweb.infra.ai;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class AiPromptBuilderTest {
+
+    @Test
+    @DisplayName("buildQuestionsPrompt: targetTechnologies가 null이면 [TargetTechnologies] 섹션 미포함")
+    void buildQuestionsPrompt_기본() {
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(
+                "이력서 내용", null, null, null);
+
+        assertThat(prompt).contains("[ResumeText]");
+        assertThat(prompt).contains("이력서 내용");
+        assertThat(prompt).doesNotContain("[TargetTechnologies]");
+    }
+
+    @Test
+    @DisplayName("buildQuestionsPrompt: 빈 리스트일 때도 [TargetTechnologies] 섹션 미포함")
+    void buildQuestionsPrompt_빈리스트() {
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(
+                "이력서 내용", null, null, Collections.emptyList());
+
+        assertThat(prompt).doesNotContain("[TargetTechnologies]");
+    }
+
+    @Test
+    @DisplayName("buildQuestionsPrompt: 기술 3개 전달 시 [TargetTechnologies] 섹션 + CSV 포맷 + 규칙 텍스트 포함")
+    void buildQuestionsPrompt_기술스택포함() {
+        List<String> techs = List.of("Java", "Spring", "Kubernetes");
+
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(
+                "이력서 내용", null, null, techs);
+
+        assertThat(prompt).contains("[TargetTechnologies]");
+        assertThat(prompt).contains("Java, Spring, Kubernetes");
+        assertThat(prompt).contains("채용공고에 명시된 요구 기술");
+        assertThat(prompt).contains("채용공고 기술");
+    }
+
+    @Test
+    @DisplayName("buildQuestionsPrompt: resumeText가 [ResumeText] 섹션에 포함")
+    void buildQuestionsPrompt_이력서텍스트포함() {
+        String resumeText = "3년차 백엔드 개발자, Spring Boot 경험";
+
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(
+                resumeText, null, null, null);
+
+        assertThat(prompt).contains("[ResumeText]");
+        assertThat(prompt).contains(resumeText);
+    }
+
+    @Test
+    @DisplayName("buildQuestionsPrompt: portfolioText/portfolioUrl 각각 포함")
+    void buildQuestionsPrompt_포트폴리오텍스트포함() {
+        String portfolioText = "DevWeb 프로젝트 — AI 면접 질문 생성 플랫폼";
+        String portfolioUrl = "https://github.com/example/devweb";
+
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(
+                "이력서", portfolioText, portfolioUrl, null);
+
+        assertThat(prompt).contains("[PortfolioText]");
+        assertThat(prompt).contains(portfolioText);
+        assertThat(prompt).contains("[PortfolioUrl]");
+        assertThat(prompt).contains(portfolioUrl);
+    }
+
+    @Test
+    @DisplayName("buildFeedbackPrompt: 모든 파라미터가 프롬프트에 포함")
+    void buildFeedbackPrompt_정상() {
+        String prompt = AiPromptBuilder.buildFeedbackPrompt(
+                "질문 본문", "출제 의도", "키워드1, 키워드2",
+                "모범 답안 텍스트", "사용자 답변 텍스트");
+
+        assertThat(prompt).contains("[Question]");
+        assertThat(prompt).contains("질문 본문");
+        assertThat(prompt).contains("[Intention]");
+        assertThat(prompt).contains("출제 의도");
+        assertThat(prompt).contains("[Keywords]");
+        assertThat(prompt).contains("키워드1, 키워드2");
+        assertThat(prompt).contains("[ModelAnswer]");
+        assertThat(prompt).contains("모범 답안 텍스트");
+        assertThat(prompt).contains("[UserAnswer]");
+        assertThat(prompt).contains("사용자 답변 텍스트");
+    }
+
+    @Test
+    @DisplayName("nullToEmpty: null이면 빈 문자열 반환")
+    void nullToEmpty_null이면_빈문자열() {
+        assertThat(AiPromptBuilder.nullToEmpty(null)).isEqualTo("");
+    }
+
+    @Test
+    @DisplayName("nullToEmpty: 값이 있으면 그대로 반환")
+    void nullToEmpty_값이있으면_그대로() {
+        assertThat(AiPromptBuilder.nullToEmpty("hello")).isEqualTo("hello");
+    }
+}

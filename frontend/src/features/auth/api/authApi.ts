@@ -15,4 +15,7 @@ export async function logout(): Promise<void> {
     credentials: "include",
     cache: "no-store",
   });
+
+  // Fallback: HTTP 환경에서 Secure 쿠키 삭제가 안 될 수 있으므로 직접 만료
+  document.cookie = "devweb_token=; Max-Age=0; Path=/;";
 }

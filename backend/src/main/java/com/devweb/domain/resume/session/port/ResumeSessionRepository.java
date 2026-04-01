@@ -13,5 +13,21 @@ public interface ResumeSessionRepository {
     List<ResumeSession> findAllByMemberId(Long memberId);
 
     void deleteById(Long id);
+
+    List<Object[]> findInterviewStatsGroupedByBadge(Long memberId);
+
+    List<Object[]> countStrengthsByBadge(Long memberId);
+
+    List<Object[]> countImprovementsByBadge(Long memberId);
+
+    List<Object[]> findTopStrengthsByBadge(Long memberId);
+
+    List<Object[]> findTopImprovementsByBadge(Long memberId);
+
+    List<Object[]> findDailyAttemptCounts(Long memberId);
+
+    List<Object[]> findDailyStrengthCounts(Long memberId);
+
+    List<Object[]> findDailyImprovementCounts(Long memberId);
 }
 

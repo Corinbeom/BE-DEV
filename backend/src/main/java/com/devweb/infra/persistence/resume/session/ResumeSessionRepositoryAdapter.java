@@ -35,5 +35,45 @@ public class ResumeSessionRepositoryAdapter implements ResumeSessionRepository {
     public void deleteById(Long id) {
         repo.deleteById(id);
     }
+
+    @Override
+    public List<Object[]> findInterviewStatsGroupedByBadge(Long memberId) {
+        return repo.findInterviewStatsGroupedByBadge(memberId);
+    }
+
+    @Override
+    public List<Object[]> countStrengthsByBadge(Long memberId) {
+        return repo.countStrengthsByBadge(memberId);
+    }
+
+    @Override
+    public List<Object[]> countImprovementsByBadge(Long memberId) {
+        return repo.countImprovementsByBadge(memberId);
+    }
+
+    @Override
+    public List<Object[]> findTopStrengthsByBadge(Long memberId) {
+        return repo.findTopStrengthsByBadge(memberId);
+    }
+
+    @Override
+    public List<Object[]> findTopImprovementsByBadge(Long memberId) {
+        return repo.findTopImprovementsByBadge(memberId);
+    }
+
+    @Override
+    public List<Object[]> findDailyAttemptCounts(Long memberId) {
+        return repo.findDailyAttemptCounts(memberId);
+    }
+
+    @Override
+    public List<Object[]> findDailyStrengthCounts(Long memberId) {
+        return repo.findDailyStrengthCounts(memberId);
+    }
+
+    @Override
+    public List<Object[]> findDailyImprovementCounts(Long memberId) {
+        return repo.findDailyImprovementCounts(memberId);
+    }
 }
 

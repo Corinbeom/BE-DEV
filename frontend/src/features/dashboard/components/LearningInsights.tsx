@@ -12,7 +12,10 @@ import {
 import type { CsQuizSession } from "@/features/study-quiz/api/types";
 import type { ResumeSession } from "@/features/resume-analyzer/api/types";
 import { TOPICS, DIFFICULTY_META } from "@/features/study-quiz/constants";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useCsQuizStats } from "@/features/study-quiz/hooks/useCsQuizStats";
+import { useResumeInterviewStats } from "@/features/resume-analyzer/hooks/useResumeInterviewStats";
 import { TopicRadarChart } from "./TopicRadarChart";
 
 interface LearningInsightsProps {
@@ -25,6 +28,7 @@ export function LearningInsights({
   resumeSessions,
 }: LearningInsightsProps) {
   const { data: statsData } = useCsQuizStats();
+  const { data: interviewStats } = useResumeInterviewStats();
 
   const topicStats = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -118,6 +122,8 @@ export function LearningInsights({
 
   const hasAnyData = quizSessions.length > 0 || resumeSessions.length > 0;
   const hasRadarData = (statsData?.totalAttempts ?? 0) > 0;
+  const hasInterviewStats =
+    interviewStats && interviewStats.badgeStats.length > 0 && interviewStats.attemptedQuestions > 0;
 
   if (!hasAnyData) return null;
 
@@ -368,6 +374,24 @@ export function LearningInsights({
           </Card>
         )}
       </div>
+
+      {/* Interview Practice Stats — 리포트 링크 */}
+      {hasInterviewStats && interviewStats && (
+        <Card>
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">면접 연습 분석</h4>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {interviewStats.attemptedQuestions}/{interviewStats.totalQuestions}문항 완료
+                · 연습률 {Math.round(interviewStats.practiceRate * 100)}%
+              </p>
+            </div>
+            <Link href="/resume-analyzer/report">
+              <Button variant="outline" size="sm">리포트 보기</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </section>
   );
 }

@@ -102,4 +102,8 @@ devweb:
     request-timeout-seconds: 60
     max-output-tokens: 4096
 
+  resend:
+    api-key: ${RESEND_API_KEY:}
+    from: ${RESEND_FROM:onboarding@resend.dev}
+
 

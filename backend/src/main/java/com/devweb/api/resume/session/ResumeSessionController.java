@@ -1,6 +1,7 @@
 package com.devweb.api.resume.session;
 
 import com.devweb.api.resume.session.dto.CreateResumeSessionRequest;
+import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
@@ -21,6 +22,13 @@ public class ResumeSessionController {
 
     public ResumeSessionController(ResumeSessionService service) {
         this.service = service;
+    }
+
+    @Operation(summary = "면접 연습 통계 조회", description = "배지별 강점/개선점 통계를 조회합니다.")
+    @GetMapping("/stats")
+    public ApiResponse<ResumeInterviewStatsResponse> interviewStats() {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(service.getInterviewStats(memberId));
     }
 
     @Operation(summary = "내 세션 목록 조회", description = "로그인한 사용자의 이력서 분석 세션 목록을 조회합니다.")

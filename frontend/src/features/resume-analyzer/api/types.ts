@@ -37,3 +37,34 @@ export type ResumeFeedback = {
   followups: string[];
 };
 
+export type FrequentItem = {
+  text: string;
+  frequency: number;
+};
+
+export type WeeklyTrend = {
+  weekStart: string;
+  attemptCount: number;
+  avgStrengths: number;
+  avgImprovements: number;
+};
+
+export type BadgeStats = {
+  badge: string;
+  totalQuestions: number;
+  attemptedQuestions: number;
+  practiceRate: number;
+  avgStrengths: number;
+  avgImprovements: number;
+  topStrengths: FrequentItem[];
+  topImprovements: FrequentItem[];
+};
+
+export type ResumeInterviewStats = {
+  totalQuestions: number;
+  attemptedQuestions: number;
+  practiceRate: number;
+  badgeStats: BadgeStats[];
+  weeklyTrends: WeeklyTrend[];
+};
+

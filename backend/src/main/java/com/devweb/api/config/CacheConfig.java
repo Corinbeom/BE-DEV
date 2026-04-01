@@ -44,6 +44,7 @@ public class CacheConfig implements CachingConfigurer {
 
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
                 "stats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
+                "resumeInterviewStats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
                 "questionBank", jdkConfig.entryTtl(Duration.ofHours(1)),
                 "csQuizSessions", jdkConfig.entryTtl(Duration.ofMinutes(2)),
                 "resumeSessions", jdkConfig.entryTtl(Duration.ofMinutes(2))
