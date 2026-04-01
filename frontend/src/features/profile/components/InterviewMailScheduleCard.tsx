@@ -13,7 +13,7 @@ import {
   useDeleteInterviewMailSchedule,
   useSendTestInterviewMail,
 } from "../hooks/useInterviewMailSchedule";
-import type { InterviewMailSchedule } from "../api/types";
+import type { InterviewMailSchedule, ResumeFile } from "../api/types";
 
 const POSITION_TYPES = ["BE", "FE", "MOBILE"] as const;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -38,7 +38,7 @@ export function InterviewMailScheduleCard() {
   return (
     <ScheduleForm
       key={schedule?.resumeId ?? "new"}
-      schedule={schedule}
+      schedule={schedule ?? undefined}
       extractedFiles={
         files?.filter((f) => f.extractStatus === "EXTRACTED") ?? []
       }
@@ -51,7 +51,7 @@ function ScheduleForm({
   extractedFiles,
 }: {
   schedule: InterviewMailSchedule | undefined;
-  extractedFiles: { id: number; title: string; originalFilename: string }[];
+  extractedFiles: ResumeFile[];
 }) {
   const upsertMutation = useUpsertInterviewMailSchedule();
   const deleteMutation = useDeleteInterviewMailSchedule();
