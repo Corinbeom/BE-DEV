@@ -38,7 +38,7 @@ class OAuth2LoginSuccessHandlerTest {
 
     @BeforeEach
     void setUp() {
-        sut = new OAuth2LoginSuccessHandler(jwtTokenProvider, memberRepository, FRONTEND_URL);
+        sut = new OAuth2LoginSuccessHandler(jwtTokenProvider, memberRepository, FRONTEND_URL, "");
     }
 
     @Test
