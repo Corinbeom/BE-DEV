@@ -16,8 +16,8 @@ public class OpenApiConfig {
 
         return new OpenAPI()
                 .info(new Info()
-                        .title("DevWeb API")
-                        .description("AI 기반 취업 준비 플랫폼 API — 이력서 분석, CS 퀴즈, 지원 현황 관리")
+                        .title("Bluehour API")
+                        .description("Before Your Sunrise — AI 기반 이력서 분석, CS 퀴즈, 지원 현황 관리 API")
                         .version("1.0.0"))
                 .addSecurityItem(new SecurityRequirement().addList(cookieSchemeName))
                 .schemaRequirement(cookieSchemeName, new SecurityScheme()

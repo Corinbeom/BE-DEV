@@ -196,3 +196,22 @@
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
+
+/* Bluehour — night sky star twinkle */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+.bluehour-star {
+  position: absolute;
+  border-radius: 9999px;
+  background: white;
+  pointer-events: none;
+  animation: twinkle var(--dur, 3s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}

@@ -98,6 +98,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
                 frontendUrl,
+                "https://bluehour.my",
+                "https://www.bluehour.my",
+                "https://api.bluehour.my",
                 "https://*.vercel.app",
                 "http://localhost:*",
                 "http://127.0.0.1:*"

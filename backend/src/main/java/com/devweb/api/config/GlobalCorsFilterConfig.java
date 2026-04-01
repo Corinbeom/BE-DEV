@@ -22,6 +22,9 @@ public class GlobalCorsFilterConfig {
     public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
+                "https://bluehour.my",
+                "https://www.bluehour.my",
+                "https://api.bluehour.my",
                 "https://*.vercel.app",
                 "http://localhost:3000",
                 "http://localhost:*",

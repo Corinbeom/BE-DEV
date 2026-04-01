@@ -10,7 +10,7 @@ import { check, sleep } from 'k6';
 //      아래 환경변수로 토큰 전달
 //
 // 실행:
-//   k6 run --env BASE_URL=https://bedev-chi.vercel.app --env JWT_TOKEN=$TOKEN backend/k6/load-test.js
+//   k6 run --env BASE_URL=https://bluehour.my --env JWT_TOKEN=$TOKEN backend/k6/load-test.js
 //
 // Redis 캐싱 테스트:
 //   docker run -d -p 6379:6379 redis:7-alpine
