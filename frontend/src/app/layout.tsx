@@ -11,8 +11,15 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Be Dev",
-  description: "AI 기반 이력서/포트폴리오 분석 및 면접 준비 플랫폼",
+  title: "Bluehour",
+  description: "Before Your Sunrise — AI 기반 이력서 분석, CS 퀴즈, 지원 현황 관리 플랫폼",
+  metadataBase: new URL("https://bluehour.my"),
+  openGraph: {
+    title: "Bluehour",
+    description: "Before Your Sunrise, 당신의 아침이 시작되는 곳",
+    siteName: "Bluehour",
+    url: "https://bluehour.my",
+  },
 };
 
 export default function RootLayout({

@@ -10,3 +10,23 @@ export type ResumeFile = {
   extractStatus: "PENDING" | "EXTRACTED" | "FAILED";
   createdAt: string;
 };
+
+export type InterviewMailSchedule = {
+  id: number;
+  resumeId: number;
+  resumeTitle: string;
+  positionType: string;
+  sendHour: number;
+  enabled: boolean;
+  targetTechnologies: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpsertInterviewMailScheduleInput = {
+  resumeId: number;
+  positionType: string;
+  sendHour: number;
+  enabled: boolean;
+  targetTechnologies: string[];
+};

@@ -8,6 +8,7 @@ import com.devweb.domain.resume.session.model.ResumeAnswerAttempt;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.port.ResumeQuestionRepository;
 import com.devweb.domain.resume.session.service.AnswerFeedbackGenerator;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class ResumeQuestionService {
         this.feedbackGenerator = feedbackGenerator;
     }
 
+    @CacheEvict(value = "resumeInterviewStats", allEntries = true)
     public ResumeAnswerAttempt createFeedback(Long questionId, String answerText) {
         ResumeQuestion question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("ResumeQuestion을 찾을 수 없습니다. id=" + questionId));

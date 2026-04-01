@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { InterviewMailScheduleCard } from "./InterviewMailScheduleCard";
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null) return "-";
@@ -151,6 +152,9 @@ export function ProfileView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Interview Mail Schedule */}
+      <InterviewMailScheduleCard />
 
       {/* File Upload */}
       <Card>

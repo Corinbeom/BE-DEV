@@ -33,19 +33,19 @@ export function AppSidebar() {
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5">
         <Image
-          src="/logos/BeDevLogo.png"
-          alt="Be Dev"
+          src="/logos/bluehour-logo.png"
+          alt="Bluehour"
           width={44}
           height={44}
-          className="rounded-xl shadow-md dark:invert"
+          className="rounded-xl shadow-md"
           priority
         />
         <div>
           <h1 className="text-lg font-bold tracking-tight text-foreground">
-            Be Dev
+            Bluehour
           </h1>
           <p className="text-[11px] font-medium text-muted-foreground">
-            AI Career Platform
+            Before Your Sunrise
           </p>
         </div>
       </div>

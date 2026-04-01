@@ -54,7 +54,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         String token = jwtTokenProvider.generateToken(member.getId());
 
-        // SameSite=None; Secure 필수 (Vercel → Render 크로스 도메인 fetch에서 쿠키 전송)
+        // SameSite=None; Secure 필수 (bluehour.my → api.bluehour.my 크로스 도메인 쿠키 전송)
         // Java Cookie API는 SameSite 미지원 → Set-Cookie 헤더 직접 작성
         String cookieHeader = "devweb_token=" + token
                 + "; Max-Age=86400"

@@ -251,6 +251,34 @@ public final class AiPromptBuilder {
         );
     }
 
+    private static final int MAX_PREVIOUS_QUESTIONS = 50;
+
+    public static String buildQuestionsPromptWithHistory(String resumeText, String portfolioText,
+                                                          String portfolioUrl, List<String> targetTechnologies,
+                                                          List<String> previousQuestions) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(buildQuestionsPrompt(resumeText, portfolioText, portfolioUrl, targetTechnologies));
+
+        if (previousQuestions != null && !previousQuestions.isEmpty()) {
+            List<String> limited = previousQuestions.size() > MAX_PREVIOUS_QUESTIONS
+                    ? previousQuestions.subList(0, MAX_PREVIOUS_QUESTIONS)
+                    : previousQuestions;
+
+            sb.append("""
+
+                    [PreviouslyAskedQuestions]
+                    아래는 이전에 이미 출제한 질문 목록입니다.
+                    이 질문들과 동일하거나 유사한 질문은 절대 생성하지 마세요.
+                    대신, 아직 다루지 않은 새로운 관점/주제/기술적 깊이에서 질문을 만들어 주세요.
+                    """);
+            for (String q : limited) {
+                sb.append("- ").append(q).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
     public static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }

@@ -12,6 +12,10 @@ public interface InterviewAiPort {
 
     List<GeneratedQuestion> generateQuestions(String systemInstruction, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies);
 
+    default List<GeneratedQuestion> generateQuestionsWithHistory(String systemInstruction, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies, List<String> previousQuestions) {
+        return generateQuestions(systemInstruction, resumeText, portfolioText, portfolioUrl, targetTechnologies);
+    }
+
     GeneratedFeedback generateFeedback(String systemInstruction, String question, String intention, String keywords, String modelAnswer, String answerText);
 }
 

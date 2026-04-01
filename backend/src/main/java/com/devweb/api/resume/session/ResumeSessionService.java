@@ -15,6 +15,10 @@ import com.devweb.domain.resume.session.port.ResumeSessionRepository;
 import com.devweb.domain.resume.session.port.TextExtractorPort;
 import com.devweb.domain.resume.session.port.UrlTextFetcherPort;
 import com.devweb.domain.resume.session.service.QuestionGenerator;
+import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
+import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.BadgeStats;
+import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.FrequentItem;
+import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.WeeklyTrend;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -23,8 +27,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Service
 @Transactional
@@ -178,7 +190,131 @@ public class ResumeSessionService {
                 .toList());
     }
 
-    @CacheEvict(value = "resumeSessions", allEntries = true)
+    @Cacheable(value = "resumeInterviewStats", key = "#memberId")
+    @Transactional(readOnly = true)
+    public ResumeInterviewStatsResponse getInterviewStats(Long memberId) {
+        List<Object[]> rows = sessionRepository.findInterviewStatsGroupedByBadge(memberId);
+        Map<String, Long> strengthsMap = toCountMap(sessionRepository.countStrengthsByBadge(memberId));
+        Map<String, Long> improvementsMap = toCountMap(sessionRepository.countImprovementsByBadge(memberId));
+
+        Map<String, List<FrequentItem>> topStrengthsMap = toTopItemsMap(sessionRepository.findTopStrengthsByBadge(memberId));
+        Map<String, List<FrequentItem>> topImprovementsMap = toTopItemsMap(sessionRepository.findTopImprovementsByBadge(memberId));
+
+        int totalAll = 0;
+        int attemptedAll = 0;
+        List<BadgeStats> badgeStatsList = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            String badge = (String) row[0];
+            int total = ((Number) row[1]).intValue();
+            int attempted = ((Number) row[2]).intValue();
+            long attemptCount = ((Number) row[3]).longValue();
+
+            double practiceRate = total == 0 ? 0.0 : (double) attempted / total;
+            double avgStr = attemptCount == 0 ? 0.0 : (double) strengthsMap.getOrDefault(badge, 0L) / attemptCount;
+            double avgImp = attemptCount == 0 ? 0.0 : (double) improvementsMap.getOrDefault(badge, 0L) / attemptCount;
+
+            badgeStatsList.add(new BadgeStats(badge, total, attempted, practiceRate, avgStr, avgImp,
+                    topStrengthsMap.getOrDefault(badge, List.of()),
+                    topImprovementsMap.getOrDefault(badge, List.of())));
+            totalAll += total;
+            attemptedAll += attempted;
+        }
+
+        List<WeeklyTrend> weeklyTrends = buildWeeklyTrends(memberId);
+
+        double overallPracticeRate = totalAll == 0 ? 0.0 : (double) attemptedAll / totalAll;
+        return new ResumeInterviewStatsResponse(totalAll, attemptedAll, overallPracticeRate, badgeStatsList, weeklyTrends);
+    }
+
+    private static Map<String, Long> toCountMap(List<Object[]> rows) {
+        Map<String, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            map.put((String) row[0], ((Number) row[1]).longValue());
+        }
+        return map;
+    }
+
+    /**
+     * SQL 결과가 badge, text, freq DESC 순 정렬이므로 badge별 첫 3개만 수집.
+     */
+    private static Map<String, List<FrequentItem>> toTopItemsMap(List<Object[]> rows) {
+        Map<String, List<FrequentItem>> map = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String badge = (String) row[0];
+            String text = (String) row[1];
+            int freq = ((Number) row[2]).intValue();
+            List<FrequentItem> items = map.computeIfAbsent(badge, k -> new ArrayList<>());
+            if (items.size() < 3) {
+                items.add(new FrequentItem(text, freq));
+            }
+        }
+        return map;
+    }
+
+    private List<WeeklyTrend> buildWeeklyTrends(Long memberId) {
+        Map<LocalDate, Long> dailyAttempts = toDailyMap(sessionRepository.findDailyAttemptCounts(memberId));
+        Map<LocalDate, Long> dailyStrengths = toDailyMap(sessionRepository.findDailyStrengthCounts(memberId));
+        Map<LocalDate, Long> dailyImprovements = toDailyMap(sessionRepository.findDailyImprovementCounts(memberId));
+
+        // 모든 날짜를 모아서 주간(ISO Monday)으로 그룹
+        TreeMap<LocalDate, long[]> weeklyAgg = new TreeMap<>(); // weekStart → [attempts, strengths, improvements]
+
+        for (LocalDate date : dailyAttempts.keySet()) {
+            collectWeek(weeklyAgg, date);
+        }
+        for (LocalDate date : dailyStrengths.keySet()) {
+            collectWeek(weeklyAgg, date);
+        }
+        for (LocalDate date : dailyImprovements.keySet()) {
+            collectWeek(weeklyAgg, date);
+        }
+
+        for (var entry : dailyAttempts.entrySet()) {
+            LocalDate monday = entry.getKey().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            weeklyAgg.get(monday)[0] += entry.getValue();
+        }
+        for (var entry : dailyStrengths.entrySet()) {
+            LocalDate monday = entry.getKey().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            weeklyAgg.get(monday)[1] += entry.getValue();
+        }
+        for (var entry : dailyImprovements.entrySet()) {
+            LocalDate monday = entry.getKey().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            weeklyAgg.get(monday)[2] += entry.getValue();
+        }
+
+        DateTimeFormatter fmt = DateTimeFormatter.ISO_LOCAL_DATE;
+        List<WeeklyTrend> trends = new ArrayList<>();
+        for (var entry : weeklyAgg.entrySet()) {
+            long[] vals = entry.getValue();
+            long attempts = vals[0];
+            double avgStr = attempts == 0 ? 0.0 : (double) vals[1] / attempts;
+            double avgImp = attempts == 0 ? 0.0 : (double) vals[2] / attempts;
+            trends.add(new WeeklyTrend(entry.getKey().format(fmt), (int) attempts, avgStr, avgImp));
+        }
+        return trends;
+    }
+
+    private static void collectWeek(TreeMap<LocalDate, long[]> weeklyAgg, LocalDate date) {
+        LocalDate monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        weeklyAgg.computeIfAbsent(monday, k -> new long[3]);
+    }
+
+    private static Map<LocalDate, Long> toDailyMap(List<Object[]> rows) {
+        Map<LocalDate, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            LocalDate date;
+            if (row[0] instanceof java.sql.Date sqlDate) {
+                date = sqlDate.toLocalDate();
+            } else {
+                date = LocalDate.parse(row[0].toString());
+            }
+            map.put(date, ((Number) row[1]).longValue());
+        }
+        return map;
+    }
+
+    @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
     public void delete(Long id) {
         get(id);
         sessionRepository.deleteById(id);
