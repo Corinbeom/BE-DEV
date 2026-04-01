@@ -21,7 +21,7 @@ describe("createResumeSession", () => {
     });
 
     const result = await createResumeSession({
-      positionType: "BACKEND",
+      positionType: "BE",
       resumeId: 10,
       targetTechnologies: ["Java", "Spring", "Docker"],
     });
@@ -31,7 +31,7 @@ describe("createResumeSession", () => {
     const [, init] = mockFetch.mock.calls[0];
     const body = JSON.parse(init.body);
     expect(body.targetTechnologies).toEqual(["Java", "Spring", "Docker"]);
-    expect(body.positionType).toBe("BACKEND");
+    expect(body.positionType).toBe("BE");
     expect(body.resumeId).toBe(10);
   });
 
@@ -42,7 +42,7 @@ describe("createResumeSession", () => {
     });
 
     await createResumeSession({
-      positionType: "FRONTEND",
+      positionType: "FE",
       resumeId: 5,
     });
 
@@ -61,7 +61,7 @@ describe("createResumeSession", () => {
     });
 
     await expect(
-      createResumeSession({ positionType: "BACKEND", resumeId: 1 }),
+      createResumeSession({ positionType: "BE", resumeId: 1 }),
     ).rejects.toThrow("생성 실패");
   });
 });
