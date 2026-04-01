@@ -21,15 +21,18 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberRepository memberRepository;
     private final String frontendUrl;
+    private final String cookieDomain;
 
     public OAuth2LoginSuccessHandler(
             JwtTokenProvider jwtTokenProvider,
             MemberRepository memberRepository,
-            @Value("${devweb.frontend-url}") String frontendUrl
+            @Value("${devweb.frontend-url}") String frontendUrl,
+            @Value("${devweb.cookie-domain:}") String cookieDomain
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.memberRepository = memberRepository;
         this.frontendUrl = frontendUrl;
+        this.cookieDomain = cookieDomain;
     }
 
     @Override
@@ -56,13 +59,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         // SameSite=None; Secure 필수 (bluehour.my → api.bluehour.my 크로스 도메인 쿠키 전송)
         // Java Cookie API는 SameSite 미지원 → Set-Cookie 헤더 직접 작성
-        String cookieHeader = "devweb_token=" + token
-                + "; Max-Age=86400"
-                + "; Path=/"
-                + "; HttpOnly"
-                + "; Secure"
-                + "; SameSite=None";
-        response.addHeader("Set-Cookie", cookieHeader);
+        StringBuilder cookie = new StringBuilder("devweb_token=")
+                .append(token)
+                .append("; Max-Age=86400; Path=/; HttpOnly; Secure; SameSite=None");
+        if (cookieDomain != null && !cookieDomain.isBlank()) {
+            cookie.append("; Domain=").append(cookieDomain);
+        }
+        response.addHeader("Set-Cookie", cookie.toString());
 
         response.sendRedirect(frontendUrl + "/auth/callback");
     }
