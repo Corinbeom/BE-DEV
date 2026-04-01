@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
   useDeleteInterviewMailSchedule,
   useSendTestInterviewMail,
 } from "../hooks/useInterviewMailSchedule";
+import type { InterviewMailSchedule } from "../api/types";
 
 const POSITION_TYPES = ["BE", "FE", "MOBILE"] as const;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -20,28 +21,53 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export function InterviewMailScheduleCard() {
   const { data: schedule, isLoading } = useInterviewMailSchedule();
   const { data: files } = useResumeFiles();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+          <span className="material-symbols-outlined animate-spin text-sm">
+            progress_activity
+          </span>
+          불러오는 중...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <ScheduleForm
+      key={schedule?.resumeId ?? "new"}
+      schedule={schedule}
+      extractedFiles={
+        files?.filter((f) => f.extractStatus === "EXTRACTED") ?? []
+      }
+    />
+  );
+}
+
+function ScheduleForm({
+  schedule,
+  extractedFiles,
+}: {
+  schedule: InterviewMailSchedule | undefined;
+  extractedFiles: { id: number; title: string; originalFilename: string }[];
+}) {
   const upsertMutation = useUpsertInterviewMailSchedule();
   const deleteMutation = useDeleteInterviewMailSchedule();
   const testMutation = useSendTestInterviewMail();
 
-  const extractedFiles =
-    files?.filter((f) => f.extractStatus === "EXTRACTED") ?? [];
-
-  const [resumeId, setResumeId] = useState<number | "">("");
-  const [positionType, setPositionType] = useState<string>("BE");
-  const [sendHour, setSendHour] = useState<number>(9);
-  const [enabled, setEnabled] = useState(true);
-  const [techInput, setTechInput] = useState("");
-
-  useEffect(() => {
-    if (schedule) {
-      setResumeId(schedule.resumeId);
-      setPositionType(schedule.positionType);
-      setSendHour(schedule.sendHour);
-      setEnabled(schedule.enabled);
-      setTechInput(schedule.targetTechnologies.join(", "));
-    }
-  }, [schedule]);
+  const [resumeId, setResumeId] = useState<number | "">(
+    schedule?.resumeId ?? "",
+  );
+  const [positionType, setPositionType] = useState(
+    schedule?.positionType ?? "BE",
+  );
+  const [sendHour, setSendHour] = useState(schedule?.sendHour ?? 9);
+  const [enabled, setEnabled] = useState(schedule?.enabled ?? true);
+  const [techInput, setTechInput] = useState(
+    schedule?.targetTechnologies.join(", ") ?? "",
+  );
 
   function onSave() {
     if (!resumeId) {
@@ -97,19 +123,6 @@ export function InterviewMailScheduleCard() {
           err instanceof Error ? err.message : "테스트 발송에 실패했습니다.",
         ),
     });
-  }
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <span className="material-symbols-outlined animate-spin text-sm">
-            progress_activity
-          </span>
-          불러오는 중...
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
