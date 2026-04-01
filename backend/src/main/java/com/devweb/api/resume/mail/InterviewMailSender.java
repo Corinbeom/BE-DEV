@@ -77,7 +77,7 @@ public class InterviewMailSender {
         }
 
         String htmlBody = buildHtmlEmail(questions, resume.getTitle(), schedule.getPositionType().name());
-        String subject = "[DevWeb] 오늘의 면접 질문 - " + resume.getTitle();
+        String subject = "[Bluehour] 오늘의 면접 질문 - " + resume.getTitle();
 
         emailSender.send(member.getEmail(), subject, htmlBody);
 
@@ -119,7 +119,8 @@ public class InterviewMailSender {
                 <html>
                 <head><meta charset="UTF-8"></head>
                 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;">
-                <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:24px;border-radius:12px;color:white;margin-bottom:24px;">
+                <div style="background:linear-gradient(135deg,#0a1628,#2563eb);padding:24px;border-radius:12px;color:white;margin-bottom:24px;">
+                  <p style="margin:0 0 4px;font-size:11px;letter-spacing:2px;opacity:0.7;">BLUEHOUR</p>
                   <h1 style="margin:0 0 8px;font-size:22px;">오늘의 면접 질문</h1>
                   <p style="margin:0;opacity:0.9;font-size:14px;">%s · %s</p>
                 </div>
@@ -130,7 +131,7 @@ public class InterviewMailSender {
             sb.append("""
                 <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px;">
                   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                    <span style="background:#6366f1;color:white;border-radius:50%%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;">%d</span>
+                    <span style="background:#2563eb;color:white;border-radius:50%%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;">%d</span>
                     <span style="background:#f3f4f6;padding:2px 8px;border-radius:4px;font-size:12px;color:#6b7280;">%s</span>
                     <span style="font-size:12px;color:#6b7280;">출제확률 %d%%</span>
                   </div>
@@ -138,7 +139,7 @@ public class InterviewMailSender {
                   <p style="font-size:13px;color:#6b7280;margin:0 0 4px;"><strong>출제 의도:</strong> %s</p>
                   <p style="font-size:13px;color:#6b7280;margin:0 0 4px;"><strong>키워드:</strong> %s</p>
                   <details style="margin-top:8px;">
-                    <summary style="cursor:pointer;font-size:13px;color:#6366f1;font-weight:600;">모범 답안 보기</summary>
+                    <summary style="cursor:pointer;font-size:13px;color:#2563eb;font-weight:600;">모범 답안 보기</summary>
                     <p style="font-size:13px;color:#374151;margin:8px 0 0;padding:12px;background:#f9fafb;border-radius:6px;">%s</p>
                   </details>
                 </div>
@@ -155,7 +156,7 @@ public class InterviewMailSender {
 
         sb.append("""
                 <div style="text-align:center;padding:16px;color:#9ca3af;font-size:12px;border-top:1px solid #e5e7eb;margin-top:24px;">
-                  <p>이 메일은 DevWeb에서 자동 발송되었습니다.</p>
+                  <p>이 메일은 Bluehour에서 자동 발송되었습니다.</p>
                 </div>
                 </body>
                 </html>
