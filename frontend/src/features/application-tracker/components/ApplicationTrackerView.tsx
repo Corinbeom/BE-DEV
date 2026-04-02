@@ -1174,11 +1174,8 @@ function PlatformLogo({
 function EmptySlot() {
   return (
     <Card className="border-2 border-dashed">
-      <CardContent className="flex flex-col items-center justify-center p-6 text-muted-foreground">
-        <span className="material-symbols-outlined mb-1 text-3xl">
-          add_circle
-        </span>
-        <p className="text-xs font-medium">여기에 추가</p>
+      <CardContent className="flex items-center justify-center p-6 text-muted-foreground">
+        <p className="text-xs text-muted-foreground/50">비어있음</p>
       </CardContent>
     </Card>
   );

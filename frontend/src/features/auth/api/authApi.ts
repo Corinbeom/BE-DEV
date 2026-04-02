@@ -10,11 +10,18 @@ export async function getMe(): Promise<AuthUser> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch(`${apiBaseUrl()}/api/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-    cache: "no-store",
-  });
+  try {
+    const res = await fetch(`${apiBaseUrl()}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.error("Logout API failed:", res.status);
+    }
+  } catch (e) {
+    console.error("Logout API error:", e);
+  }
 
   // Fallback: HTTP 환경에서 Secure 쿠키 삭제가 안 될 수 있으므로 직접 만료
   document.cookie = "devweb_token=; Max-Age=0; Path=/;";

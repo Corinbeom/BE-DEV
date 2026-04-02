@@ -72,7 +72,8 @@ export function AppHeader() {
             <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        {/* TODO: 알림 기능 구현 시 hidden 제거 */}
+        <div className="hidden items-center gap-2">
           <Button variant="ghost" size="icon" className="rounded-full" aria-label="알림">
             <span className="material-symbols-outlined text-xl">
               notifications
