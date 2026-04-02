@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { apiFetch, healthCheck } from "@/lib/api";
+import { apiFetch, healthCheck, ApiError } from "@/lib/api";
 
 // global fetch mock
 const mockFetch = vi.fn();
@@ -32,7 +32,7 @@ describe("apiFetch", () => {
     expect(init.credentials).toBe("include");
   });
 
-  it("HTTP 에러 시 Error를 throw한다", async () => {
+  it("HTTP 에러 시 ApiError를 throw한다", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -40,7 +40,32 @@ describe("apiFetch", () => {
       text: async () => "server error",
     });
 
-    await expect(apiFetch("/api/fail")).rejects.toThrow("HTTP 500: server error");
+    await expect(apiFetch("/api/fail")).rejects.toThrow("서버 오류가 발생했습니다. (500)");
+    await mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => '{"success":false,"error":{"code":"INTERNAL_ERROR","message":"커스텀 에러"}}',
+    });
+    await expect(apiFetch("/api/fail")).rejects.toThrow("커스텀 에러");
+  });
+
+  it("ApiError에 path, status, detail이 포함된다", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      text: async () => "not found",
+    });
+
+    try {
+      await apiFetch("/api/missing");
+      expect.unreachable();
+    } catch (e) {
+      expect(e).toBeInstanceOf(ApiError);
+      const err = e as ApiError;
+      expect(err.path).toBe("/api/missing");
+      expect(err.status).toBe(404);
+      expect(err.detail).toContain("[GET /api/missing] 404");
+    }
   });
 
   it("timeout AbortController 시그널이 전달된다", async () => {
