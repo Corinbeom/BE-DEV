@@ -10,8 +10,11 @@ import com.devweb.infra.auth.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "인증", description = "OAuth2 로그인, JWT 토큰, 로그아웃")
@@ -59,13 +62,22 @@ public class AuthController {
 
     @Operation(summary = "로그아웃", description = "JWT 쿠키를 삭제하여 로그아웃합니다.")
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(HttpServletResponse response) {
+    public ApiResponse<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        // 1) JWT 쿠키 삭제
         StringBuilder cookie = new StringBuilder("devweb_token=")
                 .append("; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None");
         if (cookieDomain != null && !cookieDomain.isBlank()) {
             cookie.append("; Domain=").append(cookieDomain);
         }
         response.addHeader("Set-Cookie", cookie.toString());
+
+        // 2) SecurityContext 초기화 + 세션 무효화 (OAuth2 세션 잔존 방지)
+        SecurityContextHolder.clearContext();
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
         return ApiResponse.ok();
     }
 }

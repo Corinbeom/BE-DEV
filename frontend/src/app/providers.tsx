@@ -2,12 +2,21 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthProvider } from "@/features/auth/context/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  captureConsoleLogs,
+  getRecentLogs,
+  sendErrorReport,
+} from "@/lib/discord";
 
 export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    captureConsoleLogs();
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -18,11 +27,29 @@ export function Providers({ children }: { children: ReactNode }) {
           },
           mutations: {
             onError: (error) => {
-              toast.error(
+              const message =
                 error instanceof Error
                   ? error.message
-                  : "요청 처리 중 오류가 발생했습니다.",
-              );
+                  : "요청 처리 중 오류가 발생했습니다.";
+              toast.error(message, {
+                action: {
+                  label: "에러 리포트",
+                  onClick: async () => {
+                    const ok = await sendErrorReport({
+                      message,
+                      url: window.location.href,
+                      userAgent: navigator.userAgent,
+                      timestamp: new Date().toISOString(),
+                      consoleLogs: getRecentLogs(),
+                    });
+                    if (ok) {
+                      toast.success("에러 리포트가 전송되었습니다.");
+                    } else {
+                      toast.error("리포트 전송에 실패했습니다.");
+                    }
+                  },
+                },
+              });
             },
           },
         },
