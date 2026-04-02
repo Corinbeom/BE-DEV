@@ -367,7 +367,17 @@ export default function LoginPage() {
 
   /* ── Early-return states (unchanged) ── */
 
-  if (serverStatus === "warming" || serverStatus === "checking") {
+  if (serverStatus === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+          progress_activity
+        </span>
+      </div>
+    );
+  }
+
+  if (serverStatus === "warming") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
