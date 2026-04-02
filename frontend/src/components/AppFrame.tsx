@@ -74,7 +74,17 @@ export function AppFrame({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading, serverStatus, router]);
 
-  if (serverStatus === "warming" || serverStatus === "checking") {
+  if (serverStatus === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+          progress_activity
+        </span>
+      </div>
+    );
+  }
+
+  if (serverStatus === "warming") {
     return <ServerWarmingSplash onRetry={retryConnection} />;
   }
 
