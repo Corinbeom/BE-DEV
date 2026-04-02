@@ -2,6 +2,7 @@ const WEBHOOK_URL = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL;
 
 interface ErrorReport {
   message: string;
+  detail?: string;
   url: string;
   userAgent: string;
   timestamp: string;
@@ -12,27 +13,26 @@ export async function sendErrorReport(report: ErrorReport): Promise<boolean> {
   if (!WEBHOOK_URL) return false;
 
   const logsText = report.consoleLogs.length > 0
-    ? report.consoleLogs.join("\n").slice(0, 2000)
+    ? report.consoleLogs.join("\n").slice(0, 1500)
     : "없음";
+
+  const fields = [
+    { name: "Message", value: report.message.slice(0, 1024) },
+    ...(report.detail
+      ? [{ name: "API Detail", value: `\`\`\`\n${report.detail.slice(0, 1024)}\n\`\`\`` }]
+      : []),
+    { name: "Page", value: report.url },
+    { name: "Timestamp", value: report.timestamp },
+    { name: "User Agent", value: report.userAgent.slice(0, 256) },
+    { name: "Console Logs", value: `\`\`\`\n${logsText}\n\`\`\`` },
+  ];
 
   try {
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        embeds: [
-          {
-            title: "Error Report",
-            color: 0xff0000,
-            fields: [
-              { name: "Message", value: report.message.slice(0, 1024) },
-              { name: "URL", value: report.url },
-              { name: "Timestamp", value: report.timestamp },
-              { name: "User Agent", value: report.userAgent.slice(0, 1024) },
-              { name: "Console Logs", value: `\`\`\`\n${logsText}\n\`\`\`` },
-            ],
-          },
-        ],
+        embeds: [{ title: "Error Report", color: 0xff0000, fields }],
       }),
     });
     return res.ok;

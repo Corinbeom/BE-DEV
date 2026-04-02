@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthProvider } from "@/features/auth/context/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ApiError } from "@/lib/api";
 import {
   captureConsoleLogs,
   getRecentLogs,
@@ -31,12 +32,15 @@ export function Providers({ children }: { children: ReactNode }) {
                 error instanceof Error
                   ? error.message
                   : "요청 처리 중 오류가 발생했습니다.";
+              const detail =
+                error instanceof ApiError ? error.detail : undefined;
               toast.error(message, {
                 action: {
                   label: "에러 리포트",
                   onClick: async () => {
                     const ok = await sendErrorReport({
                       message,
+                      detail,
                       url: window.location.href,
                       userAgent: navigator.userAgent,
                       timestamp: new Date().toISOString(),
