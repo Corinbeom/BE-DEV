@@ -63,13 +63,12 @@ public class AuthController {
     @Operation(summary = "로그아웃", description = "JWT 쿠키를 삭제하여 로그아웃합니다.")
     @PostMapping("/logout")
     public ApiResponse<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        // 1) JWT 쿠키 삭제
-        StringBuilder cookie = new StringBuilder("devweb_token=")
-                .append("; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None");
+        // 1) JWT 쿠키 삭제 — Domain 없는 레거시 쿠키 + Domain 있는 쿠키 모두 삭제
+        String base = "devweb_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None";
+        response.addHeader("Set-Cookie", base);
         if (cookieDomain != null && !cookieDomain.isBlank()) {
-            cookie.append("; Domain=").append(cookieDomain);
+            response.addHeader("Set-Cookie", base + "; Domain=" + cookieDomain);
         }
-        response.addHeader("Set-Cookie", cookie.toString());
 
         // 2) SecurityContext 초기화 + 세션 무효화 (OAuth2 세션 잔존 방지)
         SecurityContextHolder.clearContext();

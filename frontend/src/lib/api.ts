@@ -13,6 +13,34 @@ export function apiBaseUrl() {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BASE_URL;
 }
 
+/** apiFetch에서 throw하는 에러. 유저 메시지 + 디버그 상세를 분리 */
+export class ApiError extends Error {
+  constructor(
+    public readonly path: string,
+    public readonly method: string,
+    public readonly status: number,
+    public readonly body: string,
+  ) {
+    // body에서 유저 친화적 메시지 추출
+    let userMessage = `서버 오류가 발생했습니다. (${status})`;
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed?.error?.message) {
+        userMessage = parsed.error.message;
+      }
+    } catch {
+      // JSON 파싱 실패 시 기본 메시지 사용
+    }
+    super(userMessage);
+    this.name = "ApiError";
+  }
+
+  /** Discord 에러 리포트용 상세 정보 */
+  get detail(): string {
+    return `[${this.method} ${this.path}] ${this.status}\n${this.body}`;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
@@ -38,7 +66,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+    throw new ApiError(path, init?.method ?? "GET", res.status, text);
   }
 
   return (await res.json()) as T;
