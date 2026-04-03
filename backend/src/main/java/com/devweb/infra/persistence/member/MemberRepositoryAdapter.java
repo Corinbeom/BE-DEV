@@ -34,4 +34,9 @@ public class MemberRepositoryAdapter implements MemberRepository {
     public Optional<Member> findByOauthProviderAndOauthSubject(String provider, String subject) {
         return jpaRepository.findByOauthProviderAndOauthSubject(provider, subject);
     }
+
+    @Override
+    public void delete(Member member) {
+        jpaRepository.delete(member);
+    }
 }

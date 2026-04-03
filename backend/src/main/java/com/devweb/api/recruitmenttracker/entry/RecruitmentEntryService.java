@@ -9,6 +9,8 @@ import com.devweb.domain.recruitmenttracker.entry.model.RecruitmentStep;
 import com.devweb.domain.recruitmenttracker.entry.port.RecruitmentEntryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.event.EventListener;
+import com.devweb.domain.member.event.MemberDeletedEvent;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -83,6 +85,11 @@ public class RecruitmentEntryService {
     public void delete(Long id) {
         RecruitmentEntry entry = get(id);
         recruitmentEntryRepository.delete(entry);
+    }
+
+    @EventListener
+    public void onMemberDeleted(MemberDeletedEvent event) {
+        listByMember(event.memberId()).forEach(entry -> delete(entry.getId()));
     }
 }
 

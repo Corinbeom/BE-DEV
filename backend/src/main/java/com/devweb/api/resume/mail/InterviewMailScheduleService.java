@@ -11,6 +11,8 @@ import com.devweb.domain.resume.port.ResumeRepository;
 import com.devweb.domain.resume.session.model.PositionType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.event.EventListener;
+import com.devweb.domain.member.event.MemberDeletedEvent;
 
 import java.util.Optional;
 
@@ -69,5 +71,10 @@ public class InterviewMailScheduleService {
         InterviewMailSchedule schedule = scheduleRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("설정된 스케줄이 없습니다."));
         scheduleRepository.delete(schedule);
+    }
+
+    @EventListener
+    public void onMemberDeleted(MemberDeletedEvent event) {
+        scheduleRepository.findByMemberId(event.memberId()).ifPresent(scheduleRepository::delete);
     }
 }

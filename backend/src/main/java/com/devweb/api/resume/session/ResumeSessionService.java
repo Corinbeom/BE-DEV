@@ -25,6 +25,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.context.event.EventListener;
+import com.devweb.domain.member.event.MemberDeletedEvent;
 
 import java.io.IOException;
 import java.time.DayOfWeek;
@@ -348,6 +350,11 @@ public class ResumeSessionService {
 
         if (parts.isEmpty()) return null;
         return String.join("\n\n---\n\n", parts);
+    }
+
+    @EventListener
+    public void onMemberDeleted(MemberDeletedEvent event) {
+        listByMember(event.memberId()).forEach(session -> delete(session.getId()));
     }
 }
 

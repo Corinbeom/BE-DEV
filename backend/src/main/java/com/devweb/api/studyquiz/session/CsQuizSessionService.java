@@ -13,6 +13,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.event.EventListener;
+import com.devweb.domain.member.event.MemberDeletedEvent;
 
 import com.devweb.api.studyquiz.session.dto.CsQuizSessionResponse;
 import com.devweb.api.studyquiz.session.dto.CsQuizStatsResponse;
@@ -236,6 +238,11 @@ public class CsQuizSessionService {
                 사실/개념 오류가 없도록 보수적으로 작성하고, 질문은 명확하고 애매하지 않게 만드세요.
                 출력은 반드시 지정된 JSON 스키마만 따릅니다.
                 """;
+    }
+
+    @EventListener
+    public void onMemberDeleted(MemberDeletedEvent event) {
+        listByMember(event.memberId()).forEach(session -> delete(session.getId()));
     }
 }
 
