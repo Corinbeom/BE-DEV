@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { apiBaseUrl } from "@/lib/api";
@@ -8,47 +8,6 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
-/* ── Brand Colors (RGB tuples) ── */
-
-const DEEP_NAVY: [number, number, number] = [10, 22, 40]; // #0a1628
-const MID_NAVY: [number, number, number] = [15, 36, 64]; // #0f2440
-const MID_BLUE: [number, number, number] = [30, 58, 95]; // #1e3a5f
-const ELECTRIC_BLUE: [number, number, number] = [37, 99, 235]; // #2563eb
-const SKY_BLUE: [number, number, number] = [125, 211, 252]; // #7dd3fc
-const LIGHT_SKY: [number, number, number] = [186, 230, 253]; // #bae6fd
-
-/* ── Color Interpolation ── */
-
-function lerpColor(
-  a: [number, number, number],
-  b: [number, number, number],
-  t: number,
-): string {
-  return `rgb(${Math.round(a[0] + (b[0] - a[0]) * t)},${Math.round(a[1] + (b[1] - a[1]) * t)},${Math.round(a[2] + (b[2] - a[2]) * t)})`;
-}
-
-function getGradientColors(p: number): { top: string; bottom: string } {
-  if (p <= 0.4) {
-    const t = p / 0.4;
-    return {
-      top: lerpColor(DEEP_NAVY, MID_BLUE, t),
-      bottom: lerpColor(MID_NAVY, ELECTRIC_BLUE, t),
-    };
-  }
-  if (p <= 0.7) {
-    const t = (p - 0.4) / 0.3;
-    return {
-      top: lerpColor(MID_BLUE, ELECTRIC_BLUE, t),
-      bottom: lerpColor(ELECTRIC_BLUE, SKY_BLUE, t),
-    };
-  }
-  const t = (p - 0.7) / 0.3;
-  return {
-    top: lerpColor(ELECTRIC_BLUE, SKY_BLUE, t),
-    bottom: lerpColor(SKY_BLUE, LIGHT_SKY, t),
-  };
-}
 
 /* ── Star Data (static) ── */
 
@@ -103,175 +62,7 @@ const FEATURES = [
   },
 ];
 
-/* ── CSS Mockup Components ── */
-
-function ResumeMockup() {
-  return (
-    <div className="w-full max-w-xs overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-md sm:max-w-sm">
-      <MockupTitleBar title="이력서 분석" />
-      <div className="space-y-3 p-4">
-        <div className="flex items-center gap-2 rounded-lg bg-white/10 p-2.5">
-          <span className="material-symbols-outlined text-lg text-blue-300">
-            upload_file
-          </span>
-          <span className="text-xs font-medium text-white/90">
-            사용자이름_이력서.pdf
-          </span>
-          <span className="ml-auto rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-medium text-green-300">
-            분석 완료
-          </span>
-        </div>
-        <div className="space-y-2">
-          {[
-            "프로젝트에서 본인의 핵심 기여는?",
-            "기술 스택 선택의 근거는?",
-            "가장 어려웠던 기술적 문제는?",
-          ].map((q, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-2 rounded-lg border border-white/10 p-2.5"
-            >
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-400/20 text-[10px] font-bold text-blue-300">
-                {i + 1}
-              </span>
-              <span className="text-xs leading-relaxed text-white/80">
-                {q}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-1 text-[11px] text-blue-300">
-          <span className="material-symbols-outlined text-sm">
-            auto_awesome
-          </span>
-          AI가 3개 맞춤 질문을 생성했습니다
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function QuizMockup() {
-  return (
-    <div className="w-full max-w-xs overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-md sm:max-w-sm">
-      <MockupTitleBar title="CS 퀴즈" />
-      <div className="flex flex-wrap gap-1.5 border-b border-white/10 px-4 py-2.5">
-        {["자료구조", "네트워크", "OS", "DB"].map((t, i) => (
-          <span
-            key={t}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-              i === 0
-                ? "bg-blue-500 text-white"
-                : "bg-white/10 text-white/60"
-            }`}
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-      <div className="space-y-3 p-4">
-        <div className="text-xs font-semibold text-white/90">
-          Q. HashMap의 평균 시간복잡도는?
-        </div>
-        <div className="space-y-1.5">
-          {["O(1)", "O(n)", "O(log n)", "O(n²)"].map((opt, i) => (
-            <div
-              key={opt}
-              className={`flex items-center gap-2 rounded-lg border p-2 text-xs text-white/80 ${
-                i === 0
-                  ? "border-blue-400 bg-blue-400/10"
-                  : "border-white/10"
-              }`}
-            >
-              <div
-                className={`flex size-3.5 items-center justify-center rounded-full border-2 ${
-                  i === 0 ? "border-blue-400" : "border-white/20"
-                }`}
-              >
-                {i === 0 && (
-                  <div className="size-1.5 rounded-full bg-blue-400" />
-                )}
-              </div>
-              {opt}
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-end">
-          <div className="rounded-md bg-blue-500 px-3 py-1.5 text-[10px] font-medium text-white">
-            제출하기
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TrackerMockup() {
-  const columns = [
-    {
-      stage: "서류 준비",
-      bg: "bg-white/5",
-      items: [
-        { name: "카카오", bg: "bg-yellow-400/10" },
-        { name: "라인", bg: "bg-green-400/10" },
-      ],
-    },
-    {
-      stage: "진행 중",
-      bg: "bg-blue-400/10",
-      items: [{ name: "네이버", bg: "bg-green-400/10" }],
-    },
-    {
-      stage: "합격",
-      bg: "bg-emerald-400/10",
-      items: [{ name: "토스", bg: "bg-blue-400/10" }],
-    },
-  ];
-
-  return (
-    <div className="w-full max-w-xs overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-md sm:max-w-sm">
-      <MockupTitleBar title="지원 현황" />
-      <div className="grid grid-cols-3 gap-2 p-3">
-        {columns.map((col) => (
-          <div key={col.stage} className="space-y-1.5">
-            <div
-              className={`rounded-md px-2 py-1 text-center text-[10px] font-semibold text-white/80 ${col.bg}`}
-            >
-              {col.stage}
-            </div>
-            {col.items.map((item) => (
-              <div
-                key={item.name}
-                className={`rounded-lg border border-white/10 ${item.bg} p-2 text-[11px] font-medium text-white/80`}
-              >
-                {item.name}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-between border-t border-white/10 px-4 py-2.5">
-        <span className="text-[10px] text-white/50">총 4건 지원</span>
-        <span className="text-[10px] font-medium text-blue-300">
-          합격률 25%
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function MockupTitleBar({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-1.5 border-b border-white/10 px-4 py-2.5">
-      <div className="size-2.5 rounded-full bg-red-400" />
-      <div className="size-2.5 rounded-full bg-yellow-400" />
-      <div className="size-2.5 rounded-full bg-green-400" />
-      <span className="ml-2 text-[11px] text-white/50">{title}</span>
-    </div>
-  );
-}
-
-const MOCKUPS = [ResumeMockup, QuizMockup, TrackerMockup];
+/* ── (mockups removed — clean card grid) ── */
 
 /* ── Main Page ── */
 
@@ -279,10 +70,7 @@ export default function LoginPage() {
   const { user, isLoading, serverStatus, retryConnection } = useAuth();
   const router = useRouter();
   const loginSectionRef = useRef<HTMLElement>(null);
-  const featureContainerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const [activeFeature, setActiveFeature] = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
   // Mouse-following grid spotlight
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -303,74 +91,22 @@ export default function LoginPage() {
     }
   }, [user, isLoading, router]);
 
-  // Scroll progress tracking (0~1)
+  // Overscroll 시 흰색 배경 방지: html 배경을 페이지 색상에 맞춤
   useEffect(() => {
-    const handleBgScroll = () => {
-      const total = document.body.scrollHeight - window.innerHeight;
-      if (total <= 0) return;
-      setScrollProgress(Math.min(1, window.scrollY / total));
+    const html = document.documentElement;
+    const prev = html.style.backgroundColor;
+    html.style.backgroundColor = "#0a1628";
+    return () => {
+      html.style.backgroundColor = prev;
     };
-    window.addEventListener("scroll", handleBgScroll, { passive: true });
-    handleBgScroll();
-    return () => window.removeEventListener("scroll", handleBgScroll);
   }, []);
 
-  // Sticky scroll — track which feature is active
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!featureContainerRef.current) return;
-      const rect = featureContainerRef.current.getBoundingClientRect();
-      const totalScroll =
-        featureContainerRef.current.offsetHeight - window.innerHeight;
-      if (totalScroll <= 0) return;
-
-      const scrolled = -rect.top;
-      const progress = Math.max(0, Math.min(0.999, scrolled / totalScroll));
-      setActiveFeature(Math.floor(progress * 3));
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Compute gradient colors
-  const { top: topColor, bottom: bottomColor } = useMemo(
-    () => getGradientColors(scrollProgress),
-    [scrollProgress],
-  );
-
-  // Text color transitions
-  const heroTextColor = useMemo(() => {
-    if (scrollProgress < 0.5) return "rgba(255,255,255,0.95)";
-    const t = (scrollProgress - 0.5) / 0.5;
-    const r = Math.round(255 - t * 230);
-    const g = Math.round(255 - t * 230);
-    const b = Math.round(255 - t * 230);
-    return `rgba(${r},${g},${b},0.95)`;
-  }, [scrollProgress]);
-
-  const heroSubTextColor = useMemo(() => {
-    if (scrollProgress < 0.5) return "rgba(255,255,255,0.7)";
-    const t = (scrollProgress - 0.5) / 0.5;
-    const r = Math.round(255 - t * 180);
-    const g = Math.round(255 - t * 180);
-    const b = Math.round(255 - t * 180);
-    return `rgba(${r},${g},${b},0.7)`;
-  }, [scrollProgress]);
-
-  // Star opacity (fade out as background brightens)
-  const starOpacity = useMemo(
-    () => Math.max(0, 1 - scrollProgress * 2),
-    [scrollProgress],
-  );
-
-  /* ── Early-return states (unchanged) ── */
+  /* ── Early-return states ── */
 
   if (serverStatus === "checking") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
-        <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1628]">
+        <span className="material-symbols-outlined animate-spin text-4xl text-blue-400">
           progress_activity
         </span>
       </div>
@@ -379,22 +115,22 @@ export default function LoginPage() {
 
   if (serverStatus === "warming") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#0a1628]">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/25">
           <span className="material-symbols-outlined animate-spin text-3xl">
             progress_activity
           </span>
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-bold text-foreground">
+          <h2 className="text-xl font-bold text-white">
             서버가 시작되고 있습니다
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-white/60">
             첫 접속 시 30~60초 정도 소요될 수 있어요.
           </p>
         </div>
-        <div className="h-1.5 w-48 overflow-hidden rounded-full bg-muted">
-          <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
+        <div className="h-1.5 w-48 overflow-hidden rounded-full bg-white/10">
+          <div className="animate-progress-indeterminate h-full rounded-full bg-blue-500" />
         </div>
       </div>
     );
@@ -402,27 +138,32 @@ export default function LoginPage() {
 
   if (serverStatus === "error") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-destructive text-white shadow-lg shadow-destructive/25">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#0a1628]">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-red-600 text-white shadow-lg shadow-red-600/25">
           <span className="material-symbols-outlined text-3xl">cloud_off</span>
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-bold text-foreground">
+          <h2 className="text-xl font-bold text-white">
             서버에 연결할 수 없습니다
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-white/60">
             잠시 후 다시 시도해 주세요.
           </p>
         </div>
-        <Button onClick={retryConnection}>다시 연결</Button>
+        <Button
+          className="bg-blue-600 text-white hover:bg-blue-700"
+          onClick={retryConnection}
+        >
+          다시 연결
+        </Button>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <span className="material-symbols-outlined animate-spin text-4xl text-primary">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a1628]">
+        <span className="material-symbols-outlined animate-spin text-4xl text-blue-400">
           progress_activity
         </span>
       </div>
@@ -437,28 +178,10 @@ export default function LoginPage() {
     loginSectionRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const scrollToFeature = (index: number) => {
-    if (!featureContainerRef.current) return;
-    const totalScroll =
-      featureContainerRef.current.offsetHeight - window.innerHeight;
-    const targetY =
-      featureContainerRef.current.offsetTop + (index / 3) * totalScroll + 1;
-    window.scrollTo({ top: targetY, behavior: "smooth" });
-  };
-
   return (
-    <div
-      className="relative"
-      style={{
-        background: `linear-gradient(to bottom, ${topColor}, ${bottomColor})`,
-        transition: "background 0.1s ease-out",
-      }}
-    >
-      {/* ── Stars (night sky) ── */}
-      <div
-        className="pointer-events-none fixed inset-0 z-10"
-        style={{ opacity: starOpacity, transition: "opacity 0.3s ease-out" }}
-      >
+    <div className="relative bg-[#0a1628]">
+      {/* ── Stars ── */}
+      <div className="pointer-events-none fixed inset-0 z-10">
         {STARS.map((star, i) => (
           <div
             key={i}
@@ -490,36 +213,8 @@ export default function LoginPage() {
       />
 
       {/* ── Decorative gradient blobs ── */}
-      <div
-        className="pointer-events-none fixed -top-32 -right-32 size-[500px] rounded-full blur-3xl"
-        style={{
-          background: `rgba(37,99,235,${0.08 + scrollProgress * 0.05})`,
-        }}
-      />
-      <div
-        className="pointer-events-none fixed top-1/2 -left-48 size-[440px] rounded-full blur-3xl"
-        style={{
-          background: `rgba(37,99,235,${0.1 + scrollProgress * 0.05})`,
-        }}
-      />
-      <div
-        className="pointer-events-none fixed right-1/4 bottom-1/4 size-[300px] rounded-full blur-3xl"
-        style={{
-          background: `rgba(186,230,253,${scrollProgress * 0.08})`,
-        }}
-      />
-
-      {/* ── Warm Gold Glow (sunrise) ── */}
-      {scrollProgress > 0.6 && (
-        <div
-          className="pointer-events-none fixed bottom-0 left-1/2 z-10 -translate-x-1/2"
-          style={{
-            width: "600px",
-            height: "300px",
-            background: `radial-gradient(ellipse, rgba(245,158,11,${(scrollProgress - 0.6) * 0.5}) 0%, transparent 70%)`,
-          }}
-        />
-      )}
+      <div className="pointer-events-none fixed -top-32 -right-32 size-[500px] rounded-full bg-blue-600/8 blur-3xl" />
+      <div className="pointer-events-none fixed top-1/2 -left-48 size-[440px] rounded-full bg-blue-600/10 blur-3xl" />
 
       {/* ── Section 1: Hero ── */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
@@ -532,16 +227,10 @@ export default function LoginPage() {
             className="mb-5"
             priority
           />
-          <h1
-            className="text-3xl font-bold tracking-tight sm:text-4xl"
-            style={{ color: heroTextColor }}
-          >
+          <h1 className="text-3xl font-bold tracking-tight text-white/95 sm:text-4xl">
             Before Your Sunrise
           </h1>
-          <p
-            className="mt-3 max-w-lg text-base sm:text-lg"
-            style={{ color: heroSubTextColor }}
-          >
+          <p className="mt-3 max-w-lg text-base text-white/70 sm:text-lg">
             당신의 아침이 시작되는 곳
             <br className="hidden sm:block" />
             이력서 분석, CS 퀴즈, 지원 현황 관리까지
@@ -562,207 +251,71 @@ export default function LoginPage() {
           </Button>
         </div>
 
-        <span
-          className="material-symbols-outlined absolute bottom-10 animate-bounce text-2xl"
-          style={{ color: "rgba(255,255,255,0.4)" }}
-        >
+        <span className="material-symbols-outlined absolute bottom-10 animate-bounce text-2xl text-white/40">
           keyboard_arrow_down
         </span>
       </section>
 
-      {/* ── Section 2: Sticky Feature Showcase ── */}
-      <div ref={featureContainerRef} style={{ height: "280vh" }}>
-        <div className="sticky top-0 flex h-screen flex-col overflow-hidden">
-          <div className="mx-auto flex w-full flex-1 max-w-6xl flex-col items-center gap-8 px-6 md:flex-row md:gap-12 lg:gap-20">
-            {/* Left: Progress indicator + Text */}
-            <div className="flex w-full flex-1 flex-col items-center md:items-start">
-              {/* Mobile progress dots */}
-              <div className="mb-6 flex gap-2 md:hidden">
-                {FEATURES.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => scrollToFeature(i)}
-                    className={`h-1.5 rounded-full transition-all duration-150 ${
-                      i === activeFeature
-                        ? "w-8 bg-white"
-                        : "w-1.5 bg-white/30"
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* Desktop progress stepper */}
-              <div className="mb-12 hidden flex-col gap-3 md:flex">
-                {FEATURES.map((f, i) => (
-                  <button
-                    key={f.icon}
-                    onClick={() => scrollToFeature(i)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-all duration-150 ${
-                      i === activeFeature
-                        ? "bg-white/15"
-                        : "hover:bg-white/5"
-                    }`}
-                  >
-                    <div
-                      className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-150 ${
-                        i === activeFeature
-                          ? "bg-white text-[#0a1628]"
-                          : i < activeFeature
-                            ? "bg-white/30 text-white"
-                            : "bg-white/10 text-white/50"
-                      }`}
-                    >
-                      {i + 1}
-                    </div>
-                    <span
-                      className={`text-sm transition-colors duration-150 ${
-                        i === activeFeature
-                          ? "font-semibold text-white"
-                          : i < activeFeature
-                            ? "text-white/70"
-                            : "text-white/40"
-                      }`}
-                    >
-                      {f.title}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Text content — crossfade */}
-              <div className="relative min-h-[280px] w-full max-w-lg text-center md:text-left">
-                {FEATURES.map((f, i) => (
-                  <div
-                    key={f.icon}
-                    className={`absolute inset-0 flex flex-col justify-center transition-all duration-200 ease-out ${
-                      i === activeFeature
-                        ? "translate-y-0 opacity-100"
-                        : i < activeFeature
-                          ? "-translate-y-6 opacity-0 pointer-events-none"
-                          : "translate-y-6 opacity-0 pointer-events-none"
-                    }`}
-                  >
-                    <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-white/10 text-blue-300 max-md:mx-auto">
-                      <span className="material-symbols-outlined text-2xl">
-                        {f.icon}
-                      </span>
-                    </div>
-                    <h2 className="text-2xl font-bold text-white sm:text-3xl">
-                      {f.title}
-                    </h2>
-                    <p className="mt-1 text-base text-white/60 sm:text-lg">
-                      {f.subtitle}
-                    </p>
-                    <p className="mt-4 text-sm leading-relaxed text-white/50">
-                      {f.desc}
-                    </p>
-                    <ul className="mt-5 space-y-2 max-md:mx-auto max-md:w-fit">
-                      {f.points.map((point) => (
-                        <li
-                          key={point}
-                          className="flex items-center gap-2 text-sm text-white/80"
-                        >
-                          <span className="material-symbols-outlined text-base text-blue-300">
-                            check_circle
-                          </span>
-                          {point}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right: Mockup — crossfade */}
-            <div className="relative flex min-h-[340px] w-full flex-1 items-center justify-center sm:min-h-[400px]">
-              {MOCKUPS.map((Mockup, i) => (
-                <div
-                  key={i}
-                  className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out ${
-                    i === activeFeature
-                      ? "scale-100 opacity-100"
-                      : i < activeFeature
-                        ? "scale-95 opacity-0 pointer-events-none"
-                        : "scale-105 opacity-0 pointer-events-none"
-                  }`}
-                >
-                  <Mockup />
-                </div>
-              ))}
-            </div>
+      {/* ── Section 2: Feature Cards ── */}
+      <section className="relative px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-14 text-center">
+            <h2 className="text-2xl font-bold text-white sm:text-3xl">
+              취업 준비의 모든 것
+            </h2>
+            <p className="mt-3 text-sm text-white/50">
+              AI 기반 분석부터 체계적 관리까지, 한 곳에서
+            </p>
           </div>
 
-          {/* Segmented progress bar */}
-          <div className="mx-auto w-full max-w-md px-6 pb-8">
-            <div className="flex gap-2">
-              {FEATURES.map((f, i) => (
-                <div key={f.icon} className="flex flex-1 flex-col gap-2">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className={`h-full rounded-full bg-white transition-all duration-150 ${
-                        i <= activeFeature ? "w-full" : "w-0"
-                      }`}
-                    />
-                  </div>
-                  <span
-                    className={`text-center text-xs transition-colors duration-150 ${
-                      i === activeFeature
-                        ? "font-semibold text-white"
-                        : i < activeFeature
-                          ? "text-white/60"
-                          : "text-white/30"
-                    }`}
-                  >
-                    {f.title}
+          <div className="grid gap-5 md:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div
+                key={f.icon}
+                className="rounded-2xl border border-white/8 bg-white/[0.04] p-6"
+              >
+                <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                  <span className="material-symbols-outlined text-xl">
+                    {f.icon}
                   </span>
                 </div>
-              ))}
-            </div>
+                <h3 className="text-base font-bold text-white">{f.title}</h3>
+                <p className="mt-1 text-sm text-white/45">{f.subtitle}</p>
+                <ul className="mt-5 space-y-2">
+                  {f.points.map((point) => (
+                    <li
+                      key={point}
+                      className="flex items-start gap-2 text-[13px] leading-relaxed text-white/60"
+                    >
+                      <span className="material-symbols-outlined mt-0.5 text-sm text-blue-400/70">
+                        check
+                      </span>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Section 3: Login ── */}
       <section
         ref={loginSectionRef}
-        className="relative flex min-h-screen items-center justify-center px-6"
+        className="relative flex min-h-[70vh] items-center justify-center px-6 pb-16"
       >
         <div className="flex w-full max-w-sm flex-col items-center">
           <div className="mb-8 text-center">
-            <h2
-              className="text-2xl font-bold sm:text-3xl"
-              style={{
-                color:
-                  scrollProgress > 0.7
-                    ? `rgba(10,22,40,${0.5 + (scrollProgress - 0.7) * 1.67})`
-                    : "rgba(255,255,255,0.95)",
-              }}
-            >
+            <h2 className="text-2xl font-bold text-white/95 sm:text-3xl">
               지금 시작하세요
             </h2>
-            <p
-              className="mt-2"
-              style={{
-                color:
-                  scrollProgress > 0.7
-                    ? `rgba(30,58,95,${0.4 + (scrollProgress - 0.7) * 1.5})`
-                    : "rgba(255,255,255,0.6)",
-              }}
-            >
+            <p className="mt-2 text-white/60">
               소셜 계정으로 간편하게 시작할 수 있습니다
             </p>
           </div>
 
-          <Card
-            className="w-full border-white/20 shadow-2xl backdrop-blur-md"
-            style={{
-              background:
-                scrollProgress > 0.7
-                  ? `rgba(255,255,255,${0.7 + (scrollProgress - 0.7) * 1.0})`
-                  : "rgba(255,255,255,0.1)",
-            }}
-          >
+          <Card className="w-full border-white/15 bg-white/10 shadow-2xl backdrop-blur-md">
             <CardContent className="p-8">
               <div className="flex flex-col gap-3">
                 <Button
@@ -816,18 +369,10 @@ export default function LoginPage() {
               </div>
             </CardContent>
 
-            <Separator className="bg-white/20" />
+            <Separator className="bg-white/10" />
 
             <CardFooter className="justify-center p-4">
-              <p
-                className="text-center text-xs"
-                style={{
-                  color:
-                    scrollProgress > 0.7
-                      ? "rgba(100,116,139,0.8)"
-                      : "rgba(255,255,255,0.5)",
-                }}
-              >
+              <p className="text-center text-xs text-white/40">
                 로그인하면 서비스 이용약관과 개인정보처리방침에 동의하게 됩니다.
               </p>
             </CardFooter>
