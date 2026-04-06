@@ -26,7 +26,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("생성 직후 상태는 CREATED")
     void 초기_상태는_CREATED() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         assertThat(session.getStatus()).isEqualTo(ResumeSessionStatus.CREATED);
         assertThat(session.getResumeFile()).isNull();
         assertThat(session.getQuestions()).isEmpty();
@@ -35,7 +35,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("생성자에서 member가 null이면 IllegalArgumentException")
     void 생성자_member_null_예외() {
-        assertThatThrownBy(() -> new ResumeSession(null, PositionType.BE, "테스트", null))
+        assertThatThrownBy(() -> new ResumeSession(null, "BE", "테스트", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("member");
     }
@@ -43,7 +43,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("생성자에서 title이 blank이면 IllegalArgumentException")
     void 생성자_title_blank_예외() {
-        assertThatThrownBy(() -> new ResumeSession(member, PositionType.BE, "  ", null))
+        assertThatThrownBy(() -> new ResumeSession(member, "BE", "  ", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("title");
     }
@@ -55,7 +55,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("attachFiles + markExtracted 후 상태는 EXTRACTED")
     void markExtracted_후_상태_EXTRACTED() {
-        ResumeSession session = new ResumeSession(member, PositionType.FE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "FE", "테스트", null);
 
         StoredFileRef resumeRef = new StoredFileRef("key/test.pdf", "test.pdf", "application/pdf", 100L);
         session.attachFiles(resumeRef, null);
@@ -69,7 +69,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("markQuestionsReady 후 상태는 QUESTIONS_READY")
     void markQuestionsReady_후_상태_QUESTIONS_READY() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         StoredFileRef resumeRef = new StoredFileRef("key/test.pdf", "test.pdf", "application/pdf", 100L);
         session.attachFiles(resumeRef, null);
         session.markExtracted("이력서 텍스트", null);
@@ -84,7 +84,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("markFailed 후 상태는 FAILED")
     void markFailed_후_상태_FAILED() {
-        ResumeSession session = new ResumeSession(member, PositionType.MOBILE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "MOBILE", "테스트", null);
         session.markFailed();
         assertThat(session.getStatus()).isEqualTo(ResumeSessionStatus.FAILED);
     }
@@ -92,7 +92,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("attachFiles에서 resumeFile이 null이면 IllegalArgumentException")
     void attachFiles_resumeFile_null_예외() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         assertThatThrownBy(() -> session.attachFiles(null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("resumeFile");
@@ -101,7 +101,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("markExtracted에서 resumeText가 blank이면 IllegalArgumentException")
     void markExtracted_빈_resumeText_예외() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         StoredFileRef ref = new StoredFileRef("key", "file.pdf", "application/pdf", 100L);
         session.attachFiles(ref, null);
 
@@ -113,7 +113,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("markQuestionsReady에서 빈 questions 리스트면 IllegalArgumentException")
     void markQuestionsReady_빈_questions_예외() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         StoredFileRef ref = new StoredFileRef("key", "file.pdf", "application/pdf", 100L);
         session.attachFiles(ref, null);
         session.markExtracted("텍스트", null);
@@ -130,7 +130,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("portfolioUrl이 있으면 세션에 저장")
     void portfolioUrl_저장() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", "https://github.com/user");
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", "https://github.com/user");
         assertThat(session.getPortfolioUrl()).isEqualTo("https://github.com/user");
     }
 
@@ -141,7 +141,7 @@ class ResumeSessionTest {
     @Test
     @DisplayName("getQuestions() 반환값은 수정 불가(unmodifiableList)")
     void getQuestions_불변성() {
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         StoredFileRef ref = new StoredFileRef("key", "file.pdf", "application/pdf", 100L);
         session.attachFiles(ref, null);
         session.markExtracted("텍스트", null);

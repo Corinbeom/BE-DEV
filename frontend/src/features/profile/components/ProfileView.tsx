@@ -7,6 +7,7 @@ import {
   useUploadResumeFile,
   useDeleteResumeFile,
 } from "../hooks/useResumeFiles";
+import { useDeleteAccount } from "@/features/auth/hooks/useDeleteAccount";
 import type { ResumeFile, ResumeFileType } from "../api/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +106,17 @@ export function ProfileView() {
     if (!confirm(`정말 "${file.originalFilename}"을(를) 삭제하시겠습니까?`)) return;
     deleteMutation.mutate(file.id, {
       onSuccess: () => toast.success(`"${file.originalFilename}" 삭제가 완료되었습니다.`),
+    });
+  }
+
+  const deleteAccountMutation = useDeleteAccount();
+
+  function onDeleteAccount() {
+    if (!user) return;
+    if (!confirm("정말 탈퇴를 하시겠습니까? \n탈퇴 시 모든 정보가 삭제되며 복구할 수 없습니다.")) return;
+    
+    deleteAccountMutation.mutate(user.id, {
+      onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
     });
   }
 
@@ -344,6 +356,25 @@ export function ProfileView() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/30 bg-destructive/5 mt-8">
+        <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
+          <div>
+            <h3 className="text-lg font-bold text-destructive">Danger Zone</h3>
+            <p className="text-sm text-destructive/80">
+              계정을 삭제하면 모든 이력서, 면접 기록 및 관련 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            onClick={onDeleteAccount}
+            disabled={deleteAccountMutation.isPending}
+          >
+            {deleteAccountMutation.isPending ? "처리 중..." : "탈퇴하기"}
+          </Button>
         </CardContent>
       </Card>
     </div>

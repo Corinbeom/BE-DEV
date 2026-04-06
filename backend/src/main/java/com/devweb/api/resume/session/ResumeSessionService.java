@@ -6,7 +6,6 @@ import com.devweb.domain.member.port.MemberRepository;
 import com.devweb.domain.resume.model.Resume;
 import com.devweb.domain.resume.model.ResumeExtractStatus;
 import com.devweb.domain.resume.port.ResumeRepository;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.model.StoredFileRef;
@@ -25,6 +24,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.context.event.EventListener;
+import com.devweb.domain.member.event.MemberDeletedEvent;
 
 import java.io.IOException;
 import java.time.DayOfWeek;
@@ -85,7 +86,7 @@ public class ResumeSessionService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
 
-        PositionType positionType = PositionType.from(positionTypeRaw);
+        String positionType = positionTypeRaw.trim().toUpperCase();
         String resolvedTitle = (title == null || title.isBlank())
                 ? (resumeFile.getOriginalFilename() == null ? "resume" : resumeFile.getOriginalFilename())
                 : title;
@@ -133,7 +134,7 @@ public class ResumeSessionService {
             throw new IllegalArgumentException("텍스트 추출이 완료되지 않은 이력서입니다.");
         }
 
-        PositionType positionType = PositionType.from(positionTypeRaw);
+        String positionType = positionTypeRaw.trim().toUpperCase();
         String resolvedTitle = (title == null || title.isBlank()) ? resume.getTitle() : title;
 
         ResumeSession session = new ResumeSession(member, positionType, resolvedTitle, portfolioUrl);
@@ -348,6 +349,11 @@ public class ResumeSessionService {
 
         if (parts.isEmpty()) return null;
         return String.join("\n\n---\n\n", parts);
+    }
+
+    @EventListener
+    public void onMemberDeleted(MemberDeletedEvent event) {
+        listByMember(event.memberId()).forEach(session -> delete(session.getId()));
     }
 }
 

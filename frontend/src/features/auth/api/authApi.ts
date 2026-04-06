@@ -26,3 +26,12 @@ export async function logout(): Promise<void> {
   // Fallback: HTTP 환경에서 Secure 쿠키 삭제가 안 될 수 있으므로 직접 만료
   document.cookie = "devweb_token=; Max-Age=0; Path=/;";
 }
+
+export async function deleteAccount(memberId: number): Promise<void> {
+  const res = await apiFetch<ApiResponse<void>>(`/api/members/${memberId}`, {
+    method: "DELETE",
+  });
+  if (!res.success) {
+    throw new Error(res.error?.message ?? "회원 탈퇴에 실패했습니다.");
+  }
+}

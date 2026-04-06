@@ -32,7 +32,7 @@ public record ResumeSessionResponse(
         return new ResumeSessionResponse(
                 s.getId(),
                 s.getTitle(),
-                s.getPositionType() == null ? null : s.getPositionType().name(),
+                s.getPositionType(),
                 s.getPortfolioUrl(),
                 s.getStatus(),
                 new ArrayList<>(s.getQuestions().stream().map(ResumeQuestionResponse::from).toList()),

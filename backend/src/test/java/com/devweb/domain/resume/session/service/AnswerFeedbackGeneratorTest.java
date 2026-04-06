@@ -1,7 +1,6 @@
 package com.devweb.domain.resume.session.service;
 
 import com.devweb.domain.resume.session.model.Feedback;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,7 @@ import static org.mockito.BDDMockito.*;
 class AnswerFeedbackGeneratorTest {
 
     @Mock InterviewAiPort aiPort;
-    @Mock PositionPromptStrategies promptStrategies;
+    @Mock PositionPromptRegistry promptRegistry;
 
     @InjectMocks AnswerFeedbackGenerator sut;
 
@@ -28,7 +27,7 @@ class AnswerFeedbackGeneratorTest {
     @DisplayName("AI 피드백 → Feedback 객체 변환 확인")
     void generate_정상_변환() {
         // given
-        given(promptStrategies.systemInstructionFor(PositionType.BE)).willReturn("백엔드 프롬프트");
+        given(promptRegistry.systemInstructionFor("BE")).willReturn("백엔드 프롬프트");
 
         InterviewAiPort.GeneratedFeedback gf = new InterviewAiPort.GeneratedFeedback(
                 List.of("명확한 답변", "구체적 사례"),
@@ -41,7 +40,7 @@ class AnswerFeedbackGeneratorTest {
 
         // when
         Feedback result = sut.generate(
-                PositionType.BE,
+                "BE",
                 "자기소개를 해주세요.",
                 "배경 파악",
                 "경험, 기술스택",

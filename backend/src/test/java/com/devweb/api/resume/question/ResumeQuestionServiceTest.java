@@ -36,7 +36,7 @@ class ResumeQuestionServiceTest {
     @BeforeEach
     void setUp() {
         member = new Member("test@example.com");
-        session = new ResumeSession(member, PositionType.BE, "테스트 세션", null);
+        session = new ResumeSession(member, "BE", "테스트 세션", null);
         InterviewQuestion vo = new InterviewQuestion(
                 "자기소개를 해주세요.",
                 "지원자의 배경 파악",
@@ -82,7 +82,7 @@ class ResumeQuestionServiceTest {
         assertThat(result.getAnswerText()).isEqualTo("저는 3년 차 백엔드 개발자입니다.");
         assertThat(result.getFeedback().getStrengths()).containsExactly("핵심을 잘 짚었어요");
         then(feedbackGenerator).should().generate(
-                eq(PositionType.BE),
+                eq("BE"),
                 eq("자기소개를 해주세요."),
                 anyString(), anyString(), anyString(),
                 eq("저는 3년 차 백엔드 개발자입니다.")

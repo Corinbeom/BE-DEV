@@ -2,7 +2,6 @@ package com.devweb.infra.persistence.resume;
 
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.resume.model.InterviewQuestion;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.model.StoredFileRef;
@@ -51,7 +50,7 @@ class ResumeSessionQueryCountTest {
 
         // 5 sessions × 3 questions each
         for (int s = 0; s < 5; s++) {
-            ResumeSession session = new ResumeSession(member, PositionType.BE, "세션" + s, null);
+            ResumeSession session = new ResumeSession(member, "BE", "세션" + s, null);
             session.attachFiles(
                     new StoredFileRef("key" + s, "resume.pdf", "application/pdf", 1024L),
                     null

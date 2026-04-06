@@ -32,6 +32,13 @@ public class MemberController {
     public ApiResponse<MemberResponse> get(@PathVariable Long id) {
         return ApiResponse.success(MemberResponse.from(service.get(id)));
     }
+
+    @Operation(summary = "회원 삭제", description = "ID로 회원을 삭제합니다.")
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ApiResponse.ok();
+    }
 }
 
 

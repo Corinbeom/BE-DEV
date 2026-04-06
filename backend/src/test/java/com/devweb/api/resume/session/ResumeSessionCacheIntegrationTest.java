@@ -2,7 +2,6 @@ package com.devweb.api.resume.session;
 
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.resume.model.InterviewQuestion;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.model.StoredFileRef;
@@ -99,7 +98,7 @@ class ResumeSessionCacheIntegrationTest {
     // ─── helpers ───
 
     private ResumeSession insertSession(Member m) {
-        ResumeSession session = new ResumeSession(m, PositionType.BE, "테스트 세션", null);
+        ResumeSession session = new ResumeSession(m, "BE", "테스트 세션", null);
         session.attachFiles(
                 new StoredFileRef("key", "resume.pdf", "application/pdf", 1024L),
                 null

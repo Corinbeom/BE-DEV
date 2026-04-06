@@ -13,6 +13,11 @@ import type {
   ResumeSession,
 } from "../api/types";
 import {
+  POSITION_CATEGORIES,
+  ALL_POSITIONS,
+  TECH_PRESETS,
+} from "../constants";
+import {
   useCreateResumeFeedback,
   useCreateResumeSession,
 } from "../hooks/useResumeMutations";
@@ -26,12 +31,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const TECH_PRESETS: Record<PositionType, string[]> = {
-  BE: ["Java", "Spring", "JPA", "MySQL", "PostgreSQL", "Redis", "Kafka", "Docker", "K8s", "AWS", "MongoDB", "gRPC"],
-  FE: ["React", "Next.js", "TypeScript", "Vue", "Webpack", "Tailwind", "Redux", "GraphQL"],
-  MOBILE: ["Kotlin", "Swift", "Flutter", "React Native", "Jetpack Compose"],
-};
 
 export function ResumePortfolioPrepView() {
   const queryClient = useQueryClient();
@@ -47,6 +46,7 @@ export function ResumePortfolioPrepView() {
   const [portfolioUrl, setPortfolioUrl] = useState<string>("");
   const [targetTechs, setTargetTechs] = useState<string[]>([]);
   const [customTechInput, setCustomTechInput] = useState<string>("");
+  const [customPositionInput, setCustomPositionInput] = useState<string>("");
   const [sessionId, setSessionId] = useState<number | null>(
     initialSessionId ? Number(initialSessionId) : null
   );
@@ -288,25 +288,96 @@ export function ResumePortfolioPrepView() {
                   </p>
                 </label>
 
-                {/* Position select */}
-                <label className="flex flex-col gap-1.5">
+                {/* Position chip grid */}
+                <div className="flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     포지션
                   </span>
-                  <select
-                    className="w-full rounded-lg border border-input bg-background p-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-ring/20"
-                    value={positionType}
-                    onChange={(e) => {
-                      setPositionType(e.target.value as PositionType);
-                      setTargetTechs([]);
-                      setCustomTechInput("");
-                    }}
-                  >
-                    <option value="BE">Backend (BE)</option>
-                    <option value="FE">Frontend (FE)</option>
-                    <option value="MOBILE">Mobile</option>
-                  </select>
-                </label>
+
+                  {/* 직접 입력 */}
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 rounded-lg border border-input bg-background p-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/20"
+                      placeholder="직접 입력 (예: 블록체인 개발자)"
+                      value={customPositionInput}
+                      onChange={(e) => setCustomPositionInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const val = customPositionInput.trim();
+                          if (val) {
+                            setPositionType(val.toUpperCase());
+                            setTargetTechs([]);
+                            setCustomTechInput("");
+                            setCustomPositionInput("");
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={!customPositionInput.trim()}
+                      onClick={() => {
+                        const val = customPositionInput.trim();
+                        if (val) {
+                          setPositionType(val.toUpperCase());
+                          setTargetTechs([]);
+                          setCustomTechInput("");
+                          setCustomPositionInput("");
+                        }
+                      }}
+                    >
+                      설정
+                    </Button>
+                  </div>
+
+                  {/* 카테고리별 칩 그리드 */}
+                  {POSITION_CATEGORIES.map((category) => (
+                    <div key={category.label} className="flex flex-col gap-1">
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {category.label}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {category.positions.map((pos) => {
+                          const isSelected = positionType === pos.id;
+                          return (
+                            <button
+                              key={pos.id}
+                              type="button"
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all",
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                              )}
+                              onClick={() => {
+                                setPositionType(pos.id);
+                                setTargetTechs([]);
+                                setCustomTechInput("");
+                                setCustomPositionInput("");
+                              }}
+                            >
+                              <span className="material-symbols-outlined text-sm">
+                                {pos.icon}
+                              </span>
+                              {pos.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* 현재 선택된 포지션 표시 */}
+                  <p className="text-xs text-muted-foreground">
+                    선택됨:{" "}
+                    <span className="font-semibold text-foreground">
+                      {ALL_POSITIONS.find((p) => p.id === positionType)?.label ?? positionType}
+                    </span>
+                  </p>
+                </div>
 
                 {/* Target Technologies */}
                 <div className="flex flex-col gap-1.5">
@@ -317,7 +388,7 @@ export function ResumePortfolioPrepView() {
                     채용공고에 명시된 기술을 선택하면 해당 기술 중심의 맞춤 질문이 생성됩니다.
                   </p>
                   <div className="flex flex-wrap gap-1.5">
-                    {TECH_PRESETS[positionType].map((tech) => {
+                    {(TECH_PRESETS[positionType] ?? []).map((tech) => {
                       const selected = targetTechs.includes(tech);
                       return (
                         <button
@@ -498,7 +569,9 @@ export function ResumePortfolioPrepView() {
             {session.title || "면접 연습"}
           </h2>
           {session.positionType && (
-            <Badge variant="secondary">{session.positionType}</Badge>
+            <Badge variant="secondary">
+              {ALL_POSITIONS.find((p) => p.id === session.positionType)?.label ?? session.positionType}
+            </Badge>
           )}
         </div>
 

@@ -23,7 +23,7 @@ public record InterviewMailScheduleResponse(
                 schedule.getId(),
                 schedule.getResume().getId(),
                 schedule.getResume().getTitle(),
-                schedule.getPositionType().name(),
+                schedule.getPositionType(),
                 schedule.getSendHour(),
                 schedule.isEnabled(),
                 schedule.getTargetTechnologies(),

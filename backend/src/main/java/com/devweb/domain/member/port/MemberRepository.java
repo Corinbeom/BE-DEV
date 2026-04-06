@@ -15,4 +15,6 @@ public interface MemberRepository {
     Optional<Member> findByEmail(String email);
 
     Optional<Member> findByOauthProviderAndOauthSubject(String provider, String subject);
+
+    void delete(Member member);
 }

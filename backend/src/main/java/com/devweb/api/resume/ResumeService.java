@@ -12,6 +12,8 @@ import com.devweb.domain.resume.session.port.TextExtractorPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.context.event.EventListener;
+import com.devweb.domain.member.event.MemberDeletedEvent;
 
 import java.io.IOException;
 import java.util.List;
@@ -100,5 +102,10 @@ public class ResumeService {
         } catch (IOException e) {
             throw new IllegalArgumentException("파일을 읽을 수 없습니다.", e);
         }
+    }
+
+    @EventListener
+    public void onMemberDeleted(MemberDeletedEvent event) {
+        listByMember(event.memberId()).forEach(resume -> delete(event.memberId(), resume.getId()));
     }
 }
