@@ -2,7 +2,6 @@ package com.devweb.domain.resume.mail.model;
 
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.resume.model.Resume;
-import com.devweb.domain.resume.session.model.PositionType;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -25,9 +24,8 @@ public class InterviewMailSchedule {
     @JoinColumn(name = "resume_id", nullable = false)
     private Resume resume;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private PositionType positionType;
+    @Column(nullable = false, length = 50)
+    private String positionType;
 
     @Column(nullable = false)
     private int sendHour;
@@ -50,11 +48,11 @@ public class InterviewMailSchedule {
     protected InterviewMailSchedule() {
     }
 
-    public InterviewMailSchedule(Member member, Resume resume, PositionType positionType,
+    public InterviewMailSchedule(Member member, Resume resume, String positionType,
                                   int sendHour, boolean enabled, List<String> targetTechnologies) {
         if (member == null) throw new IllegalArgumentException("member는 필수입니다.");
         if (resume == null) throw new IllegalArgumentException("resume는 필수입니다.");
-        if (positionType == null) throw new IllegalArgumentException("positionType은 필수입니다.");
+        if (positionType == null || positionType.isBlank()) throw new IllegalArgumentException("positionType은 필수입니다.");
         if (sendHour < 0 || sendHour > 23) throw new IllegalArgumentException("sendHour는 0~23이어야 합니다.");
         this.member = member;
         this.resume = resume;
@@ -76,10 +74,10 @@ public class InterviewMailSchedule {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void update(Resume resume, PositionType positionType, int sendHour,
+    public void update(Resume resume, String positionType, int sendHour,
                        boolean enabled, List<String> targetTechnologies) {
         if (resume == null) throw new IllegalArgumentException("resume는 필수입니다.");
-        if (positionType == null) throw new IllegalArgumentException("positionType은 필수입니다.");
+        if (positionType == null || positionType.isBlank()) throw new IllegalArgumentException("positionType은 필수입니다.");
         if (sendHour < 0 || sendHour > 23) throw new IllegalArgumentException("sendHour는 0~23이어야 합니다.");
         this.resume = resume;
         this.positionType = positionType;
@@ -91,7 +89,7 @@ public class InterviewMailSchedule {
     public Long getId() { return id; }
     public Member getMember() { return member; }
     public Resume getResume() { return resume; }
-    public PositionType getPositionType() { return positionType; }
+    public String getPositionType() { return positionType; }
     public int getSendHour() { return sendHour; }
     public boolean isEnabled() { return enabled; }
     public List<String> getTargetTechnologies() { return targetTechnologies; }

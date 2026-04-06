@@ -1,4 +1,4 @@
-export type PositionType = "BE" | "FE" | "MOBILE";
+export type PositionType = string;
 
 export type ResumeSessionStatus =
   | "CREATED"

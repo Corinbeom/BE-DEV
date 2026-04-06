@@ -3,7 +3,6 @@ package com.devweb.api.resume.question;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.domain.resume.model.InterviewQuestion;
 import com.devweb.domain.resume.session.model.Feedback;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeAnswerAttempt;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.port.ResumeQuestionRepository;
@@ -32,7 +31,7 @@ public class ResumeQuestionService {
         ResumeQuestion question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("ResumeQuestion을 찾을 수 없습니다. id=" + questionId));
 
-        PositionType positionType = question.getSession().getPositionType();
+        String positionType = question.getSession().getPositionType();
         InterviewQuestion vo = question.getInterviewQuestion();
 
         Feedback feedback = feedbackGenerator.generate(

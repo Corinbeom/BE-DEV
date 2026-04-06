@@ -1,7 +1,6 @@
 package com.devweb.domain.resume.session.service;
 
 import com.devweb.domain.resume.model.InterviewQuestion;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import org.springframework.stereotype.Component;
@@ -15,21 +14,21 @@ public class QuestionGenerator {
     private static final int MAX_CONTEXT_CHARS = 8_000; // 응답 지연/타임아웃 방지용 가드
 
     private final InterviewAiPort aiPort;
-    private final PositionPromptStrategies promptStrategies;
+    private final PositionPromptRegistry promptRegistry;
 
-    public QuestionGenerator(InterviewAiPort aiPort, PositionPromptStrategies promptStrategies) {
+    public QuestionGenerator(InterviewAiPort aiPort, PositionPromptRegistry promptRegistry) {
         this.aiPort = aiPort;
-        this.promptStrategies = promptStrategies;
+        this.promptRegistry = promptRegistry;
     }
 
-    public List<ResumeQuestion> generate(PositionType positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
+    public List<ResumeQuestion> generate(String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
         return generate(positionType, resumeText, portfolioText, portfolioUrl, targetTechnologies, List.of());
     }
 
-    public List<ResumeQuestion> generate(PositionType positionType, String resumeText, String portfolioText,
+    public List<ResumeQuestion> generate(String positionType, String resumeText, String portfolioText,
                                           String portfolioUrl, List<String> targetTechnologies,
                                           List<String> previousQuestions) {
-        String systemInstruction = promptStrategies.systemInstructionFor(positionType);
+        String systemInstruction = promptRegistry.systemInstructionFor(positionType);
         String safeResumeText = trimToMaxChars(resumeText, MAX_CONTEXT_CHARS);
         String safePortfolioText = trimToMaxChars(portfolioText, MAX_CONTEXT_CHARS);
 
@@ -62,4 +61,3 @@ public class QuestionGenerator {
         return h + "\n...(truncated)...\n" + t;
     }
 }
-

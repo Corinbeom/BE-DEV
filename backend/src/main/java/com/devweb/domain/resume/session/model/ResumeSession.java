@@ -21,9 +21,8 @@ public class ResumeSession {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private PositionType positionType;
+    @Column(nullable = false, length = 50)
+    private String positionType;
 
     @Column(nullable = false)
     private String title;
@@ -75,9 +74,9 @@ public class ResumeSession {
     protected ResumeSession() {
     }
 
-    public ResumeSession(Member member, PositionType positionType, String title, String portfolioUrl) {
+    public ResumeSession(Member member, String positionType, String title, String portfolioUrl) {
         if (member == null) throw new IllegalArgumentException("member는 필수입니다.");
-        if (positionType == null) throw new IllegalArgumentException("positionType은 필수입니다.");
+        if (positionType == null || positionType.isBlank()) throw new IllegalArgumentException("positionType은 필수입니다.");
         if (title == null || title.isBlank()) throw new IllegalArgumentException("title은 필수입니다.");
         this.member = member;
         this.positionType = positionType;
@@ -106,7 +105,7 @@ public class ResumeSession {
         return member;
     }
 
-    public PositionType getPositionType() {
+    public String getPositionType() {
         return positionType;
     }
 

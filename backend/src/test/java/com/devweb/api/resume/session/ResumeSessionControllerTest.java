@@ -2,7 +2,6 @@ package com.devweb.api.resume.session;
 
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import com.devweb.domain.member.model.Member;
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.model.ResumeSessionStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +50,7 @@ class ResumeSessionControllerTest {
         Member member = new Member("user@example.com");
         setId(member, 1L);
 
-        session = new ResumeSession(member, PositionType.BE, "테스트 세션", null);
+        session = new ResumeSession(member, "BE", "테스트 세션", null);
         setId(session, 20L);
         setField(session, "createdAt", LocalDateTime.now());
         setField(session, "updatedAt", LocalDateTime.now());
