@@ -8,7 +8,6 @@ import com.devweb.domain.resume.mail.model.InterviewMailSchedule;
 import com.devweb.domain.resume.mail.port.InterviewMailScheduleRepository;
 import com.devweb.domain.resume.model.Resume;
 import com.devweb.domain.resume.port.ResumeRepository;
-import com.devweb.domain.resume.session.model.PositionType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.event.EventListener;
@@ -49,7 +48,7 @@ public class InterviewMailScheduleService {
             throw new IllegalArgumentException("본인의 이력서만 설정할 수 있습니다.");
         }
 
-        PositionType positionType = PositionType.from(request.positionType());
+        String positionType = request.positionType().trim().toUpperCase();
 
         Optional<InterviewMailSchedule> existing = scheduleRepository.findByMemberId(memberId);
 

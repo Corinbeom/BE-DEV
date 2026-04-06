@@ -79,7 +79,7 @@ class ResumeSessionServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo(ResumeSessionStatus.QUESTIONS_READY);
-        assertThat(result.getPositionType()).isEqualTo(PositionType.BE);
+        assertThat(result.getPositionType()).isEqualTo("BE");
         then(urlTextFetcher).shouldHaveNoInteractions(); // URL 크롤링 미호출
     }
 
@@ -198,13 +198,13 @@ class ResumeSessionServiceTest {
     }
 
     @Test
-    @DisplayName("잘못된 positionType 값이면 IllegalArgumentException")
-    void create_실패_잘못된_포지션타입() {
+    @DisplayName("빈 positionType 값이면 IllegalArgumentException")
+    void create_실패_빈_포지션타입() {
         // given
         given(memberRepository.findById(1L)).willReturn(Optional.of(member));
 
         // when & then
-        assertThatThrownBy(() -> sut.create(1L, "INVALID", "테스트", validResumeFile, null, null))
+        assertThatThrownBy(() -> sut.create(1L, "  ", "테스트", validResumeFile, null, null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -236,7 +236,7 @@ class ResumeSessionServiceTest {
     @DisplayName("세션 조회 성공")
     void get_성공() {
         // given
-        ResumeSession session = new ResumeSession(member, PositionType.BE, "테스트", null);
+        ResumeSession session = new ResumeSession(member, "BE", "테스트", null);
         given(sessionRepository.findById(1L)).willReturn(Optional.of(session));
 
         // when

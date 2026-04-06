@@ -1,6 +1,5 @@
 package com.devweb.domain.resume.session.service;
 
-import com.devweb.domain.resume.session.model.PositionType;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +19,7 @@ import static org.mockito.BDDMockito.*;
 class QuestionGeneratorTest {
 
     @Mock InterviewAiPort aiPort;
-    @Mock PositionPromptStrategies promptStrategies;
+    @Mock PositionPromptRegistry promptRegistry;
 
     @InjectMocks QuestionGenerator sut;
 
@@ -28,7 +27,7 @@ class QuestionGeneratorTest {
     @DisplayName("AI 응답 → ResumeQuestion 리스트 변환")
     void generate_정상_변환() {
         // given
-        given(promptStrategies.systemInstructionFor(PositionType.BE)).willReturn("백엔드 시스템 프롬프트");
+        given(promptRegistry.systemInstructionFor("BE")).willReturn("백엔드 시스템 프롬프트");
 
         InterviewAiPort.GeneratedQuestion gq1 = new InterviewAiPort.GeneratedQuestion(
                 "자기소개", 90, "자기소개를 해주세요.", "배경 파악", "경험, 기술스택", "간결하게 답변"
@@ -40,7 +39,7 @@ class QuestionGeneratorTest {
                 .willReturn(List.of(gq1, gq2));
 
         // when
-        List<ResumeQuestion> result = sut.generate(PositionType.BE, "이력서 텍스트", "포트폴리오 텍스트", "https://github.com/user", List.of());
+        List<ResumeQuestion> result = sut.generate("BE", "이력서 텍스트", "포트폴리오 텍스트", "https://github.com/user", List.of());
 
         // then
         assertThat(result).hasSize(2);
@@ -56,7 +55,7 @@ class QuestionGeneratorTest {
     @DisplayName("8000자 초과 텍스트 트리밍 확인")
     void generate_트리밍() {
         // given
-        given(promptStrategies.systemInstructionFor(PositionType.FE)).willReturn("프론트엔드 프롬프트");
+        given(promptRegistry.systemInstructionFor("FE")).willReturn("프론트엔드 프롬프트");
 
         String longText = "A".repeat(10_000);
         given(aiPort.generateQuestions(anyString(), anyString(), any(), any(), anyList()))
@@ -65,7 +64,7 @@ class QuestionGeneratorTest {
                 )));
 
         // when
-        List<ResumeQuestion> result = sut.generate(PositionType.FE, longText, null, null, List.of());
+        List<ResumeQuestion> result = sut.generate("FE", longText, null, null, List.of());
 
         // then
         assertThat(result).hasSize(1);
@@ -83,14 +82,14 @@ class QuestionGeneratorTest {
     @DisplayName("portfolioText null → null 그대로 전달")
     void generate_portfolioText_null() {
         // given
-        given(promptStrategies.systemInstructionFor(PositionType.BE)).willReturn("프롬프트");
+        given(promptRegistry.systemInstructionFor("BE")).willReturn("프롬프트");
         given(aiPort.generateQuestions(anyString(), anyString(), isNull(), isNull(), anyList()))
                 .willReturn(List.of(new InterviewAiPort.GeneratedQuestion(
                         "질문", 85, "질문입니다.", "의도", "키워드", "모범답안"
                 )));
 
         // when
-        List<ResumeQuestion> result = sut.generate(PositionType.BE, "이력서 텍스트", null, null, List.of());
+        List<ResumeQuestion> result = sut.generate("BE", "이력서 텍스트", null, null, List.of());
 
         // then
         assertThat(result).hasSize(1);

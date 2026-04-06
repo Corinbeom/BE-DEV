@@ -76,7 +76,7 @@ public class InterviewMailSender {
             return;
         }
 
-        String htmlBody = buildHtmlEmail(questions, resume.getTitle(), schedule.getPositionType().name());
+        String htmlBody = buildHtmlEmail(questions, resume.getTitle(), schedule.getPositionType());
         String subject = "[Bluehour] 오늘의 면접 질문 - " + resume.getTitle();
 
         emailSender.send(member.getEmail(), subject, htmlBody);
