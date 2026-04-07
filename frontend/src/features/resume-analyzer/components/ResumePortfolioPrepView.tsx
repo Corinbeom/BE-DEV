@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,7 +28,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -722,50 +721,39 @@ export function ResumePortfolioPrepView() {
                       다음 질문
                     </Button>
 
-                    <div className="flex flex-col items-end gap-1">
-                      <Button
-                        className="gap-2 px-6 shadow-md shadow-primary/15"
-                        disabled={!activeQuestionId || isBusy}
-                        onClick={() => void onCreateFeedback()}
-                      >
-                        {createFeedback.isPending ? (
-                          <>
-                            <span className="material-symbols-outlined animate-spin text-sm">
-                              progress_activity
-                            </span>
-                            피드백 생성 중...
-                          </>
-                        ) : (
-                          <>
-                            <span className="material-symbols-outlined text-sm">
-                              auto_fix_high
-                            </span>
-                            AI 피드백 받기
-                          </>
-                        )}
-                      </Button>
-                      {createFeedback.isPending && (
-                        <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
-                          <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />
-                        </div>
+                    <Button
+                      className="gap-2 px-6 shadow-md shadow-primary/15"
+                      disabled={!activeQuestionId || isBusy || !activeAnswer.trim()}
+                      onClick={() => void onCreateFeedback()}
+                    >
+                      {createFeedback.isPending ? (
+                        <>
+                          <span className="material-symbols-outlined animate-spin text-sm">
+                            progress_activity
+                          </span>
+                          피드백 생성 중...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm">
+                            auto_fix_high
+                          </span>
+                          AI 피드백 받기
+                        </>
                       )}
-                    </div>
+                    </Button>
                   </div>
-
-                  {createFeedback.error && (
-                    <p className="text-sm font-semibold text-destructive">
-                      피드백 오류:{" "}
-                      {createFeedback.error instanceof Error
-                        ? createFeedback.error.message
-                        : String(createFeedback.error)}
-                    </p>
-                  )}
                 </CardContent>
               </Card>
 
-              {/* Feedback Tabs — only when feedback exists */}
-              {activeFeedback && (
-                <FeedbackTabs
+              {/* Feedback loading skeleton */}
+              {createFeedback.isPending && (
+                <FeedbackSkeleton />
+              )}
+
+              {/* Feedback — inline, no tabs */}
+              {activeFeedback && !createFeedback.isPending && (
+                <FeedbackPanel
                   feedback={activeFeedback}
                   modelAnswer={activeQuestion.modelAnswer}
                   userAnswer={activeAnswer}
@@ -844,8 +832,47 @@ function QuestionDetailCard({
   );
 }
 
-// ─── Feedback Tabs ───
-function FeedbackTabs({
+// ─── Feedback Skeleton (loading state) ───
+function FeedbackSkeleton() {
+  const MESSAGES = [
+    "답변을 분석하고 있어요",
+    "핵심 키워드를 확인하고 있어요",
+    "개선점을 찾고 있어요",
+    "모범 답변을 생성하고 있어요",
+  ];
+  const [msgIdx, setMsgIdx] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgIdx((prev) => (prev + 1) % MESSAGES.length);
+    }, 5_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="h-1 w-full bg-muted">
+        <div className="animate-progress-indeterminate h-full bg-primary" />
+      </div>
+      <CardContent className="flex flex-col items-center gap-3 p-8">
+        <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+          <span className="material-symbols-outlined animate-spin text-2xl text-primary">
+            progress_activity
+          </span>
+        </div>
+        <p className="text-sm font-medium text-foreground">
+          {MESSAGES[msgIdx]}...
+        </p>
+        <p className="text-xs text-muted-foreground">
+          AI가 꼼꼼하게 평가하고 있습니다
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Feedback Panel (all-in-one, no tabs) ───
+function FeedbackPanel({
   feedback,
   modelAnswer,
   userAnswer,
@@ -854,151 +881,168 @@ function FeedbackTabs({
   modelAnswer: string | null;
   userAnswer: string;
 }) {
-  return (
-    <Tabs defaultValue="evaluation">
-      <TabsList>
-        <TabsTrigger value="evaluation">
-          <span className="material-symbols-outlined mr-1 text-sm">
-            check_circle
-          </span>
-          AI 평가
-        </TabsTrigger>
-        <TabsTrigger value="model-answer">
-          <span className="material-symbols-outlined mr-1 text-sm">
-            auto_awesome
-          </span>
-          모범 답변
-        </TabsTrigger>
-        {feedback.followups.length > 0 && (
-          <TabsTrigger value="followups">
-            <span className="material-symbols-outlined mr-1 text-sm">
-              forum
-            </span>
-            후속 질문
-            <Badge variant="secondary" className="ml-1 text-[10px]">
-              {feedback.followups.length}
-            </Badge>
-          </TabsTrigger>
-        )}
-      </TabsList>
+  const [showModelAnswer, setShowModelAnswer] = useState(false);
 
-      {/* Tab 1: AI Evaluation */}
-      <TabsContent value="evaluation">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Card className="border-l-4 border-l-emerald-500">
-            <CardContent className="p-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-emerald-600">
+  return (
+    <div className="flex flex-col gap-4">
+      {/* 잘한 점 / 개선할 점 — 나란히 */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-emerald-500">
+                thumb_up
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
                 잘한 점
               </p>
-              <ul className="space-y-2 text-sm text-foreground">
-                {feedback.strengths.length > 0 ? (
-                  feedback.strengths.map((s, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-sm text-emerald-500">
-                        done
-                      </span>
-                      {s}
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-muted-foreground">항목이 없습니다.</li>
-                )}
-              </ul>
-            </CardContent>
-          </Card>
+            </div>
+            <ul className="space-y-2 text-sm text-foreground">
+              {feedback.strengths.length > 0 ? (
+                feedback.strengths.map((s, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="material-symbols-outlined mt-0.5 text-sm text-emerald-500">
+                      check_circle
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-muted-foreground">항목이 없습니다.</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
 
-          <Card className="border-l-4 border-l-amber-500">
-            <CardContent className="p-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-600">
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-amber-500">
+                tips_and_updates
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-600">
                 개선할 점
               </p>
-              <ul className="space-y-2 text-sm text-foreground">
-                {feedback.improvements.length > 0 ? (
-                  feedback.improvements.map((s, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-sm text-amber-500">
-                        info
-                      </span>
-                      {s}
-                    </li>
-                  ))
-                ) : (
-                  <li className="text-muted-foreground">항목이 없습니다.</li>
-                )}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <ul className="space-y-2 text-sm text-foreground">
+              {feedback.improvements.length > 0 ? (
+                feedback.improvements.map((s, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="material-symbols-outlined mt-0.5 text-sm text-amber-500">
+                      arrow_upward
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-muted-foreground">항목이 없습니다.</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Suggested Answer */}
-        {feedback.suggestedAnswer && (
-          <Card className="mt-4 border-primary/20 bg-primary/5">
-            <CardContent className="p-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
+      {/* AI 개선 예시 답변 */}
+      {feedback.suggestedAnswer && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-primary">
+                auto_fix_high
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">
                 AI 개선 예시 답변
               </p>
-              <p className="text-sm italic leading-relaxed text-foreground/80">
-                {feedback.suggestedAnswer}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </TabsContent>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+              {feedback.suggestedAnswer}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Tab 2: Model Answer */}
-      <TabsContent value="model-answer">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* My answer */}
-          <Card>
-            <CardContent className="p-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                내 답변
-              </p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                {userAnswer || "(작성한 답변이 없습니다)"}
-              </p>
-            </CardContent>
-          </Card>
+      {/* 모범 답변 비교 — 토글 */}
+      {modelAnswer && (
+        <Card>
+          <CardContent className="p-4">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between"
+              onClick={() => setShowModelAnswer((v) => !v)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-base text-primary">
+                  compare
+                </span>
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  내 답변 vs 모범 답변
+                </p>
+              </div>
+              <span
+                className={cn(
+                  "material-symbols-outlined text-sm text-muted-foreground transition-transform",
+                  showModelAnswer && "rotate-180"
+                )}
+              >
+                expand_more
+              </span>
+            </button>
 
-          {/* Model answer */}
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
-                모범 답변
-              </p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                {modelAnswer || "(모범 답변이 제공되지 않았습니다)"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
+            {showModelAnswer && (
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-lg bg-muted/30 p-3">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    내 답변
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                    {userAnswer || "(작성한 답변이 없습니다)"}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-primary/5 p-3">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-primary">
+                    모범 답변
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                    {modelAnswer}
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Tab 3: Follow-ups */}
+      {/* 후속 질문 */}
       {feedback.followups.length > 0 && (
-        <TabsContent value="followups">
-          <Card>
-            <CardContent className="p-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Card>
+          <CardContent className="p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-base text-primary">
+                forum
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 예상 후속 질문
               </p>
-              <ul className="space-y-3">
-                {feedback.followups.map((fq, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-start gap-3 rounded-lg bg-muted/50 p-3"
-                  >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {idx + 1}
-                    </span>
-                    <p className="text-sm text-foreground">{fq}</p>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <Badge variant="secondary" className="text-[10px]">
+                {feedback.followups.length}
+              </Badge>
+            </div>
+            <ul className="space-y-2">
+              {feedback.followups.map((fq, idx) => (
+                <li
+                  key={idx}
+                  className="flex items-start gap-3 rounded-lg bg-muted/50 p-3"
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {idx + 1}
+                  </span>
+                  <p className="text-sm text-foreground">{fq}</p>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
-    </Tabs>
+    </div>
   );
 }
