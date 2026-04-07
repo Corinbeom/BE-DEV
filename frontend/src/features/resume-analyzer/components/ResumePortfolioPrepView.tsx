@@ -833,18 +833,19 @@ function QuestionDetailCard({
 }
 
 // ─── Feedback Skeleton (loading state) ───
+const FEEDBACK_MESSAGES = [
+  "답변을 분석하고 있어요",
+  "핵심 키워드를 확인하고 있어요",
+  "개선점을 찾고 있어요",
+  "모범 답변을 생성하고 있어요",
+];
+
 function FeedbackSkeleton() {
-  const MESSAGES = [
-    "답변을 분석하고 있어요",
-    "핵심 키워드를 확인하고 있어요",
-    "개선점을 찾고 있어요",
-    "모범 답변을 생성하고 있어요",
-  ];
   const [msgIdx, setMsgIdx] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setMsgIdx((prev) => (prev + 1) % MESSAGES.length);
+      setMsgIdx((prev) => (prev + 1) % FEEDBACK_MESSAGES.length);
     }, 5_000);
     return () => clearInterval(interval);
   }, []);
@@ -861,7 +862,7 @@ function FeedbackSkeleton() {
           </span>
         </div>
         <p className="text-sm font-medium text-foreground">
-          {MESSAGES[msgIdx]}...
+          {FEEDBACK_MESSAGES[msgIdx]}...
         </p>
         <p className="text-xs text-muted-foreground">
           AI가 꼼꼼하게 평가하고 있습니다
