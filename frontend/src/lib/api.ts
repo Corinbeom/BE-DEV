@@ -41,35 +41,63 @@ export class ApiError extends Error {
   }
 }
 
+const MAX_RATE_LIMIT_RETRIES = 3;
+const DEFAULT_RETRY_DELAY_MS = 20_000;
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90_000);
+  for (let attempt = 0; attempt <= MAX_RATE_LIMIT_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120_000);
 
-  let res: Response;
-  try {
-    res = await fetch(`${apiBaseUrl()}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
-      credentials: "include",
-      cache: "no-store",
-      signal: init?.signal ?? controller.signal,
-    });
-  } finally {
-    clearTimeout(timeoutId);
+    let res: Response;
+    try {
+      res = await fetch(`${apiBaseUrl()}${path}`, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(init?.headers ?? {}),
+        },
+        credentials: "include",
+        cache: "no-store",
+        signal: init?.signal ?? controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    // 429 Rate Limit → 자동 대기 후 재시도 (사용자에게 에러 노출 없이)
+    if (res.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
+      const retryAfter = parseRetryAfter(res);
+      await sleep(retryAfter);
+      continue;
+    }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new ApiError(path, init?.method ?? "GET", res.status, text);
+    }
+
+    return (await res.json()) as T;
   }
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new ApiError(path, init?.method ?? "GET", res.status, text);
-  }
+  // 재시도 모두 소진 — 도달할 수 없지만 타입 안전을 위해
+  throw new ApiError(path, init?.method ?? "GET", 429, "요청이 제한되었습니다. 잠시 후 다시 시도해 주세요.");
+}
 
-  return (await res.json()) as T;
+function parseRetryAfter(res: Response): number {
+  const header = res.headers.get("Retry-After");
+  if (header) {
+    const seconds = parseInt(header, 10);
+    if (!isNaN(seconds) && seconds > 0) return seconds * 1000;
+  }
+  return DEFAULT_RETRY_DELAY_MS;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function healthCheck(): Promise<boolean> {

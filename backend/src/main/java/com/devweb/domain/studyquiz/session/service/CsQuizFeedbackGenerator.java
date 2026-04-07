@@ -4,6 +4,7 @@ import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizFeedback;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
 import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
+import com.devweb.infra.ai.AiTextSanitizer;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -34,7 +35,11 @@ public class CsQuizFeedbackGenerator {
                 correctChoiceIndex,
                 selectedChoiceIndex
         );
-        return new CsQuizFeedback(f.strengths(), f.improvements(), f.suggestedAnswer(), f.followups());
+        return new CsQuizFeedback(
+                AiTextSanitizer.sanitizeList(f.strengths()),
+                AiTextSanitizer.sanitizeList(f.improvements()),
+                AiTextSanitizer.sanitize(f.suggestedAnswer()),
+                AiTextSanitizer.sanitizeList(f.followups()));
     }
 
     public CsQuizFeedback generateForShortAnswer(
@@ -54,7 +59,11 @@ public class CsQuizFeedbackGenerator {
                 rubricKeywords,
                 userAnswer
         );
-        return new CsQuizFeedback(f.strengths(), f.improvements(), f.suggestedAnswer(), f.followups());
+        return new CsQuizFeedback(
+                AiTextSanitizer.sanitizeList(f.strengths()),
+                AiTextSanitizer.sanitizeList(f.improvements()),
+                AiTextSanitizer.sanitize(f.suggestedAnswer()),
+                AiTextSanitizer.sanitizeList(f.followups()));
     }
 
     private static String baseSystemInstruction() {

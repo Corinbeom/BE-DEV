@@ -3,6 +3,7 @@ package com.devweb.domain.resume.session.service;
 import com.devweb.domain.resume.model.InterviewQuestion;
 import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
+import com.devweb.infra.ai.AiTextSanitizer;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -44,7 +45,11 @@ public class QuestionGenerator {
         List<ResumeQuestion> questions = new ArrayList<>();
         int idx = 0;
         for (InterviewAiPort.GeneratedQuestion q : generated) {
-            InterviewQuestion vo = new InterviewQuestion(q.question(), q.intention(), q.keywords(), q.modelAnswer());
+            InterviewQuestion vo = new InterviewQuestion(
+                    AiTextSanitizer.sanitize(q.question()),
+                    AiTextSanitizer.sanitize(q.intention()),
+                    AiTextSanitizer.sanitize(q.keywords()),
+                    AiTextSanitizer.sanitize(q.modelAnswer()));
             questions.add(new ResumeQuestion(idx++, q.badge(), q.likelihood(), vo));
         }
         return questions;
