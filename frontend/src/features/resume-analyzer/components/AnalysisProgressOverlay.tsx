@@ -10,12 +10,23 @@ type Step = {
 };
 
 const STEPS: Step[] = [
-  { label: "파일 업로드 중", icon: "cloud_upload", durationMs: 3_000 },
-  { label: "텍스트 추출 중", icon: "text_snippet", durationMs: 5_000 },
-  { label: "AI 질문 생성 중", icon: "psychology", durationMs: 60_000 },
+  { label: "이력서 텍스트 추출 중", icon: "text_snippet", durationMs: 3_000 },
+  { label: "핵심 경험 분석 중", icon: "search_insights", durationMs: 6_000 },
+  { label: "직무 역량 매칭 중", icon: "link", durationMs: 8_000 },
+  { label: "맞춤 질문 설계 중", icon: "psychology", durationMs: 25_000 },
+  { label: "출제 확률 계산 중", icon: "calculate", durationMs: 25_000 },
+  { label: "모범 답안 생성 중", icon: "auto_fix_high", durationMs: 50_000 },
 ];
 
 const TOTAL_DURATION = STEPS.reduce((sum, s) => sum + s.durationMs, 0);
+
+const TIPS = [
+  "STAR 기법으로 답변하면 면접관에게 좋은 인상을 줄 수 있어요.",
+  "기술 질문에는 '왜 그 기술을 선택했는지'를 함께 설명해 보세요.",
+  "경험을 이야기할 때 구체적인 수치를 포함하면 설득력이 높아져요.",
+  "면접에서는 모르는 것을 솔직히 인정하는 것도 좋은 전략이에요.",
+  "포트폴리오 프로젝트의 트레이드오프를 설명할 수 있으면 좋아요.",
+];
 
 function computeStep(elapsedMs: number) {
   let accumulated = 0;
@@ -48,9 +59,23 @@ function useElapsedTimer(isActive: boolean) {
     return () => clearInterval(interval);
   }, [isActive]);
 
-  // When inactive, always return zeroed snapshot
   if (!isActive) return { step: 0, progress: 0 };
   return snapshot;
+}
+
+function useTipRotation(isActive: boolean) {
+  const [tipIndex, setTipIndex] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) return;
+    setTipIndex(Math.floor(Math.random() * TIPS.length));
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % TIPS.length);
+    }, 8_000);
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return TIPS[tipIndex];
 }
 
 export function AnalysisProgressOverlay({
@@ -63,6 +88,7 @@ export function AnalysisProgressOverlay({
   const { step: currentStep, progress: timerProgress } =
     useElapsedTimer(isActive);
   const progress = isComplete ? 100 : timerProgress;
+  const tip = useTipRotation(isActive);
 
   if (!isActive && !isComplete) return null;
 
@@ -80,7 +106,7 @@ export function AnalysisProgressOverlay({
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {STEPS.map((step, i) => {
             const isDone = isComplete || i < currentStep;
             const isCurrent = !isComplete && i === currentStep;
@@ -89,7 +115,7 @@ export function AnalysisProgressOverlay({
               <div key={step.label} className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "flex size-8 items-center justify-center rounded-full transition-colors",
+                    "flex size-8 shrink-0 items-center justify-center rounded-full transition-colors",
                     isDone
                       ? "bg-emerald-500 text-white"
                       : isCurrent
@@ -139,9 +165,14 @@ export function AnalysisProgressOverlay({
             />
           </div>
           {!isComplete && (
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              예상 소요 시간: 약 60~90초
-            </p>
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/50 p-2.5">
+              <span className="material-symbols-outlined mt-0.5 text-sm text-primary">
+                lightbulb
+              </span>
+              <p className="text-xs leading-relaxed text-muted-foreground transition-opacity duration-500">
+                {tip}
+              </p>
+            </div>
           )}
         </div>
       </div>

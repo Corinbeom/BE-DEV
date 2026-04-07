@@ -2,6 +2,7 @@ package com.devweb.domain.resume.session.service;
 
 import com.devweb.domain.resume.session.model.Feedback;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
+import com.devweb.infra.ai.AiTextSanitizer;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,6 +20,10 @@ public class AnswerFeedbackGenerator {
         String systemInstruction = promptRegistry.systemInstructionFor(positionType);
         InterviewAiPort.GeneratedFeedback f =
                 aiPort.generateFeedback(systemInstruction, question, intention, keywords, modelAnswer, answerText);
-        return new Feedback(f.strengths(), f.improvements(), f.suggestedAnswer(), f.followups());
+        return new Feedback(
+                AiTextSanitizer.sanitizeList(f.strengths()),
+                AiTextSanitizer.sanitizeList(f.improvements()),
+                AiTextSanitizer.sanitize(f.suggestedAnswer()),
+                AiTextSanitizer.sanitizeList(f.followups()));
     }
 }

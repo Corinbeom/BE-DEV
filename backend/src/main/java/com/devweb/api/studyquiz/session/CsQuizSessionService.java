@@ -8,6 +8,7 @@ import com.devweb.domain.studyquiz.bank.port.CsQuestionBankRepository;
 import com.devweb.domain.studyquiz.session.model.*;
 import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
 import com.devweb.domain.studyquiz.session.port.CsQuizSessionRepository;
+import com.devweb.infra.ai.AiTextSanitizer;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -170,10 +171,10 @@ public class CsQuizSessionService {
                         startIndex + idx++,
                         g.topic() == null ? topics.iterator().next() : g.topic(),
                         difficulty,
-                        g.prompt(),
-                        g.choices() == null ? List.of() : g.choices(),
+                        AiTextSanitizer.sanitize(g.prompt()),
+                        g.choices() == null ? List.of() : AiTextSanitizer.sanitizeList(g.choices()),
                         g.correctChoiceIndex() == null ? 0 : g.correctChoiceIndex(),
-                        g.referenceAnswer()
+                        AiTextSanitizer.sanitize(g.referenceAnswer())
                 ));
             }
             if (out.size() < count) {
@@ -219,9 +220,9 @@ public class CsQuizSessionService {
                         startIndex + idx++,
                         g.topic() == null ? topics.iterator().next() : g.topic(),
                         difficulty,
-                        g.prompt(),
-                        g.rubricKeywords(),
-                        g.referenceAnswer()
+                        AiTextSanitizer.sanitize(g.prompt()),
+                        AiTextSanitizer.sanitizeList(g.rubricKeywords()),
+                        AiTextSanitizer.sanitize(g.referenceAnswer())
                 ));
             }
             if (out.size() < count) {
