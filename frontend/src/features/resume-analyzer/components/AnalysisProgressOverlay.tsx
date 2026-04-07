@@ -64,18 +64,17 @@ function useElapsedTimer(isActive: boolean) {
 }
 
 function useTipRotation(isActive: boolean) {
-  const [tipIndex, setTipIndex] = useState(0);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     if (!isActive) return;
-    setTipIndex(Math.floor(Math.random() * TIPS.length));
     const interval = setInterval(() => {
-      setTipIndex((prev) => (prev + 1) % TIPS.length);
+      setIndex((prev) => (prev + 1) % TIPS.length);
     }, 8_000);
     return () => clearInterval(interval);
   }, [isActive]);
 
-  return TIPS[tipIndex];
+  return TIPS[index];
 }
 
 export function AnalysisProgressOverlay({
