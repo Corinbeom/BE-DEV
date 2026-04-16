@@ -66,6 +66,9 @@ public class ResumeSession {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column
+    private LocalDateTime completedAt;
+
     @BatchSize(size = 50)
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
@@ -145,6 +148,10 @@ public class ResumeSession {
         return updatedAt;
     }
 
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
     public List<ResumeQuestion> getQuestions() {
         return Collections.unmodifiableList(questions);
     }
@@ -174,6 +181,17 @@ public class ResumeSession {
 
     public void markFailed() {
         this.status = ResumeSessionStatus.FAILED;
+    }
+
+    public void markCompleted() {
+        if (status == ResumeSessionStatus.COMPLETED) {
+            return; // idempotent
+        }
+        if (status != ResumeSessionStatus.QUESTIONS_READY) {
+            throw new IllegalStateException("질문이 준비된 세션만 종료할 수 있습니다. 현재 상태=" + status);
+        }
+        this.status = ResumeSessionStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
     }
 }
 

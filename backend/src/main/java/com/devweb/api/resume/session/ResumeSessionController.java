@@ -60,6 +60,14 @@ public class ResumeSessionController {
         return ApiResponse.success(ResumeSessionResponse.from(service.get(id)));
     }
 
+    @Operation(summary = "세션 완료 처리", description = "현재 세션을 종료 상태(COMPLETED)로 전환합니다. 미답변 질문이 있어도 종료할 수 있습니다.")
+    @PostMapping("/{id}/complete")
+    public ApiResponse<ResumeSessionResponse> complete(@PathVariable Long id) {
+        Long memberId = AuthUtils.currentMemberId();
+        ResumeSession completed = service.complete(id, memberId);
+        return ApiResponse.success(ResumeSessionResponse.from(completed));
+    }
+
     @Operation(summary = "세션 삭제", description = "이력서 분석 세션을 삭제합니다.")
     @DeleteMapping("/{id}")
     public ApiResponse<Void> delete(@PathVariable Long id) {

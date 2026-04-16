@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,6 +18,7 @@ import {
   TECH_PRESETS,
 } from "../constants";
 import {
+  useCompleteResumeSession,
   useCreateResumeFeedback,
   useCreateResumeSession,
 } from "../hooks/useResumeMutations";
@@ -69,10 +70,39 @@ export function ResumePortfolioPrepView() {
 
   const createSession = useCreateResumeSession();
   const createFeedback = useCreateResumeFeedback();
+  const completeSession = useCompleteResumeSession();
   const sessionQuery = useResumeSession(sessionId);
 
   const session: ResumeSession | null = sessionQuery.data ?? null;
   const questions = useMemo(() => session?.questions ?? [], [session]);
+
+  // 서버에서 받은 세션의 attempts 를 로컬 state 로 1회 복원.
+  // 같은 sessionId 에 대해서는 한 번만 실행 (사용자가 새로 입력 중인 답변을 덮어쓰지 않도록).
+  const restoredSessionIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!sessionId) {
+      restoredSessionIdRef.current = null;
+      return;
+    }
+    if (restoredSessionIdRef.current === sessionId) return;
+    if (questions.length === 0) return;
+
+    const initialAnswers: Record<number, string> = {};
+    const initialFeedback: Record<number, ResumeFeedback> = {};
+    for (const q of questions) {
+      if (q.attempts && q.attempts.length > 0) {
+        const latest = q.attempts[q.attempts.length - 1];
+        initialAnswers[q.id] = latest.answerText;
+        initialFeedback[q.id] = latest;
+      }
+    }
+    setAnswersByQuestion(initialAnswers);
+    setFeedbackByQuestion(initialFeedback);
+    if (!activeQuestionId && questions[0]) {
+      setActiveQuestionId(questions[0].id);
+    }
+    restoredSessionIdRef.current = sessionId;
+  }, [sessionId, questions, activeQuestionId]);
 
   const activeQuestion = useMemo(() => {
     if (!activeQuestionId) return null;
@@ -89,6 +119,8 @@ export function ResumePortfolioPrepView() {
   const attemptedCount = Object.keys(feedbackByQuestion).length;
   const totalCount = questions.length;
   const progressPercent = totalCount > 0 ? (attemptedCount / totalCount) * 100 : 0;
+  const isCompleted = session?.status === "COMPLETED";
+  const allAnswered = totalCount > 0 && attemptedCount >= totalCount;
 
   const [showOverlay, setShowOverlay] = useState(false);
 
@@ -145,8 +177,12 @@ export function ResumePortfolioPrepView() {
   function goToNextQuestion() {
     if (!questions.length) return;
     const idx = questions.findIndex((q) => q.id === activeQuestionId);
-    const next = questions[(idx + 1) % questions.length];
-    setActiveQuestionId(next.id);
+    if (idx === -1 || idx >= questions.length - 1) {
+      // 마지막 질문 — 더 이상 이동하지 않음
+      toast.info("마지막 질문입니다. 답변을 마치면 세션을 완료해 주세요.");
+      return;
+    }
+    setActiveQuestionId(questions[idx + 1].id);
   }
 
   function resetSession() {
@@ -154,6 +190,19 @@ export function ResumePortfolioPrepView() {
     setActiveQuestionId(null);
     setAnswersByQuestion({});
     setFeedbackByQuestion({});
+  }
+
+  async function onCompleteSession() {
+    if (!sessionId) return;
+    if (isCompleted) return;
+    try {
+      await completeSession.mutateAsync(sessionId);
+      toast.success("세션을 완료했습니다.");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "세션 완료 처리에 실패했습니다."
+      );
+    }
   }
 
   // Parse comma-separated keywords string into array
@@ -580,7 +629,7 @@ export function ResumePortfolioPrepView() {
             <span className="text-sm text-muted-foreground">
               <span className="font-bold text-foreground">{attemptedCount}</span>
               {" / "}
-              {totalCount} 완료
+              {totalCount} 답변
             </span>
             <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
               <div
@@ -589,6 +638,20 @@ export function ResumePortfolioPrepView() {
               />
             </div>
           </div>
+
+          {!isCompleted && (
+            <Button
+              variant={allAnswered ? "default" : "outline"}
+              size="sm"
+              disabled={completeSession.isPending}
+              onClick={() => void onCompleteSession()}
+            >
+              <span className="material-symbols-outlined mr-1 text-sm">
+                {completeSession.isPending ? "progress_activity" : "task_alt"}
+              </span>
+              {completeSession.isPending ? "완료 처리 중..." : "세션 완료하기"}
+            </Button>
+          )}
 
           <Button variant="outline" size="sm" onClick={resetSession}>
             <span className="material-symbols-outlined mr-1 text-sm">
@@ -599,7 +662,19 @@ export function ResumePortfolioPrepView() {
         </div>
       </div>
 
+      {/* Completed view replaces practice grid */}
+      {isCompleted && (
+        <SessionCompletedView
+          session={session}
+          attemptedCount={attemptedCount}
+          totalCount={totalCount}
+          feedbackByQuestion={feedbackByQuestion}
+          onResetSession={resetSession}
+        />
+      )}
+
       {/* Main: Question Nav + Answer/Feedback */}
+      {!isCompleted && (
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {/* Left: Question Navigation */}
         <aside className="xl:col-span-3">
@@ -763,6 +838,7 @@ export function ResumePortfolioPrepView() {
           )}
         </main>
       </div>
+      )}
 
       <AnalysisProgressOverlay
         isActive={showOverlay && createSession.isPending}
@@ -1044,6 +1120,152 @@ function FeedbackPanel({
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+// ─── Session Completed View ───
+function SessionCompletedView({
+  session,
+  attemptedCount,
+  totalCount,
+  feedbackByQuestion,
+  onResetSession,
+}: {
+  session: ResumeSession;
+  attemptedCount: number;
+  totalCount: number;
+  feedbackByQuestion: Record<number, ResumeFeedback>;
+  onResetSession: () => void;
+}) {
+  const feedbacks = Object.values(feedbackByQuestion);
+  const totalStrengths = feedbacks.reduce((sum, f) => sum + f.strengths.length, 0);
+  const totalImprovements = feedbacks.reduce(
+    (sum, f) => sum + f.improvements.length,
+    0
+  );
+  const avgStrengths =
+    feedbacks.length > 0
+      ? Math.round((totalStrengths / feedbacks.length) * 10) / 10
+      : 0;
+  const avgImprovements =
+    feedbacks.length > 0
+      ? Math.round((totalImprovements / feedbacks.length) * 10) / 10
+      : 0;
+
+  const completedAtLabel = session.completedAt
+    ? new Date(session.completedAt).toLocaleString("ko-KR")
+    : null;
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      {/* Hero */}
+      <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+        <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <span className="material-symbols-outlined text-4xl">task_alt</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              면접 세션을 완료했습니다
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              수고하셨어요. 이번 세션의 결과를 정리했습니다.
+            </p>
+            {completedAtLabel && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                완료 시각: {completedAtLabel}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <Card>
+        <CardContent className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-3">
+          <StatTile
+            icon="quiz"
+            label="답변한 질문"
+            value={`${attemptedCount} / ${totalCount}`}
+            tone="primary"
+          />
+          <StatTile
+            icon="thumb_up"
+            label="평균 강점 수"
+            value={avgStrengths.toString()}
+            tone="emerald"
+          />
+          <StatTile
+            icon="tips_and_updates"
+            label="평균 개선점 수"
+            value={avgImprovements.toString()}
+            tone="amber"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link href="/resume-analyzer">
+          <Button variant="outline" size="lg">
+            <span className="material-symbols-outlined mr-1 text-sm">
+              arrow_back
+            </span>
+            세션 목록으로
+          </Button>
+        </Link>
+        <Link href="/resume-analyzer/report">
+          <Button variant="outline" size="lg">
+            <span className="material-symbols-outlined mr-1 text-sm">
+              analytics
+            </span>
+            누적 리포트 보기
+          </Button>
+        </Link>
+        <Button size="lg" onClick={onResetSession}>
+          <span className="material-symbols-outlined mr-1 text-sm">add</span>
+          새 세션 시작
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  tone: "primary" | "emerald" | "amber";
+}) {
+  const toneClass =
+    tone === "emerald"
+      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+      : tone === "amber"
+        ? "text-amber-600 dark:text-amber-400 bg-amber-500/10"
+        : "text-primary bg-primary/10";
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+      <div
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-lg",
+          toneClass
+        )}
+      >
+        <span className="material-symbols-outlined">{icon}</span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <p className="text-lg font-bold text-foreground">{value}</p>
+      </div>
     </div>
   );
 }

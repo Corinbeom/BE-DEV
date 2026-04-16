@@ -4,6 +4,7 @@ public enum ResumeSessionStatus {
     CREATED,
     EXTRACTED,
     QUESTIONS_READY,
+    COMPLETED,
     FAILED
 }
 

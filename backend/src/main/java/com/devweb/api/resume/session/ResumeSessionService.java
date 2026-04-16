@@ -1,6 +1,7 @@
 package com.devweb.api.resume.session;
 
 import com.devweb.common.ResourceNotFoundException;
+import com.devweb.common.UnauthorizedException;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
 import com.devweb.domain.resume.model.Resume;
@@ -319,6 +320,17 @@ public class ResumeSessionService {
     public void delete(Long id) {
         get(id);
         sessionRepository.deleteById(id);
+    }
+
+    @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
+    public ResumeSession complete(Long sessionId, Long memberId) {
+        ResumeSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("ResumeSession을 찾을 수 없습니다. id=" + sessionId));
+        if (!session.getMember().getId().equals(memberId)) {
+            throw new UnauthorizedException("세션에 접근할 권한이 없습니다.");
+        }
+        session.markCompleted();
+        return sessionRepository.save(session);
     }
 
     private static void validateSize(MultipartFile file) {
