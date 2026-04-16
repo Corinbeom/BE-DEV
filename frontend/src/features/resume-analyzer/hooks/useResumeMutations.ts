@@ -44,8 +44,9 @@ export function useGenerateSessionReport() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: generateSessionReport,
-    onSuccess: (_report, sessionId) => {
-      queryClient.invalidateQueries({ queryKey: ["resumeSession", sessionId] });
+    onSuccess: () => {
+      // 상세 세션 쿼리를 invalidate하면 부모가 refetch되면서 mutation 상태가
+      // 초기화되어 무한 로딩으로 보인다. 목록만 갱신한다.
       queryClient.invalidateQueries({ queryKey: ["resumeSessions"] });
     },
   });
