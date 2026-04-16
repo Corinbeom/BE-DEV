@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createResumeFeedback, createResumeSession, deleteResumeSession } from "../api/resumeSessionApi";
+import {
+  completeResumeSession,
+  createResumeFeedback,
+  createResumeSession,
+  deleteResumeSession,
+} from "../api/resumeSessionApi";
 
 export function useCreateResumeSession() {
   return useMutation({
@@ -23,3 +28,13 @@ export function useDeleteResumeSession() {
   });
 }
 
+export function useCompleteResumeSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: completeResumeSession,
+    onSuccess: (session) => {
+      queryClient.setQueryData(["resumeSession", session.id], session);
+      queryClient.invalidateQueries({ queryKey: ["resumeSessions"] });
+    },
+  });
+}

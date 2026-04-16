@@ -22,7 +22,10 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN q.session s
             LEFT JOIN q.attempts a
             WHERE s.member.id = :memberId
-              AND s.status = com.devweb.domain.resume.session.model.ResumeSessionStatus.QUESTIONS_READY
+              AND s.status IN (
+                  com.devweb.domain.resume.session.model.ResumeSessionStatus.QUESTIONS_READY,
+                  com.devweb.domain.resume.session.model.ResumeSessionStatus.COMPLETED
+              )
             GROUP BY q.badge
             """)
     List<Object[]> findInterviewStatsGroupedByBadge(@Param("memberId") Long memberId);
@@ -33,7 +36,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN resume_answer_attempts a ON s.attempt_id = a.id
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY q.badge
             """, nativeQuery = true)
     List<Object[]> countStrengthsByBadge(@Param("memberId") Long memberId);
@@ -44,7 +47,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN resume_answer_attempts a ON i.attempt_id = a.id
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY q.badge
             """, nativeQuery = true)
     List<Object[]> countImprovementsByBadge(@Param("memberId") Long memberId);
@@ -55,7 +58,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN resume_answer_attempts a ON s.attempt_id = a.id
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY q.badge, s.strength
             ORDER BY q.badge, freq DESC
             """, nativeQuery = true)
@@ -67,7 +70,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN resume_answer_attempts a ON i.attempt_id = a.id
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY q.badge, i.improvement
             ORDER BY q.badge, freq DESC
             """, nativeQuery = true)
@@ -78,7 +81,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             FROM resume_answer_attempts a
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY CAST(a.created_at AS DATE)
             ORDER BY attempt_date
             """, nativeQuery = true)
@@ -90,7 +93,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN resume_answer_attempts a ON s.attempt_id = a.id
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY CAST(a.created_at AS DATE)
             ORDER BY attempt_date
             """, nativeQuery = true)
@@ -102,7 +105,7 @@ public interface SpringDataResumeSessionJpaRepository extends JpaRepository<Resu
             JOIN resume_answer_attempts a ON i.attempt_id = a.id
             JOIN resume_questions q ON a.question_id = q.id
             JOIN resume_sessions rs ON q.session_id = rs.id
-            WHERE rs.member_id = :memberId AND rs.status = 'QUESTIONS_READY'
+            WHERE rs.member_id = :memberId AND rs.status IN ('QUESTIONS_READY', 'COMPLETED')
             GROUP BY CAST(a.created_at AS DATE)
             ORDER BY attempt_date
             """, nativeQuery = true)

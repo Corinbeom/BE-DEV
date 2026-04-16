@@ -62,6 +62,17 @@ export async function deleteResumeSession(sessionId: number) {
   }
 }
 
+export async function completeResumeSession(sessionId: number) {
+  const res = await apiFetch<ApiResponse<ResumeSession>>(
+    `/api/resume-sessions/${sessionId}/complete`,
+    { method: "POST" },
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "세션 완료 처리에 실패했습니다.");
+  }
+  return res.data;
+}
+
 export async function getResumeInterviewStats() {
   const res = await apiFetch<ApiResponse<ResumeInterviewStats>>(
     "/api/resume-sessions/stats",

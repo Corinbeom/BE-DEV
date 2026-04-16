@@ -4,7 +4,18 @@ export type ResumeSessionStatus =
   | "CREATED"
   | "EXTRACTED"
   | "QUESTIONS_READY"
+  | "COMPLETED"
   | "FAILED";
+
+export type ResumeFeedback = {
+  attemptId: number;
+  createdAt: string;
+  answerText: string;
+  strengths: string[];
+  improvements: string[];
+  suggestedAnswer: string | null;
+  followups: string[];
+};
 
 export type ResumeQuestion = {
   id: number;
@@ -15,6 +26,7 @@ export type ResumeQuestion = {
   intention: string | null;
   keywords: string | null;
   modelAnswer: string | null;
+  attempts: ResumeFeedback[];
 };
 
 export type ResumeSession = {
@@ -24,17 +36,12 @@ export type ResumeSession = {
   portfolioUrl: string | null;
   status: ResumeSessionStatus;
   questions: ResumeQuestion[];
+  totalQuestionCount: number;
+  answeredQuestionCount: number;
+  lastAttemptAt: string | null;
   createdAt: string;
   updatedAt: string;
-};
-
-export type ResumeFeedback = {
-  attemptId: number;
-  createdAt: string;
-  strengths: string[];
-  improvements: string[];
-  suggestedAnswer: string | null;
-  followups: string[];
+  completedAt: string | null;
 };
 
 export type FrequentItem = {

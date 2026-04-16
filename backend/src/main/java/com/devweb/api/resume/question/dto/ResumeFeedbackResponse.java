@@ -13,6 +13,8 @@ public record ResumeFeedbackResponse(
         Long attemptId,
         @Schema(description = "제출 일시")
         LocalDateTime createdAt,
+        @Schema(description = "사용자가 제출한 답변 본문")
+        String answerText,
         @Schema(description = "강점 피드백")
         List<String> strengths,
         @Schema(description = "개선점 피드백")
@@ -21,12 +23,13 @@ public record ResumeFeedbackResponse(
         String suggestedAnswer,
         @Schema(description = "추가 학습 질문")
         List<String> followups
-) {
+) implements java.io.Serializable {
     public static ResumeFeedbackResponse from(ResumeAnswerAttempt attempt) {
         Feedback f = attempt.getFeedback();
         return new ResumeFeedbackResponse(
                 attempt.getId(),
                 attempt.getCreatedAt(),
+                attempt.getAnswerText(),
                 f == null ? List.of() : f.getStrengths(),
                 f == null ? List.of() : f.getImprovements(),
                 f == null ? null : f.getSuggestedAnswer(),
