@@ -29,6 +29,10 @@ public class Member {
     @Column(name = "photo_url", length = 1024)
     private String photoUrl;
 
+    @Lob
+    @Column(name = "coaching_report_json")
+    private String coachingReportJson;
+
     protected Member() {
     }
 
@@ -73,5 +77,13 @@ public class Member {
 
     public String getPhotoUrl() {
         return photoUrl;
+    }
+
+    public String getCoachingReportJson() {
+        return coachingReportJson;
+    }
+
+    public void setCoachingReportJson(String coachingReportJson) {
+        this.coachingReportJson = coachingReportJson;
     }
 }

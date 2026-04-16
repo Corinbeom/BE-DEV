@@ -89,6 +89,23 @@ export type SessionReport = {
   closingAdvice: string;
 };
 
+export type CoachingLearningPlanItem = {
+  priority: number;
+  area: string;
+  action: string;
+  reason: string;
+};
+
+export type CoachingReport = {
+  overallAssessment: string;
+  growthTrajectory: string;
+  persistentStrengths: string[];
+  persistentWeaknesses: string[];
+  learningPlan: CoachingLearningPlanItem[];
+  readinessScore: number;
+  nextSteps: string;
+};
+
 export type ResumeInterviewStats = {
   totalQuestions: number;
   attemptedQuestions: number;

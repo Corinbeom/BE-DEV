@@ -30,5 +30,18 @@ public interface InterviewAiPort {
     ) {}
 
     GeneratedSessionReport generateSessionReport(String systemInstruction, String sessionData);
+
+    record LearningPlanItem(int priority, String area, String action, String reason) {}
+    record GeneratedCoachingReport(
+            String overallAssessment,
+            String growthTrajectory,
+            List<String> persistentStrengths,
+            List<String> persistentWeaknesses,
+            List<LearningPlanItem> learningPlan,
+            int readinessScore,
+            String nextSteps
+    ) {}
+
+    GeneratedCoachingReport generateCoachingReport(String systemInstruction, String coachingData);
 }
 

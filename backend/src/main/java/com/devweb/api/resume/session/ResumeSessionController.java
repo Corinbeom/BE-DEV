@@ -3,6 +3,7 @@ package com.devweb.api.resume.session;
 import com.devweb.api.resume.session.dto.CreateResumeSessionRequest;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
+import com.devweb.api.resume.session.dto.CoachingReportResponse;
 import com.devweb.api.resume.session.dto.SessionReportResponse;
 import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
@@ -81,6 +82,20 @@ public class ResumeSessionController {
     public ApiResponse<SessionReportResponse> getReport(@PathVariable Long id) {
         Long memberId = AuthUtils.currentMemberId();
         return ApiResponse.success(service.getReport(id, memberId));
+    }
+
+    @Operation(summary = "AI 누적 코칭 리포트 조회", description = "이미 생성된 AI 코칭 리포트를 조회합니다. 없으면 null을 반환합니다.")
+    @GetMapping("/coaching-report")
+    public ApiResponse<CoachingReportResponse> getCoachingReport() {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(service.getCoachingReport(memberId));
+    }
+
+    @Operation(summary = "AI 누적 코칭 리포트 생성/재생성", description = "완료된 모든 세션 리포트를 종합 분석하여 장기 성장 추이 + 맞춤 학습 계획을 생성합니다. 기존 리포트를 덮어씁니다.")
+    @PostMapping("/coaching-report")
+    public ApiResponse<CoachingReportResponse> generateCoachingReport() {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(service.generateCoachingReport(memberId));
     }
 
     @Operation(summary = "세션 삭제", description = "이력서 분석 세션을 삭제합니다.")
