@@ -34,7 +34,9 @@ public record ResumeSessionResponse(
         @Schema(description = "수정 일시")
         LocalDateTime updatedAt,
         @Schema(description = "완료 일시", nullable = true)
-        LocalDateTime completedAt
+        LocalDateTime completedAt,
+        @Schema(description = "AI 회고 리포트 존재 여부")
+        boolean hasReport
 ) implements Serializable {
     public static ResumeSessionResponse from(ResumeSession s) {
         List<ResumeQuestionResponse> questionResponses = new ArrayList<>(
@@ -63,7 +65,8 @@ public record ResumeSessionResponse(
                 lastAttempt,
                 s.getCreatedAt(),
                 s.getUpdatedAt(),
-                s.getCompletedAt()
+                s.getCompletedAt(),
+                s.getReportJson() != null && !s.getReportJson().isBlank()
         );
     }
 }

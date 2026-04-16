@@ -11,15 +11,20 @@ import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.model.StoredFileRef;
 import com.devweb.domain.resume.session.port.FileStoragePort;
+import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.resume.session.port.ResumeSessionRepository;
 import com.devweb.domain.resume.session.port.TextExtractorPort;
 import com.devweb.domain.resume.session.port.UrlTextFetcherPort;
 import com.devweb.domain.resume.session.service.QuestionGenerator;
+import com.devweb.domain.resume.model.InterviewQuestion;
+import com.devweb.domain.resume.session.model.ResumeAnswerAttempt;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.BadgeStats;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.FrequentItem;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.WeeklyTrend;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
+import com.devweb.api.resume.session.dto.SessionReportResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -53,6 +58,8 @@ public class ResumeSessionService {
     private final TextExtractorPort textExtractor;
     private final UrlTextFetcherPort urlTextFetcher;
     private final QuestionGenerator questionGenerator;
+    private final InterviewAiPort interviewAiPort;
+    private final ObjectMapper objectMapper;
 
     public ResumeSessionService(
             ResumeSessionRepository sessionRepository,
@@ -61,7 +68,9 @@ public class ResumeSessionService {
             FileStoragePort fileStorage,
             TextExtractorPort textExtractor,
             UrlTextFetcherPort urlTextFetcher,
-            QuestionGenerator questionGenerator
+            QuestionGenerator questionGenerator,
+            InterviewAiPort interviewAiPort,
+            ObjectMapper objectMapper
     ) {
         this.sessionRepository = sessionRepository;
         this.memberRepository = memberRepository;
@@ -70,6 +79,8 @@ public class ResumeSessionService {
         this.textExtractor = textExtractor;
         this.urlTextFetcher = urlTextFetcher;
         this.questionGenerator = questionGenerator;
+        this.interviewAiPort = interviewAiPort;
+        this.objectMapper = objectMapper;
     }
 
     public ResumeSession create(
@@ -331,6 +342,81 @@ public class ResumeSessionService {
         }
         session.markCompleted();
         return sessionRepository.save(session);
+    }
+
+    @CacheEvict(value = "resumeSessions", allEntries = true)
+    public SessionReportResponse generateReport(Long sessionId, Long memberId) {
+        ResumeSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("ResumeSession을 찾을 수 없습니다. id=" + sessionId));
+        if (!session.getMember().getId().equals(memberId)) {
+            throw new UnauthorizedException("세션에 접근할 권한이 없습니다.");
+        }
+        if (session.getReportJson() != null && !session.getReportJson().isBlank()) {
+            return parseReport(session.getReportJson());
+        }
+
+        String sessionData = buildSessionDataForReport(session);
+        String systemInstruction = "당신은 면접 코치 전문가입니다. 지원자의 면접 연습 데이터를 분석하여 전문적이고 구체적인 회고 리포트를 작성합니다.";
+
+        InterviewAiPort.GeneratedSessionReport generated = interviewAiPort.generateSessionReport(systemInstruction, sessionData);
+
+        try {
+            String reportJson = objectMapper.writeValueAsString(generated);
+            session.setReportJson(reportJson);
+            sessionRepository.save(session);
+            return parseReport(reportJson);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("리포트 JSON 직렬화에 실패했습니다.", e);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public SessionReportResponse getReport(Long sessionId, Long memberId) {
+        ResumeSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("ResumeSession을 찾을 수 없습니다. id=" + sessionId));
+        if (!session.getMember().getId().equals(memberId)) {
+            throw new UnauthorizedException("세션에 접근할 권한이 없습니다.");
+        }
+        if (session.getReportJson() == null || session.getReportJson().isBlank()) {
+            throw new ResourceNotFoundException("아직 생성된 리포트가 없습니다. sessionId=" + sessionId);
+        }
+        return parseReport(session.getReportJson());
+    }
+
+    private SessionReportResponse parseReport(String reportJson) {
+        try {
+            return objectMapper.readValue(reportJson, SessionReportResponse.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("리포트 JSON 파싱에 실패했습니다.", e);
+        }
+    }
+
+    private String buildSessionDataForReport(ResumeSession session) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("세션 제목: ").append(session.getTitle()).append("\n");
+        sb.append("지원 직무: ").append(session.getPositionType()).append("\n\n");
+
+        for (ResumeQuestion q : session.getQuestions()) {
+            InterviewQuestion vo = q.getInterviewQuestion();
+            sb.append("--- 질문 ").append(q.getOrderIndex() + 1).append(" ---\n");
+            sb.append("분류(badge): ").append(q.getBadge()).append("\n");
+            sb.append("질문: ").append(vo != null ? vo.getQuestion() : "").append("\n");
+            sb.append("출제 의도: ").append(vo != null ? vo.getIntention() : "").append("\n");
+
+            List<ResumeAnswerAttempt> attempts = q.getAttempts();
+            if (attempts == null || attempts.isEmpty()) {
+                sb.append("답변: (미답변)\n\n");
+            } else {
+                ResumeAnswerAttempt latest = attempts.get(attempts.size() - 1);
+                sb.append("답변: ").append(latest.getAnswerText()).append("\n");
+                if (latest.getFeedback() != null) {
+                    sb.append("강점: ").append(String.join(", ", latest.getFeedback().getStrengths())).append("\n");
+                    sb.append("개선점: ").append(String.join(", ", latest.getFeedback().getImprovements())).append("\n");
+                }
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
     }
 
     private static void validateSize(MultipartFile file) {

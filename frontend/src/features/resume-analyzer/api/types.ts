@@ -42,6 +42,7 @@ export type ResumeSession = {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+  hasReport: boolean;
 };
 
 export type FrequentItem = {
@@ -65,6 +66,27 @@ export type BadgeStats = {
   avgImprovements: number;
   topStrengths: FrequentItem[];
   topImprovements: FrequentItem[];
+};
+
+export type SessionReportBadgeSummary = {
+  badge: string;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+};
+
+export type SessionReportImprovement = {
+  title: string;
+  description: string;
+};
+
+export type SessionReport = {
+  executiveSummary: string;
+  badgeSummaries: SessionReportBadgeSummary[];
+  repeatedGaps: string[];
+  topImprovements: SessionReportImprovement[];
+  overallScore: number;
+  closingAdvice: string;
 };
 
 export type ResumeInterviewStats = {

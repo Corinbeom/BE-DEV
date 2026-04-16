@@ -69,6 +69,10 @@ public class ResumeSession {
     @Column
     private LocalDateTime completedAt;
 
+    @Lob
+    @Column
+    private String reportJson;
+
     @BatchSize(size = 50)
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
@@ -150,6 +154,14 @@ public class ResumeSession {
 
     public LocalDateTime getCompletedAt() {
         return completedAt;
+    }
+
+    public String getReportJson() {
+        return reportJson;
+    }
+
+    public void setReportJson(String reportJson) {
+        this.reportJson = reportJson;
     }
 
     public List<ResumeQuestion> getQuestions() {
