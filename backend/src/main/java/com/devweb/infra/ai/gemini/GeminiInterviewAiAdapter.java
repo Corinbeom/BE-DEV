@@ -227,10 +227,26 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return new CsQuizAiPort.GeneratedFeedback(payload.strengths(), payload.improvements(), payload.suggestedAnswer(), payload.followups());
     }
 
+    @Override
+    public InterviewAiPort.GeneratedSessionReport generateSessionReport(String systemInstruction, String sessionData) {
+        requireApiKey();
+
+        String prompt = AiPromptBuilder.buildSessionReportPrompt(sessionData);
+        Map<String, Object> schema = sessionReportResponseSchema();
+
+        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, schema, RetryProfile.SESSION_REPORT);
+        try {
+            return objectMapper.treeToValue(json, InterviewAiPort.GeneratedSessionReport.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Gemini 세션 리포트 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
     private enum RetryProfile {
         QUESTIONS,
         QUIZ_QUESTIONS,
-        FEEDBACK
+        FEEDBACK,
+        SESSION_REPORT
     }
 
     private JsonNode generateStructuredJsonWithRetry(
@@ -306,6 +322,17 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - suggestedAnswer는 500자 이내로 짧게 작성하세요.
                     - followups는 최대 2개로 제한하세요.
                     """;
+            case SESSION_REPORT -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                    - executiveSummary는 300자 이내로 짧게 작성하세요.
+                    - topImprovements는 정확히 3개로 유지하세요.
+                    - closingAdvice는 200자 이내로 짧게 작성하세요.
+                    """;
         };
     }
 
@@ -343,6 +370,18 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - strengths/improvements는 최대 2개로 제한하세요.
                     - suggestedAnswer는 250자 이내로 아주 짧게 작성하세요.
                     - followups는 최대 1개로 제한하세요.
+                    """;
+            case SESSION_REPORT -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                    - executiveSummary는 200자 이내로 아주 짧게 작성하세요.
+                    - badgeSummary의 strengths/weaknesses는 최대 2개로 제한하세요.
+                    - topImprovements는 정확히 3개, description은 150자 이내로 아주 짧게 작성하세요.
+                    - closingAdvice는 150자 이내로 아주 짧게 작성하세요.
                     """;
         };
     }
@@ -499,6 +538,39 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                 "followups", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 10)
         ));
         schema.put("required", List.of("strengths", "improvements", "suggestedAnswer", "followups"));
+        return schema;
+    }
+
+    private static Map<String, Object> sessionReportResponseSchema() {
+        Map<String, Object> improvementItem = new LinkedHashMap<>();
+        improvementItem.put("type", "object");
+        improvementItem.put("properties", Map.of(
+                "title", Map.of("type", "string", "maxLength", 100),
+                "description", Map.of("type", "string", "maxLength", 500)
+        ));
+        improvementItem.put("required", List.of("title", "description"));
+
+        Map<String, Object> badgeSummaryItem = new LinkedHashMap<>();
+        badgeSummaryItem.put("type", "object");
+        badgeSummaryItem.put("properties", Map.of(
+                "badge", Map.of("type", "string", "maxLength", 100),
+                "summary", Map.of("type", "string", "maxLength", 500),
+                "strengths", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 5),
+                "weaknesses", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 5)
+        ));
+        badgeSummaryItem.put("required", List.of("badge", "summary", "strengths", "weaknesses"));
+
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", Map.of(
+                "executiveSummary", Map.of("type", "string", "maxLength", 800),
+                "badgeSummaries", Map.of("type", "array", "items", badgeSummaryItem, "minItems", 1, "maxItems", 10),
+                "repeatedGaps", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 1, "maxItems", 5),
+                "topImprovements", Map.of("type", "array", "items", improvementItem, "minItems", 1, "maxItems", 3),
+                "overallScore", Map.of("type", "integer"),
+                "closingAdvice", Map.of("type", "string", "maxLength", 500)
+        ));
+        schema.put("required", List.of("executiveSummary", "badgeSummaries", "repeatedGaps", "topImprovements", "overallScore", "closingAdvice"));
         return schema;
     }
 

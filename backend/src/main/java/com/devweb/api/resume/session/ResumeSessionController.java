@@ -3,6 +3,7 @@ package com.devweb.api.resume.session;
 import com.devweb.api.resume.session.dto.CreateResumeSessionRequest;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
+import com.devweb.api.resume.session.dto.SessionReportResponse;
 import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
 import com.devweb.domain.resume.session.model.ResumeSession;
@@ -66,6 +67,20 @@ public class ResumeSessionController {
         Long memberId = AuthUtils.currentMemberId();
         ResumeSession completed = service.complete(id, memberId);
         return ApiResponse.success(ResumeSessionResponse.from(completed));
+    }
+
+    @Operation(summary = "AI 회고 리포트 생성", description = "세션 데이터를 분석하여 AI 회고 리포트를 생성합니다. 이미 생성된 리포트가 있으면 캐시된 결과를 반환합니다.")
+    @PostMapping("/{id}/report")
+    public ApiResponse<SessionReportResponse> generateReport(@PathVariable Long id) {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(service.generateReport(id, memberId));
+    }
+
+    @Operation(summary = "AI 회고 리포트 조회", description = "이미 생성된 AI 회고 리포트를 조회합니다.")
+    @GetMapping("/{id}/report")
+    public ApiResponse<SessionReportResponse> getReport(@PathVariable Long id) {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(service.getReport(id, memberId));
     }
 
     @Operation(summary = "세션 삭제", description = "이력서 분석 세션을 삭제합니다.")

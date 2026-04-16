@@ -4,6 +4,7 @@ import {
   createResumeFeedback,
   createResumeSession,
   deleteResumeSession,
+  generateSessionReport,
 } from "../api/resumeSessionApi";
 
 export function useCreateResumeSession() {
@@ -34,6 +35,17 @@ export function useCompleteResumeSession() {
     mutationFn: completeResumeSession,
     onSuccess: (session) => {
       queryClient.setQueryData(["resumeSession", session.id], session);
+      queryClient.invalidateQueries({ queryKey: ["resumeSessions"] });
+    },
+  });
+}
+
+export function useGenerateSessionReport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: generateSessionReport,
+    onSuccess: (_report, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: ["resumeSession", sessionId] });
       queryClient.invalidateQueries({ queryKey: ["resumeSessions"] });
     },
   });
