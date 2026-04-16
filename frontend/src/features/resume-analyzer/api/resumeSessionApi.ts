@@ -1,5 +1,6 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
 import type {
+  CoachingReport,
   PositionType,
   ResumeFeedback,
   ResumeInterviewStats,
@@ -101,6 +102,27 @@ export async function getSessionReport(sessionId: number) {
   );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message ?? "리포트 조회에 실패했습니다.");
+  }
+  return res.data;
+}
+
+export async function getCoachingReport() {
+  const res = await apiFetch<ApiResponse<CoachingReport | null>>(
+    "/api/resume-sessions/coaching-report",
+  );
+  if (!res.success) {
+    throw new Error(res.error?.message ?? "코칭 리포트 조회에 실패했습니다.");
+  }
+  return res.data ?? null;
+}
+
+export async function generateCoachingReport() {
+  const res = await apiFetch<ApiResponse<CoachingReport>>(
+    "/api/resume-sessions/coaching-report",
+    { method: "POST" },
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "AI 코칭 리포트 생성에 실패했습니다.");
   }
   return res.data;
 }

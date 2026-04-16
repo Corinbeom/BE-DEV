@@ -211,9 +211,21 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         }
     }
 
+    @Override
+    public InterviewAiPort.GeneratedCoachingReport generateCoachingReport(String systemInstruction, String coachingData) {
+        requireApiKey();
+        String prompt = AiPromptBuilder.buildCoachingReportPrompt(coachingData);
+        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, RetryProfile.COACHING);
+        try {
+            return objectMapper.treeToValue(json, InterviewAiPort.GeneratedCoachingReport.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Groq 코칭 리포트 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
     // ===== Retry & HTTP =====
 
-    private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK, SESSION_REPORT }
+    private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK, SESSION_REPORT, COACHING }
 
     private JsonNode generateStructuredJsonWithRetry(String systemInstruction, String userPrompt, RetryProfile profile) {
         log.debug("Groq API 호출 시작: profile={}", profile);
@@ -391,6 +403,18 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - topImprovements는 정확히 3개로 유지하세요.
                     - closingAdvice는 200자 이내로 짧게 작성하세요.
                     """;
+            case COACHING -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                    - overallAssessment는 400자 이내로 짧게 작성하세요.
+                    - growthTrajectory는 400자 이내로 짧게 작성하세요.
+                    - learningPlan은 정확히 3개로 제한하세요.
+                    - nextSteps는 300자 이내로 짧게 작성하세요.
+                    """;
         };
     }
 
@@ -440,6 +464,19 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - badgeSummary의 strengths/weaknesses는 최대 2개로 제한하세요.
                     - topImprovements는 정확히 3개, description은 150자 이내로 아주 짧게 작성하세요.
                     - closingAdvice는 150자 이내로 아주 짧게 작성하세요.
+                    """;
+            case COACHING -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                    - overallAssessment는 300자 이내로 아주 짧게 작성하세요.
+                    - growthTrajectory는 300자 이내로 아주 짧게 작성하세요.
+                    - persistentStrengths/persistentWeaknesses는 각 최대 3개로 제한하세요.
+                    - learningPlan은 정확히 3개, action은 150자 이내로 아주 짧게 작성하세요.
+                    - nextSteps는 200자 이내로 아주 짧게 작성하세요.
                     """;
         };
     }

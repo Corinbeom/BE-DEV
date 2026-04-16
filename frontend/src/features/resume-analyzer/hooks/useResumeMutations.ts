@@ -4,6 +4,7 @@ import {
   createResumeFeedback,
   createResumeSession,
   deleteResumeSession,
+  generateCoachingReport,
   generateSessionReport,
 } from "../api/resumeSessionApi";
 
@@ -48,6 +49,16 @@ export function useGenerateSessionReport() {
       // 상세 세션 쿼리를 invalidate하면 부모가 refetch되면서 mutation 상태가
       // 초기화되어 무한 로딩으로 보인다. 목록만 갱신한다.
       queryClient.invalidateQueries({ queryKey: ["resumeSessions"] });
+    },
+  });
+}
+
+export function useGenerateCoachingReport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: generateCoachingReport,
+    onSuccess: (data) => {
+      queryClient.setQueryData(["coachingReport"], data);
     },
   });
 }

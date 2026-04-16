@@ -332,6 +332,57 @@ public final class AiPromptBuilder {
                 """.formatted(nullToEmpty(sessionData));
     }
 
+    public static String buildCoachingReportPrompt(String coachingData) {
+        return """
+                아래는 한 사용자의 여러 면접 연습 세션에서 수집된 종합 데이터입니다.
+                다수 세션의 리포트와 통계를 분석하여, 장기적 성장 추이와 맞춤 학습 계획을 포함한 AI 코칭 리포트를 생성하세요.
+
+                출력은 반드시 아래 JSON 스키마를 정확히 따르세요:
+                {
+                  "overallAssessment": "전반적인 면접 준비 수준 종합 평가 (3~5문장). 전체 세션 데이터를 관통하는 패턴과 수준을 분석.",
+                  "growthTrajectory": "성장 궤적 분석 (3~5문장). 초기 세션 대비 최근 세션에서 어떤 변화가 있는지, 점수 추이와 개선/퇴보 영역을 구체적으로 서술.",
+                  "persistentStrengths": ["여러 세션에 걸쳐 지속적으로 나타나는 강점 (3~5개)"],
+                  "persistentWeaknesses": ["여러 세션에 걸쳐 반복적으로 나타나는 약점 (3~5개)"],
+                  "learningPlan": [
+                    {
+                      "priority": 1,
+                      "area": "학습 영역",
+                      "action": "구체적인 학습 방법/행동 (2~3문장)",
+                      "reason": "이 영역을 우선 개선해야 하는 이유 (1~2문장)"
+                    }
+                  ],
+                  "readinessScore": 7,
+                  "nextSteps": "다음 면접 준비를 위한 구체적 제안 (2~4문장)"
+                }
+
+                각 필드 설명:
+                - overallAssessment: 모든 세션 데이터를 종합한 전반적 면접 준비 수준 평가.
+                - growthTrajectory: 시간 순서대로 세션을 비교하여 성장/정체/퇴보 패턴 분석.
+                - persistentStrengths: 단일 세션이 아닌, 여러 세션에 걸쳐 반복되는 강점.
+                - persistentWeaknesses: 여러 세션에 걸쳐 해결되지 않은 약점.
+                - learningPlan: 우선순위별 학습 계획 (3~5개). priority는 1부터 시작. 구체적이고 실행 가능해야 함.
+                - readinessScore: 1~10 정수. 현재 면접 준비 완성도.
+                - nextSteps: 다음 면접까지 해야 할 구체적인 행동 제안.
+
+                규칙:
+                - 과장/추측 금지. 제공된 데이터에서만 근거를 잡아주세요.
+                - 세션이 1개뿐이면 growthTrajectory에 '단일 세션이므로 추이 분석 불가'라고 명시하세요.
+                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                - 길이 제한:
+                  - overallAssessment: 600자 이내
+                  - growthTrajectory: 600자 이내
+                  - persistentStrengths/persistentWeaknesses 각 항목: 150자 이내
+                  - learningPlan.action: 300자 이내
+                  - learningPlan.reason: 200자 이내
+                  - nextSteps: 400자 이내
+
+                [CoachingData]
+                %s
+                """.formatted(nullToEmpty(coachingData));
+    }
+
     public static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }
