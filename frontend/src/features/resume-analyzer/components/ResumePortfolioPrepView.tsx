@@ -174,6 +174,22 @@ export function ResumePortfolioPrepView() {
       answerText: activeAnswer,
     });
     setFeedbackByQuestion((prev) => ({ ...prev, [activeQuestionId]: fb }));
+
+    // 서버 캐시의 attempts 배열을 즉시 갱신하여 카운터가 반영되도록 한다.
+    queryClient.setQueryData(
+      ["resumeSession", sessionId],
+      (old: ResumeSession | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          questions: old.questions.map((q) =>
+            q.id === activeQuestionId
+              ? { ...q, attempts: [...q.attempts, fb] }
+              : q
+          ),
+        };
+      }
+    );
   }
 
   function goToNextQuestion() {
@@ -763,63 +779,95 @@ export function ResumePortfolioPrepView() {
               {/* Answer Area */}
               <Card>
                 <CardContent className="flex flex-col gap-4 p-5">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="material-symbols-outlined text-sm">
-                      lightbulb
-                    </span>
-                    팁: STAR 기법(Situation, Task, Action, Result)을 활용해
-                    보세요.
-                  </div>
-
-                  <Textarea
-                    className="min-h-[220px] resize-none border-none bg-muted/30 p-4 text-base leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/20"
-                    placeholder="여기에 답변을 작성해 보세요..."
-                    value={activeAnswer}
-                    onChange={(e) => {
-                      if (!activeQuestionId) return;
-                      const v = e.target.value;
-                      setAnswersByQuestion((prev) => ({
-                        ...prev,
-                        [activeQuestionId]: v,
-                      }));
-                    }}
-                  />
-
-                  <div className="flex items-center justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!questions.length}
-                      onClick={goToNextQuestion}
-                    >
-                      <span className="material-symbols-outlined mr-1 text-sm">
-                        navigate_next
-                      </span>
-                      다음 질문
-                    </Button>
-
-                    <Button
-                      className="gap-2 px-6 shadow-md shadow-primary/15"
-                      disabled={!activeQuestionId || isBusy || !activeAnswer.trim()}
-                      onClick={() => void onCreateFeedback()}
-                    >
-                      {createFeedback.isPending ? (
-                        <>
-                          <span className="material-symbols-outlined animate-spin text-sm">
-                            progress_activity
+                  {(() => {
+                    const attemptCount = activeQuestion.attempts.length;
+                    const maxAttempts = activeQuestion.maxAttempts;
+                    const isAtMax = attemptCount >= maxAttempts;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="material-symbols-outlined text-sm">
+                              lightbulb
+                            </span>
+                            팁: STAR 기법(Situation, Task, Action, Result)을 활용해
+                            보세요.
+                          </div>
+                          <span
+                            className={cn(
+                              "text-xs font-semibold tabular-nums",
+                              isAtMax
+                                ? "text-destructive"
+                                : attemptCount > 0
+                                  ? "text-amber-600"
+                                  : "text-muted-foreground"
+                            )}
+                          >
+                            답변 횟수 {attemptCount}/{maxAttempts}회
                           </span>
-                          피드백 생성 중...
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined text-sm">
-                            auto_fix_high
-                          </span>
-                          AI 피드백 받기
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                        </div>
+
+                        {isAtMax ? (
+                          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                            <span className="material-symbols-outlined text-base">
+                              block
+                            </span>
+                            최대 답변 횟수({maxAttempts}회)에 도달했습니다. 새 세션을 시작해 주세요.
+                          </div>
+                        ) : (
+                          <Textarea
+                            className="min-h-[220px] resize-none border-none bg-muted/30 p-4 text-base leading-relaxed placeholder:text-muted-foreground/50 focus-visible:ring-primary/20"
+                            placeholder="여기에 답변을 작성해 보세요..."
+                            value={activeAnswer}
+                            onChange={(e) => {
+                              if (!activeQuestionId) return;
+                              const v = e.target.value;
+                              setAnswersByQuestion((prev) => ({
+                                ...prev,
+                                [activeQuestionId]: v,
+                              }));
+                            }}
+                          />
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!questions.length}
+                            onClick={goToNextQuestion}
+                          >
+                            <span className="material-symbols-outlined mr-1 text-sm">
+                              navigate_next
+                            </span>
+                            다음 질문
+                          </Button>
+
+                          <Button
+                            className="gap-2 px-6 shadow-md shadow-primary/15"
+                            disabled={!activeQuestionId || isBusy || !activeAnswer.trim() || isAtMax}
+                            onClick={() => void onCreateFeedback()}
+                          >
+                            {createFeedback.isPending ? (
+                              <>
+                                <span className="material-symbols-outlined animate-spin text-sm">
+                                  progress_activity
+                                </span>
+                                피드백 생성 중...
+                              </>
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-sm">
+                                  auto_fix_high
+                                </span>
+                                AI 피드백 받기
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </CardContent>
               </Card>
 

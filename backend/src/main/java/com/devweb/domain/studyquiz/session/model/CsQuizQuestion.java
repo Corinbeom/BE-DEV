@@ -12,6 +12,8 @@ import java.util.List;
 @Table(name = "cs_quiz_questions")
 public class CsQuizQuestion {
 
+    public static final int MAX_ATTEMPTS = 3;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -125,6 +127,10 @@ public class CsQuizQuestion {
     void attachTo(CsQuizSession session) {
         if (session == null) throw new IllegalArgumentException("session은 필수입니다.");
         this.session = session;
+    }
+
+    public boolean canAttempt() {
+        return attempts.size() < MAX_ATTEMPTS;
     }
 
     public CsQuizAttempt addAttempt(String answerText, Integer selectedChoiceIndex, Boolean correct, CsQuizFeedback feedback) {

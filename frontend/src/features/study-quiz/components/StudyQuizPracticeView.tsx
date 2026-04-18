@@ -542,46 +542,56 @@ export function StudyQuizPracticeView() {
                     </Button>
 
                     <div className="flex flex-col items-end gap-1">
-                      <Button
-                        className="gap-2 px-6 shadow-md shadow-primary/15"
-                        disabled={
-                          !activeQuestion ||
-                          submitAttempt.isPending ||
-                          !!activeAttempt ||
-                          (activeQuestion.type === "MULTIPLE_CHOICE" &&
-                            typeof mcqSelectedIndexByQuestion[
-                              activeQuestion.id
-                            ] !== "number") ||
-                          (activeQuestion.type === "SHORT_ANSWER" &&
-                            !(
-                              saAnswerByQuestion[activeQuestion.id] ?? ""
-                            ).trim())
-                        }
-                        onClick={() => void onSubmit()}
-                      >
-                        {submitAttempt.isPending ? (
-                          <>
-                            <span className="material-symbols-outlined animate-spin text-sm">
-                              progress_activity
-                            </span>
-                            채점 중...
-                          </>
-                        ) : activeAttempt ? (
-                          <>
-                            <span className="material-symbols-outlined text-sm">
-                              check_circle
-                            </span>
-                            제출 완료
-                          </>
-                        ) : (
-                          <>
-                            <span className="material-symbols-outlined text-sm">
-                              send
-                            </span>
-                            제출하고 피드백 받기
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "text-xs font-semibold tabular-nums",
+                            activeAttempt ? "text-amber-600" : "text-muted-foreground"
+                          )}
+                        >
+                          답변 횟수 {activeAttempt ? 1 : 0}/3회
+                        </span>
+                        <Button
+                          className="gap-2 px-6 shadow-md shadow-primary/15"
+                          disabled={
+                            !activeQuestion ||
+                            submitAttempt.isPending ||
+                            !!activeAttempt ||
+                            (activeQuestion.type === "MULTIPLE_CHOICE" &&
+                              typeof mcqSelectedIndexByQuestion[
+                                activeQuestion.id
+                              ] !== "number") ||
+                            (activeQuestion.type === "SHORT_ANSWER" &&
+                              !(
+                                saAnswerByQuestion[activeQuestion.id] ?? ""
+                              ).trim())
+                          }
+                          onClick={() => void onSubmit()}
+                        >
+                          {submitAttempt.isPending ? (
+                            <>
+                              <span className="material-symbols-outlined animate-spin text-sm">
+                                progress_activity
+                              </span>
+                              채점 중...
+                            </>
+                          ) : activeAttempt ? (
+                            <>
+                              <span className="material-symbols-outlined text-sm">
+                                check_circle
+                              </span>
+                              제출 완료
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-sm">
+                                send
+                              </span>
+                              제출하고 피드백 받기
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       {submitAttempt.isPending && (
                         <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
                           <div className="animate-progress-indeterminate h-full rounded-full bg-primary" />

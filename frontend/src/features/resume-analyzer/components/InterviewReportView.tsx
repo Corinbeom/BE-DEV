@@ -9,12 +9,27 @@ import { useGenerateCoachingReport } from "../hooks/useResumeMutations";
 import { InterviewReportSection } from "./InterviewReportSection";
 import type { CoachingReport } from "../api/types";
 
+function getCooldownRemainingMs(generatedAt?: string): number {
+  if (!generatedAt) return 0;
+  const cooldownEnd = new Date(generatedAt).getTime() + 24 * 60 * 60 * 1000;
+  return Math.max(0, cooldownEnd - Date.now());
+}
+
+function formatRemainingTime(ms: number): string {
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return `${hours}시간 ${minutes}분 후 재분석 가능`;
+  return `${minutes}분 후 재분석 가능`;
+}
+
 export function InterviewReportView() {
   const { data: stats, isLoading } = useResumeInterviewStats();
   const { data: cachedReport, isLoading: isLoadingCoaching } = useCoachingReport();
   const coaching = useGenerateCoachingReport();
 
   const coachingReport = coaching.data ?? cachedReport ?? null;
+  const cooldownMs = getCooldownRemainingMs(coachingReport?.generatedAt);
+  const isInCooldown = cooldownMs > 0;
 
   const hasData =
     stats && stats.badgeStats.length > 0 && stats.attemptedQuestions > 0;
@@ -79,17 +94,24 @@ export function InterviewReportView() {
                     </h4>
                   </div>
                   {coachingReport && !coaching.isPending && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => coaching.mutate()}
-                      disabled={coaching.isPending}
-                    >
-                      <span className="material-symbols-outlined mr-1 text-sm">
-                        refresh
-                      </span>
-                      최신 데이터로 재분석
-                    </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => coaching.mutate()}
+                        disabled={coaching.isPending || isInCooldown}
+                      >
+                        <span className="material-symbols-outlined mr-1 text-sm">
+                          refresh
+                        </span>
+                        최신 데이터로 재분석
+                      </Button>
+                      {isInCooldown && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatRemainingTime(cooldownMs)}
+                        </span>
+                      )}
+                    </div>
                   )}
                   {!coachingReport && !coaching.isPending && (
                     <Button

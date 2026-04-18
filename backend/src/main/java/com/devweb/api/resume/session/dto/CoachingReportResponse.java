@@ -20,7 +20,9 @@ public record CoachingReportResponse(
         @Schema(description = "면접 준비 완성도 (1~10)", example = "7")
         int readinessScore,
         @Schema(description = "다음 면접을 위한 구체적 행동 제안")
-        String nextSteps
+        String nextSteps,
+        @Schema(description = "리포트 생성 시각 (ISO-8601). 쿨다운 계산용.", nullable = true)
+        String generatedAt
 ) implements Serializable {
 
     public record LearningPlanItem(
