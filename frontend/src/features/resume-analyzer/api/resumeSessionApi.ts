@@ -1,9 +1,11 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
 import type {
+  CoachingReport,
   PositionType,
   ResumeFeedback,
   ResumeInterviewStats,
   ResumeSession,
+  SessionReport,
 } from "./types";
 
 export async function createResumeSession(input: {
@@ -62,12 +64,65 @@ export async function deleteResumeSession(sessionId: number) {
   }
 }
 
+export async function completeResumeSession(sessionId: number) {
+  const res = await apiFetch<ApiResponse<ResumeSession>>(
+    `/api/resume-sessions/${sessionId}/complete`,
+    { method: "POST" },
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "세션 완료 처리에 실패했습니다.");
+  }
+  return res.data;
+}
+
 export async function getResumeInterviewStats() {
   const res = await apiFetch<ApiResponse<ResumeInterviewStats>>(
     "/api/resume-sessions/stats",
   );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message ?? "면접 통계 조회에 실패했습니다.");
+  }
+  return res.data;
+}
+
+export async function generateSessionReport(sessionId: number) {
+  const res = await apiFetch<ApiResponse<SessionReport>>(
+    `/api/resume-sessions/${sessionId}/report`,
+    { method: "POST" },
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "AI 리포트 생성에 실패했습니다.");
+  }
+  return res.data;
+}
+
+export async function getSessionReport(sessionId: number) {
+  const res = await apiFetch<ApiResponse<SessionReport>>(
+    `/api/resume-sessions/${sessionId}/report`,
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "리포트 조회에 실패했습니다.");
+  }
+  return res.data;
+}
+
+export async function getCoachingReport() {
+  const res = await apiFetch<ApiResponse<CoachingReport | null>>(
+    "/api/resume-sessions/coaching-report",
+  );
+  if (!res.success) {
+    throw new Error(res.error?.message ?? "코칭 리포트 조회에 실패했습니다.");
+  }
+  return res.data ?? null;
+}
+
+export async function generateCoachingReport() {
+  const res = await apiFetch<ApiResponse<CoachingReport>>(
+    "/api/resume-sessions/coaching-report",
+    { method: "POST" },
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "AI 코칭 리포트 생성에 실패했습니다.");
   }
   return res.data;
 }

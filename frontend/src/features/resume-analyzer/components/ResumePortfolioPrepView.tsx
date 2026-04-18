@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import type {
   ResumeFeedback,
   ResumeQuestion,
   ResumeSession,
+  SessionReport,
 } from "../api/types";
 import {
   POSITION_CATEGORIES,
@@ -18,8 +19,10 @@ import {
   TECH_PRESETS,
 } from "../constants";
 import {
+  useCompleteResumeSession,
   useCreateResumeFeedback,
   useCreateResumeSession,
+  useGenerateSessionReport,
 } from "../hooks/useResumeMutations";
 import { useResumeSession } from "../hooks/useResumeSession";
 import { AnalysisProgressOverlay } from "./AnalysisProgressOverlay";
@@ -69,10 +72,39 @@ export function ResumePortfolioPrepView() {
 
   const createSession = useCreateResumeSession();
   const createFeedback = useCreateResumeFeedback();
+  const completeSession = useCompleteResumeSession();
   const sessionQuery = useResumeSession(sessionId);
 
   const session: ResumeSession | null = sessionQuery.data ?? null;
   const questions = useMemo(() => session?.questions ?? [], [session]);
+
+  // 서버에서 받은 세션의 attempts 를 로컬 state 로 1회 복원.
+  // 같은 sessionId 에 대해서는 한 번만 실행 (사용자가 새로 입력 중인 답변을 덮어쓰지 않도록).
+  const restoredSessionIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!sessionId) {
+      restoredSessionIdRef.current = null;
+      return;
+    }
+    if (restoredSessionIdRef.current === sessionId) return;
+    if (questions.length === 0) return;
+
+    const initialAnswers: Record<number, string> = {};
+    const initialFeedback: Record<number, ResumeFeedback> = {};
+    for (const q of questions) {
+      if (q.attempts && q.attempts.length > 0) {
+        const latest = q.attempts[q.attempts.length - 1];
+        initialAnswers[q.id] = latest.answerText;
+        initialFeedback[q.id] = latest;
+      }
+    }
+    setAnswersByQuestion(initialAnswers);
+    setFeedbackByQuestion(initialFeedback);
+    if (!activeQuestionId && questions[0]) {
+      setActiveQuestionId(questions[0].id);
+    }
+    restoredSessionIdRef.current = sessionId;
+  }, [sessionId, questions, activeQuestionId]);
 
   const activeQuestion = useMemo(() => {
     if (!activeQuestionId) return null;
@@ -89,6 +121,8 @@ export function ResumePortfolioPrepView() {
   const attemptedCount = Object.keys(feedbackByQuestion).length;
   const totalCount = questions.length;
   const progressPercent = totalCount > 0 ? (attemptedCount / totalCount) * 100 : 0;
+  const isCompleted = session?.status === "COMPLETED";
+  const allAnswered = totalCount > 0 && attemptedCount >= totalCount;
 
   const [showOverlay, setShowOverlay] = useState(false);
 
@@ -145,8 +179,12 @@ export function ResumePortfolioPrepView() {
   function goToNextQuestion() {
     if (!questions.length) return;
     const idx = questions.findIndex((q) => q.id === activeQuestionId);
-    const next = questions[(idx + 1) % questions.length];
-    setActiveQuestionId(next.id);
+    if (idx === -1 || idx >= questions.length - 1) {
+      // 마지막 질문 — 더 이상 이동하지 않음
+      toast.info("마지막 질문입니다. 답변을 마치면 세션을 완료해 주세요.");
+      return;
+    }
+    setActiveQuestionId(questions[idx + 1].id);
   }
 
   function resetSession() {
@@ -154,6 +192,19 @@ export function ResumePortfolioPrepView() {
     setActiveQuestionId(null);
     setAnswersByQuestion({});
     setFeedbackByQuestion({});
+  }
+
+  async function onCompleteSession() {
+    if (!sessionId) return;
+    if (isCompleted) return;
+    try {
+      await completeSession.mutateAsync(sessionId);
+      toast.success("세션을 완료했습니다.");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "세션 완료 처리에 실패했습니다."
+      );
+    }
   }
 
   // Parse comma-separated keywords string into array
@@ -580,7 +631,7 @@ export function ResumePortfolioPrepView() {
             <span className="text-sm text-muted-foreground">
               <span className="font-bold text-foreground">{attemptedCount}</span>
               {" / "}
-              {totalCount} 완료
+              {totalCount} 답변
             </span>
             <div className="h-2 w-24 overflow-hidden rounded-full bg-muted">
               <div
@@ -589,6 +640,20 @@ export function ResumePortfolioPrepView() {
               />
             </div>
           </div>
+
+          {!isCompleted && (
+            <Button
+              variant={allAnswered ? "default" : "outline"}
+              size="sm"
+              disabled={completeSession.isPending}
+              onClick={() => void onCompleteSession()}
+            >
+              <span className="material-symbols-outlined mr-1 text-sm">
+                {completeSession.isPending ? "progress_activity" : "task_alt"}
+              </span>
+              {completeSession.isPending ? "완료 처리 중..." : "세션 완료하기"}
+            </Button>
+          )}
 
           <Button variant="outline" size="sm" onClick={resetSession}>
             <span className="material-symbols-outlined mr-1 text-sm">
@@ -599,7 +664,19 @@ export function ResumePortfolioPrepView() {
         </div>
       </div>
 
+      {/* Completed view replaces practice grid */}
+      {isCompleted && (
+        <SessionCompletedView
+          session={session}
+          attemptedCount={attemptedCount}
+          totalCount={totalCount}
+          feedbackByQuestion={feedbackByQuestion}
+          onResetSession={resetSession}
+        />
+      )}
+
       {/* Main: Question Nav + Answer/Feedback */}
+      {!isCompleted && (
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         {/* Left: Question Navigation */}
         <aside className="xl:col-span-3">
@@ -763,6 +840,7 @@ export function ResumePortfolioPrepView() {
           )}
         </main>
       </div>
+      )}
 
       <AnalysisProgressOverlay
         isActive={showOverlay && createSession.isPending}
@@ -1044,6 +1122,391 @@ function FeedbackPanel({
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+// ─── Session Completed View ───
+function SessionCompletedView({
+  session,
+  attemptedCount,
+  totalCount,
+  feedbackByQuestion,
+  onResetSession,
+}: {
+  session: ResumeSession;
+  attemptedCount: number;
+  totalCount: number;
+  feedbackByQuestion: Record<number, ResumeFeedback>;
+  onResetSession: () => void;
+}) {
+  const feedbacks = Object.values(feedbackByQuestion);
+  const totalStrengths = feedbacks.reduce((sum, f) => sum + f.strengths.length, 0);
+  const totalImprovements = feedbacks.reduce(
+    (sum, f) => sum + f.improvements.length,
+    0
+  );
+  const avgStrengths =
+    feedbacks.length > 0
+      ? Math.round((totalStrengths / feedbacks.length) * 10) / 10
+      : 0;
+  const avgImprovements =
+    feedbacks.length > 0
+      ? Math.round((totalImprovements / feedbacks.length) * 10) / 10
+      : 0;
+
+  const completedAtLabel = session.completedAt
+    ? new Date(session.completedAt).toLocaleString("ko-KR")
+    : null;
+
+  const generateReport = useGenerateSessionReport();
+  const reportRequestedRef = useRef(false);
+
+  useEffect(() => {
+    if (reportRequestedRef.current) return;
+    if (!session.id) return;
+    reportRequestedRef.current = true;
+    generateReport.mutate(session.id);
+  }, [session.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const report = generateReport.data ?? null;
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      {/* Hero */}
+      <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+        <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <span className="material-symbols-outlined text-4xl">task_alt</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              면접 세션을 완료했습니다
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              수고하셨어요. 이번 세션의 결과를 정리했습니다.
+            </p>
+            {completedAtLabel && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                완료 시각: {completedAtLabel}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <Card>
+        <CardContent className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-3">
+          <StatTile
+            icon="quiz"
+            label="답변한 질문"
+            value={`${attemptedCount} / ${totalCount}`}
+            tone="primary"
+          />
+          <StatTile
+            icon="thumb_up"
+            label="평균 강점 수"
+            value={avgStrengths.toString()}
+            tone="emerald"
+          />
+          <StatTile
+            icon="tips_and_updates"
+            label="평균 개선점 수"
+            value={avgImprovements.toString()}
+            tone="amber"
+          />
+        </CardContent>
+      </Card>
+
+      {/* AI 회고 리포트 */}
+      {generateReport.isPending ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 p-8">
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+              <span className="material-symbols-outlined animate-spin text-2xl text-primary">
+                progress_activity
+              </span>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-foreground">
+                AI 회고 리포트 생성 중...
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                세션 데이터를 분석하고 있습니다. 잠시만 기다려 주세요.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : generateReport.isError ? (
+        <Card className="border-destructive/30">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+              <span className="material-symbols-outlined">error</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                리포트 생성에 실패했습니다
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {generateReport.error instanceof Error
+                  ? generateReport.error.message
+                  : "알 수 없는 오류"}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                generateReport.mutate(session.id);
+              }}
+            >
+              재시도
+            </Button>
+          </CardContent>
+        </Card>
+      ) : report ? (
+        <SessionReportCard report={report} />
+      ) : null}
+
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link href="/resume-analyzer">
+          <Button variant="outline" size="lg">
+            <span className="material-symbols-outlined mr-1 text-sm">
+              arrow_back
+            </span>
+            세션 목록으로
+          </Button>
+        </Link>
+        <Link href="/resume-analyzer/report">
+          <Button variant="outline" size="lg">
+            <span className="material-symbols-outlined mr-1 text-sm">
+              analytics
+            </span>
+            누적 리포트 보기
+          </Button>
+        </Link>
+        <Button size="lg" onClick={onResetSession}>
+          <span className="material-symbols-outlined mr-1 text-sm">add</span>
+          새 세션 시작
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Session Report Card ───
+function SessionReportCard({ report }: { report: SessionReport }) {
+  const scoreColor =
+    report.overallScore >= 8
+      ? "text-emerald-600 dark:text-emerald-400"
+      : report.overallScore >= 5
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-red-600 dark:text-red-400";
+
+  return (
+    <div className="space-y-4">
+      {/* Header + Score */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <span className="material-symbols-outlined">auto_awesome</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-foreground">
+                  AI 회고 리포트
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">종합 점수</span>
+                  <span className={cn("text-2xl font-bold", scoreColor)}>
+                    {report.overallScore}
+                  </span>
+                  <span className="text-xs text-muted-foreground">/10</span>
+                </div>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {report.executiveSummary}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Badge Summaries */}
+      {report.badgeSummaries.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">
+                category
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                유형별 분석
+              </p>
+            </div>
+            <div className="space-y-4">
+              {report.badgeSummaries.map((bs) => (
+                <div key={bs.badge} className="rounded-lg border border-border/60 p-3">
+                  <Badge variant="secondary" className="mb-2 text-[10px]">
+                    {bs.badge}
+                  </Badge>
+                  <p className="text-sm text-muted-foreground">{bs.summary}</p>
+                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {bs.strengths.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          강점
+                        </p>
+                        <ul className="space-y-1">
+                          {bs.strengths.map((s, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
+                              <span className="mt-0.5 text-emerald-500">•</span>
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {bs.weaknesses.length > 0 && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          약점
+                        </p>
+                        <ul className="space-y-1">
+                          {bs.weaknesses.map((w, i) => (
+                            <li key={i} className="flex items-start gap-1.5 text-xs text-foreground">
+                              <span className="mt-0.5 text-amber-500">•</span>
+                              {w}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Repeated Gaps */}
+      {report.repeatedGaps.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-destructive">
+                warning
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                반복 역량 갭
+              </p>
+            </div>
+            <ul className="space-y-2">
+              {report.repeatedGaps.map((gap, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-3 rounded-lg bg-destructive/5 p-3"
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-xs font-bold text-destructive">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm text-foreground">{gap}</p>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Top Improvements */}
+      {report.topImprovements.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm text-primary">
+                trending_up
+              </span>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Top 3 개선 포인트
+              </p>
+            </div>
+            <div className="space-y-3">
+              {report.topImprovements.map((imp, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3"
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      {imp.title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {imp.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Closing Advice */}
+      <Card className="border-emerald-200/50 bg-emerald-50/30 dark:border-emerald-900/30 dark:bg-emerald-950/10">
+        <CardContent className="flex items-start gap-3 p-5">
+          <span className="material-symbols-outlined mt-0.5 text-emerald-600 dark:text-emerald-400">
+            lightbulb
+          </span>
+          <p className="text-sm leading-relaxed text-foreground">
+            {report.closingAdvice}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  tone: "primary" | "emerald" | "amber";
+}) {
+  const toneClass =
+    tone === "emerald"
+      ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+      : tone === "amber"
+        ? "text-amber-600 dark:text-amber-400 bg-amber-500/10"
+        : "text-primary bg-primary/10";
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/60 p-3">
+      <div
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-lg",
+          toneClass
+        )}
+      >
+        <span className="material-symbols-outlined">{icon}</span>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <p className="text-lg font-bold text-foreground">{value}</p>
+      </div>
     </div>
   );
 }

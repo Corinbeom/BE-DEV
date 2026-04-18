@@ -62,7 +62,9 @@ class ResumeSessionControllerTest {
         ResumeSessionResponse dto = new ResumeSessionResponse(
                 20L, "테스트 세션", "BE", null,
                 ResumeSessionStatus.CREATED, List.of(),
-                LocalDateTime.now(), LocalDateTime.now()
+                0, 0, null,
+                LocalDateTime.now(), LocalDateTime.now(),
+                null, false
         );
         given(service.listByMemberCached(1L)).willReturn(List.of(dto));
 

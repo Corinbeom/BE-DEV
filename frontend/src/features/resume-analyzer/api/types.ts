@@ -4,7 +4,18 @@ export type ResumeSessionStatus =
   | "CREATED"
   | "EXTRACTED"
   | "QUESTIONS_READY"
+  | "COMPLETED"
   | "FAILED";
+
+export type ResumeFeedback = {
+  attemptId: number;
+  createdAt: string;
+  answerText: string;
+  strengths: string[];
+  improvements: string[];
+  suggestedAnswer: string | null;
+  followups: string[];
+};
 
 export type ResumeQuestion = {
   id: number;
@@ -15,6 +26,7 @@ export type ResumeQuestion = {
   intention: string | null;
   keywords: string | null;
   modelAnswer: string | null;
+  attempts: ResumeFeedback[];
 };
 
 export type ResumeSession = {
@@ -24,17 +36,13 @@ export type ResumeSession = {
   portfolioUrl: string | null;
   status: ResumeSessionStatus;
   questions: ResumeQuestion[];
+  totalQuestionCount: number;
+  answeredQuestionCount: number;
+  lastAttemptAt: string | null;
   createdAt: string;
   updatedAt: string;
-};
-
-export type ResumeFeedback = {
-  attemptId: number;
-  createdAt: string;
-  strengths: string[];
-  improvements: string[];
-  suggestedAnswer: string | null;
-  followups: string[];
+  completedAt: string | null;
+  hasReport: boolean;
 };
 
 export type FrequentItem = {
@@ -58,6 +66,44 @@ export type BadgeStats = {
   avgImprovements: number;
   topStrengths: FrequentItem[];
   topImprovements: FrequentItem[];
+};
+
+export type SessionReportBadgeSummary = {
+  badge: string;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+};
+
+export type SessionReportImprovement = {
+  title: string;
+  description: string;
+};
+
+export type SessionReport = {
+  executiveSummary: string;
+  badgeSummaries: SessionReportBadgeSummary[];
+  repeatedGaps: string[];
+  topImprovements: SessionReportImprovement[];
+  overallScore: number;
+  closingAdvice: string;
+};
+
+export type CoachingLearningPlanItem = {
+  priority: number;
+  area: string;
+  action: string;
+  reason: string;
+};
+
+export type CoachingReport = {
+  overallAssessment: string;
+  growthTrajectory: string;
+  persistentStrengths: string[];
+  persistentWeaknesses: string[];
+  learningPlan: CoachingLearningPlanItem[];
+  readinessScore: number;
+  nextSteps: string;
 };
 
 export type ResumeInterviewStats = {

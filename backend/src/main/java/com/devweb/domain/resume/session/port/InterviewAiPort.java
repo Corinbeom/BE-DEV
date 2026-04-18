@@ -17,5 +17,31 @@ public interface InterviewAiPort {
     }
 
     GeneratedFeedback generateFeedback(String systemInstruction, String question, String intention, String keywords, String modelAnswer, String answerText);
+
+    record BadgeSummary(String badge, String summary, List<String> strengths, List<String> weaknesses) {}
+    record Improvement(String title, String description) {}
+    record GeneratedSessionReport(
+            String executiveSummary,
+            List<BadgeSummary> badgeSummaries,
+            List<String> repeatedGaps,
+            List<Improvement> topImprovements,
+            int overallScore,
+            String closingAdvice
+    ) {}
+
+    GeneratedSessionReport generateSessionReport(String systemInstruction, String sessionData);
+
+    record LearningPlanItem(int priority, String area, String action, String reason) {}
+    record GeneratedCoachingReport(
+            String overallAssessment,
+            String growthTrajectory,
+            List<String> persistentStrengths,
+            List<String> persistentWeaknesses,
+            List<LearningPlanItem> learningPlan,
+            int readinessScore,
+            String nextSteps
+    ) {}
+
+    GeneratedCoachingReport generateCoachingReport(String systemInstruction, String coachingData);
 }
 

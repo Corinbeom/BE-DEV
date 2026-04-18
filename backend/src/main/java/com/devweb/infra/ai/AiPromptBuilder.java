@@ -279,6 +279,110 @@ public final class AiPromptBuilder {
         return sb.toString();
     }
 
+    public static String buildSessionReportPrompt(String sessionData) {
+        return """
+                아래는 한 면접 연습 세션의 전체 질문-답변-피드백 데이터입니다.
+                이 데이터를 종합 분석하여 면접 회고 리포트를 생성하세요.
+
+                출력은 반드시 아래 JSON 스키마를 정확히 따르세요:
+                {
+                  "executiveSummary": "전반적인 면접 준비 상태 요약 (2~4문장)",
+                  "badgeSummaries": [
+                    {
+                      "badge": "질문 분류명",
+                      "summary": "이 유형에 대한 종합 분석 (2~3문장)",
+                      "strengths": ["이 유형에서 잘한 점"],
+                      "weaknesses": ["이 유형에서 부족한 점"]
+                    }
+                  ],
+                  "repeatedGaps": ["세션 전체에서 반복적으로 나타난 역량 갭/약점"],
+                  "topImprovements": [
+                    {
+                      "title": "개선 포인트 제목",
+                      "description": "구체적인 개선 방법 (2~3문장)"
+                    }
+                  ],
+                  "overallScore": 7,
+                  "closingAdvice": "다음 면접을 위한 마무리 조언 (2~3문장)"
+                }
+
+                각 필드 설명:
+                - executiveSummary: 면접 준비 수준에 대한 전반적 평가. 강점과 약점을 균형 있게 언급.
+                - badgeSummaries: 질문 유형(badge)별 강점/약점 자연어 요약. 답변이 있는 유형만 포함.
+                - repeatedGaps: 여러 질문에 걸쳐 반복적으로 나타난 역량 갭 (2~5개).
+                - topImprovements: 다음 면접을 위한 가장 중요한 개선 포인트 3개. 구체적이고 실행 가능해야 함.
+                - overallScore: 1~10 정수. 전반적인 면접 준비 수준 점수.
+                - closingAdvice: 격려와 함께 다음 단계를 제시하는 마무리 조언.
+
+                규칙:
+                - 과장/추측 금지. 제공된 데이터에서만 근거를 잡아주세요.
+                - 미답변 질문은 '미답변'으로 명시하되, 점수/분석에서 별도로 다루세요.
+                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                - 길이 제한:
+                  - executiveSummary: 500자 이내
+                  - badgeSummary.summary: 300자 이내
+                  - repeatedGaps 각 항목: 150자 이내
+                  - improvement.description: 300자 이내
+                  - closingAdvice: 300자 이내
+
+                [SessionData]
+                %s
+                """.formatted(nullToEmpty(sessionData));
+    }
+
+    public static String buildCoachingReportPrompt(String coachingData) {
+        return """
+                아래는 한 사용자의 여러 면접 연습 세션에서 수집된 종합 데이터입니다.
+                다수 세션의 리포트와 통계를 분석하여, 장기적 성장 추이와 맞춤 학습 계획을 포함한 AI 코칭 리포트를 생성하세요.
+
+                출력은 반드시 아래 JSON 스키마를 정확히 따르세요:
+                {
+                  "overallAssessment": "전반적인 면접 준비 수준 종합 평가 (3~5문장). 전체 세션 데이터를 관통하는 패턴과 수준을 분석.",
+                  "growthTrajectory": "성장 궤적 분석 (3~5문장). 초기 세션 대비 최근 세션에서 어떤 변화가 있는지, 점수 추이와 개선/퇴보 영역을 구체적으로 서술.",
+                  "persistentStrengths": ["여러 세션에 걸쳐 지속적으로 나타나는 강점 (3~5개)"],
+                  "persistentWeaknesses": ["여러 세션에 걸쳐 반복적으로 나타나는 약점 (3~5개)"],
+                  "learningPlan": [
+                    {
+                      "priority": 1,
+                      "area": "학습 영역",
+                      "action": "구체적인 학습 방법/행동 (2~3문장)",
+                      "reason": "이 영역을 우선 개선해야 하는 이유 (1~2문장)"
+                    }
+                  ],
+                  "readinessScore": 7,
+                  "nextSteps": "다음 면접 준비를 위한 구체적 제안 (2~4문장)"
+                }
+
+                각 필드 설명:
+                - overallAssessment: 모든 세션 데이터를 종합한 전반적 면접 준비 수준 평가.
+                - growthTrajectory: 시간 순서대로 세션을 비교하여 성장/정체/퇴보 패턴 분석.
+                - persistentStrengths: 단일 세션이 아닌, 여러 세션에 걸쳐 반복되는 강점.
+                - persistentWeaknesses: 여러 세션에 걸쳐 해결되지 않은 약점.
+                - learningPlan: 우선순위별 학습 계획 (3~5개). priority는 1부터 시작. 구체적이고 실행 가능해야 함.
+                - readinessScore: 1~10 정수. 현재 면접 준비 완성도.
+                - nextSteps: 다음 면접까지 해야 할 구체적인 행동 제안.
+
+                규칙:
+                - 과장/추측 금지. 제공된 데이터에서만 근거를 잡아주세요.
+                - 세션이 1개뿐이면 growthTrajectory에 '단일 세션이므로 추이 분석 불가'라고 명시하세요.
+                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
+                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
+                - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
+                - 길이 제한:
+                  - overallAssessment: 600자 이내
+                  - growthTrajectory: 600자 이내
+                  - persistentStrengths/persistentWeaknesses 각 항목: 150자 이내
+                  - learningPlan.action: 300자 이내
+                  - learningPlan.reason: 200자 이내
+                  - nextSteps: 400자 이내
+
+                [CoachingData]
+                %s
+                """.formatted(nullToEmpty(coachingData));
+    }
+
     public static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }

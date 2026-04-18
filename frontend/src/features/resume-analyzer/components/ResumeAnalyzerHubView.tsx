@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 
 function statusKorean(status: string) {
   switch (status) {
-    case "QUESTIONS_READY":
+    case "COMPLETED":
       return "완료";
+    case "QUESTIONS_READY":
+      return "연습 가능";
     case "EXTRACTED":
       return "텍스트 추출됨";
     case "CREATED":
@@ -25,8 +27,10 @@ function statusKorean(status: string) {
 
 function statusVariant(status: string) {
   switch (status) {
-    case "QUESTIONS_READY":
+    case "COMPLETED":
       return "default" as const;
+    case "QUESTIONS_READY":
+      return "secondary" as const;
     case "EXTRACTED":
       return "secondary" as const;
     case "CREATED":
@@ -154,52 +158,93 @@ function SessionCard({
   onDelete: (e: React.MouseEvent, id: number) => void;
   isDeleting: boolean;
 }) {
+  const total = session.totalQuestionCount ?? session.questions.length;
+  const answered = session.answeredQuestionCount ?? 0;
+  const progressPercent = total > 0 ? (answered / total) * 100 : 0;
+  const lastActivityLabel = formatLastActivity(
+    session.lastAttemptAt ?? session.completedAt ?? session.createdAt
+  );
+
   return (
     <Link href={`/resume-analyzer/practice?sessionId=${session.id}`}>
       <Card className="group transition-all hover:border-primary/30 hover:shadow-md">
-        <CardContent className="flex items-center justify-between gap-4 p-4">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <span className="material-symbols-outlined">description</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                {session.title}
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                {session.positionType && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    {positionLabel(session.positionType)}
-                  </Badge>
-                )}
+        <CardContent className="flex flex-col gap-3 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="material-symbols-outlined">description</span>
               </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {session.title}
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {session.positionType && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      {positionLabel(session.positionType)}
+                    </Badge>
+                  )}
+                  <span className="text-[10px] text-muted-foreground">
+                    {lastActivityLabel}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="text-right">
+                <Badge variant={statusVariant(session.status)}>
+                  {statusKorean(session.status)}
+                </Badge>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {new Date(session.createdAt).toLocaleDateString("ko-KR")}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-destructive"
+                disabled={isDeleting}
+                onClick={(e) => onDelete(e, session.id)}
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-right">
-              <Badge variant={statusVariant(session.status)}>
-                {statusKorean(session.status)}
-              </Badge>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {new Date(session.createdAt).toLocaleDateString("ko-KR")}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {session.questions.length}문항
-              </p>
+          {/* Progress */}
+          <div>
+            <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>
+                <span className="font-bold text-foreground">{answered}</span>
+                {" / "}
+                {total} 문항 답변
+              </span>
+              <span>{Math.round(progressPercent)}%</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 text-muted-foreground hover:text-destructive"
-              disabled={isDeleting}
-              onClick={(e) => onDelete(e, session.id)}
-            >
-              <span className="material-symbols-outlined text-sm">delete</span>
-            </Button>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary/70 transition-all duration-300"
+                style={{ width: `${Math.max(progressPercent, answered > 0 ? 4 : 0)}%` }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
     </Link>
   );
+}
+
+function formatLastActivity(isoString: string | null): string {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "방금 전";
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay}일 전`;
+  return date.toLocaleDateString("ko-KR");
 }

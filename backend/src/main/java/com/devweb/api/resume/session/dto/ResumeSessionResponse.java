@@ -23,21 +23,50 @@ public record ResumeSessionResponse(
         ResumeSessionStatus status,
         @Schema(description = "면접 질문 목록")
         List<ResumeQuestionResponse> questions,
+        @Schema(description = "전체 질문 수", example = "5")
+        int totalQuestionCount,
+        @Schema(description = "답변이 제출된 질문 수", example = "3")
+        int answeredQuestionCount,
+        @Schema(description = "가장 최근 답변 제출 시각", nullable = true)
+        LocalDateTime lastAttemptAt,
         @Schema(description = "생성 일시")
         LocalDateTime createdAt,
         @Schema(description = "수정 일시")
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        @Schema(description = "완료 일시", nullable = true)
+        LocalDateTime completedAt,
+        @Schema(description = "AI 회고 리포트 존재 여부")
+        boolean hasReport
 ) implements Serializable {
     public static ResumeSessionResponse from(ResumeSession s) {
+        List<ResumeQuestionResponse> questionResponses = new ArrayList<>(
+                s.getQuestions().stream().map(ResumeQuestionResponse::from).toList()
+        );
+        int total = questionResponses.size();
+        int answered = (int) questionResponses.stream()
+                .filter(q -> q.attempts() != null && !q.attempts().isEmpty())
+                .count();
+        LocalDateTime lastAttempt = questionResponses.stream()
+                .filter(q -> q.attempts() != null)
+                .flatMap(q -> q.attempts().stream())
+                .map(com.devweb.api.resume.question.dto.ResumeFeedbackResponse::createdAt)
+                .filter(java.util.Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
         return new ResumeSessionResponse(
                 s.getId(),
                 s.getTitle(),
                 s.getPositionType(),
                 s.getPortfolioUrl(),
                 s.getStatus(),
-                new ArrayList<>(s.getQuestions().stream().map(ResumeQuestionResponse::from).toList()),
+                questionResponses,
+                total,
+                answered,
+                lastAttempt,
                 s.getCreatedAt(),
-                s.getUpdatedAt()
+                s.getUpdatedAt(),
+                s.getCompletedAt(),
+                s.getReportJson() != null && !s.getReportJson().isBlank()
         );
     }
 }
