@@ -27,6 +27,7 @@ export type ResumeQuestion = {
   keywords: string | null;
   modelAnswer: string | null;
   attempts: ResumeFeedback[];
+  maxAttempts: number;
 };
 
 export type ResumeSession = {
@@ -104,6 +105,7 @@ export type CoachingReport = {
   learningPlan: CoachingLearningPlanItem[];
   readinessScore: number;
   nextSteps: string;
+  generatedAt?: string;
 };
 
 export type ResumeInterviewStats = {

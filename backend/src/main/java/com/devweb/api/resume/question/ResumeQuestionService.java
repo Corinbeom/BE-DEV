@@ -31,6 +31,10 @@ public class ResumeQuestionService {
         ResumeQuestion question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("ResumeQuestion을 찾을 수 없습니다. id=" + questionId));
 
+        if (!question.canAttempt()) {
+            throw new IllegalArgumentException("최대 답변 횟수(" + ResumeQuestion.MAX_ATTEMPTS + "회)를 초과했습니다.");
+        }
+
         String positionType = question.getSession().getPositionType();
         InterviewQuestion vo = question.getInterviewQuestion();
 

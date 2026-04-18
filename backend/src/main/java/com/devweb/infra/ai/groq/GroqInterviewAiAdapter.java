@@ -232,13 +232,9 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         Timer.Sample timerSample = aiMetrics.startTimer();
         IllegalStateException last = null;
         for (int attempt = 1; attempt <= 3; attempt++) {
-            String prompt = switch (attempt) {
-                case 1 -> userPrompt;
-                case 2 -> userPrompt + retryRulesAttempt2(profile);
-                default -> userPrompt + retryRulesAttempt3(profile);
-            };
+            String enrichedSystemInstruction = buildEnrichedSystemInstruction(systemInstruction, attempt, profile);
             try {
-                JsonNode result = callGroq(systemInstruction, prompt);
+                JsonNode result = callGroq(enrichedSystemInstruction, userPrompt);
                 aiMetrics.recordSuccess(timerSample, "groq", profile.name());
                 log.info("Groq API 호출 완료: profile={}", profile);
                 return result;
@@ -252,6 +248,15 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             }
         }
         throw last == null ? new IllegalStateException("Groq structured JSON 생성에 실패했습니다.") : last;
+    }
+
+    private String buildEnrichedSystemInstruction(String base, int attempt, RetryProfile profile) {
+        String enriched = (base == null ? "" : base) + "\n" + AiPromptBuilder.JSON_FORMAT_RULES;
+        return switch (attempt) {
+            case 1 -> enriched;
+            case 2 -> enriched + retryRulesAttempt2(profile);
+            default -> enriched + retryRulesAttempt3(profile);
+        };
     }
 
     private JsonNode callGroq(String systemInstruction, String userPrompt) {
@@ -363,9 +368,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - 질문은 정확히 4개만 출력하세요.
                     - modelAnswer는 350자 이내로 매우 짧게 작성하세요.
                     - intention은 200자 이내로 짧게 작성하세요.
@@ -375,9 +377,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - referenceAnswer는 더 짧게 작성하세요.
                     - rubricKeywords 개수를 줄이세요.
                     """;
@@ -385,9 +384,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - strengths/improvements는 최대 3개로 제한하세요.
                     - suggestedAnswer는 500자 이내로 짧게 작성하세요.
                     - followups는 최대 2개로 제한하세요.
@@ -396,9 +392,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - executiveSummary는 300자 이내로 짧게 작성하세요.
                     - topImprovements는 정확히 3개로 유지하세요.
                     - closingAdvice는 200자 이내로 짧게 작성하세요.
@@ -407,9 +400,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - overallAssessment는 400자 이내로 짧게 작성하세요.
                     - growthTrajectory는 400자 이내로 짧게 작성하세요.
                     - learningPlan은 정확히 3개로 제한하세요.
@@ -424,9 +414,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - 질문은 정확히 3개만 출력하세요.
                     - modelAnswer는 반드시 빈 문자열("")로 출력하세요. (출력 길이 최우선)
                     - intention은 140자 이내로 아주 짧게 작성하세요.
@@ -436,9 +423,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - prompt/referenceAnswer를 아주 짧게 작성하세요.
                     - rubricKeywords는 3개 이하로 작성하세요.
                     """;
@@ -446,9 +430,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - strengths/improvements는 최대 2개로 제한하세요.
                     - suggestedAnswer는 250자 이내로 아주 짧게 작성하세요.
                     - followups는 최대 1개로 제한하세요.
@@ -457,9 +438,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - executiveSummary는 200자 이내로 아주 짧게 작성하세요.
                     - badgeSummary의 strengths/weaknesses는 최대 2개로 제한하세요.
                     - topImprovements는 정확히 3개, description은 150자 이내로 아주 짧게 작성하세요.
@@ -469,9 +447,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
                     [RETRY_RULES]
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
-                    - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                    - 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                    - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                     - overallAssessment는 300자 이내로 아주 짧게 작성하세요.
                     - growthTrajectory는 300자 이내로 아주 짧게 작성하세요.
                     - persistentStrengths/persistentWeaknesses는 각 최대 3개로 제한하세요.

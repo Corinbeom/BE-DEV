@@ -30,6 +30,10 @@ public class CsQuizQuestionService {
         CsQuizQuestion q = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("CsQuizQuestion을 찾을 수 없습니다. id=" + questionId));
 
+        if (!q.canAttempt()) {
+            throw new IllegalArgumentException("최대 답변 횟수(" + CsQuizQuestion.MAX_ATTEMPTS + "회)를 초과했습니다.");
+        }
+
         if (q.isMultipleChoice()) {
             if (req.selectedChoiceIndex() == null) throw new IllegalArgumentException("selectedChoiceIndex는 필수입니다.");
             int selected = req.selectedChoiceIndex();

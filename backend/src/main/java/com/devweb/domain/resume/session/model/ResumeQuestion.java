@@ -13,6 +13,8 @@ import java.util.List;
 @Table(name = "resume_questions")
 public class ResumeQuestion {
 
+    public static final int MAX_ATTEMPTS = 3;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -94,6 +96,10 @@ public class ResumeQuestion {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean canAttempt() {
+        return attempts.size() < MAX_ATTEMPTS;
     }
 
     public ResumeAnswerAttempt addAttempt(String answerText, Feedback feedback) {
