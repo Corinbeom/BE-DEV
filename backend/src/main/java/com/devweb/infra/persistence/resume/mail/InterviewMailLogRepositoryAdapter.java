@@ -4,6 +4,7 @@ import com.devweb.domain.resume.mail.model.InterviewMailLog;
 import com.devweb.domain.resume.mail.port.InterviewMailLogRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -23,5 +24,10 @@ public class InterviewMailLogRepositoryAdapter implements InterviewMailLogReposi
     @Override
     public List<String> findAllQuestionsJsonByScheduleId(Long scheduleId) {
         return jpaRepository.findAllQuestionsJsonByScheduleId(scheduleId);
+    }
+
+    @Override
+    public boolean existsByScheduleIdAndSentAtAfter(Long scheduleId, LocalDateTime after) {
+        return jpaRepository.existsByScheduleIdAndSentAtAfter(scheduleId, after);
     }
 }
