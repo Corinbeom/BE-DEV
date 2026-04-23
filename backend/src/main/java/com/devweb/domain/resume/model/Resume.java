@@ -34,8 +34,7 @@ public class Resume {
     })
     private StoredFileRef storedFile;
 
-    @Lob
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String extractedText;
 
     @Enumerated(EnumType.STRING)
