@@ -69,18 +69,18 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     }
 
     @Override
-    public List<GeneratedQuestion> generateQuestions(String systemInstruction, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
+    public List<GeneratedQuestion> generateQuestions(String systemInstruction, String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
         requireApiKey();
 
-        String prompt = AiPromptBuilder.buildQuestionsPrompt(resumeText, portfolioText, portfolioUrl, targetTechnologies);
+        String prompt = AiPromptBuilder.buildQuestionsPrompt(positionType, resumeText, portfolioText, portfolioUrl, targetTechnologies);
         return doGenerateQuestions(systemInstruction, prompt);
     }
 
     @Override
-    public List<GeneratedQuestion> generateQuestionsWithHistory(String systemInstruction, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies, List<String> previousQuestions) {
+    public List<GeneratedQuestion> generateQuestionsWithHistory(String systemInstruction, String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies, List<String> previousQuestions) {
         requireApiKey();
 
-        String prompt = AiPromptBuilder.buildQuestionsPromptWithHistory(resumeText, portfolioText, portfolioUrl, targetTechnologies, previousQuestions);
+        String prompt = AiPromptBuilder.buildQuestionsPromptWithHistory(positionType, resumeText, portfolioText, portfolioUrl, targetTechnologies, previousQuestions);
         return doGenerateQuestions(systemInstruction, prompt);
     }
 

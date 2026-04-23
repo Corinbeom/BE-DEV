@@ -35,7 +35,7 @@ class QuestionGeneratorTest {
         InterviewAiPort.GeneratedQuestion gq2 = new InterviewAiPort.GeneratedQuestion(
                 "기술질문", 80, "Spring 동작 원리를 설명해주세요.", "기술 역량", "IoC, DI", "IoC 컨테이너 기반 설명"
         );
-        given(aiPort.generateQuestions(anyString(), anyString(), any(), any(), anyList()))
+        given(aiPort.generateQuestions(anyString(), anyString(), anyString(), any(), any(), anyList()))
                 .willReturn(List.of(gq1, gq2));
 
         // when
@@ -58,7 +58,7 @@ class QuestionGeneratorTest {
         given(promptRegistry.systemInstructionFor("FE")).willReturn("프론트엔드 프롬프트");
 
         String longText = "A".repeat(10_000);
-        given(aiPort.generateQuestions(anyString(), anyString(), any(), any(), anyList()))
+        given(aiPort.generateQuestions(anyString(), anyString(), anyString(), any(), any(), anyList()))
                 .willReturn(List.of(new InterviewAiPort.GeneratedQuestion(
                         "질문", 70, "질문입니다.", "의도", "키워드", "모범답안"
                 )));
@@ -71,6 +71,7 @@ class QuestionGeneratorTest {
         // AI에게 전달되는 텍스트가 트리밍된 것을 verify
         then(aiPort).should().generateQuestions(
                 eq("프론트엔드 프롬프트"),
+                eq("FE"),
                 argThat(text -> text.length() < longText.length() && text.contains("...(truncated)...")),
                 isNull(),
                 isNull(),
@@ -83,7 +84,7 @@ class QuestionGeneratorTest {
     void generate_portfolioText_null() {
         // given
         given(promptRegistry.systemInstructionFor("BE")).willReturn("프롬프트");
-        given(aiPort.generateQuestions(anyString(), anyString(), isNull(), isNull(), anyList()))
+        given(aiPort.generateQuestions(anyString(), anyString(), anyString(), isNull(), isNull(), anyList()))
                 .willReturn(List.of(new InterviewAiPort.GeneratedQuestion(
                         "질문", 85, "질문입니다.", "의도", "키워드", "모범답안"
                 )));
@@ -93,6 +94,6 @@ class QuestionGeneratorTest {
 
         // then
         assertThat(result).hasSize(1);
-        then(aiPort).should().generateQuestions(anyString(), anyString(), isNull(), isNull(), anyList());
+        then(aiPort).should().generateQuestions(anyString(), anyString(), anyString(), isNull(), isNull(), anyList());
     }
 }

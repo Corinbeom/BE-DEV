@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -39,6 +40,15 @@ public class ResendEmailAdapter implements EmailSenderPort {
                 .build();
         this.apiKey = apiKey;
         this.from = from;
+    }
+
+    @PostConstruct
+    public void logConfig() {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("=== [ResendEmailAdapter] RESEND_API_KEY 미설정 — 이메일 발송 비활성화 ===");
+        } else {
+            log.info("[ResendEmailAdapter] 활성화. from={}", from);
+        }
     }
 
     @Override
