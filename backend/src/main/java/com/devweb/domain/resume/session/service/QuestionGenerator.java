@@ -35,10 +35,10 @@ public class QuestionGenerator {
 
         List<InterviewAiPort.GeneratedQuestion> generated;
         if (previousQuestions != null && !previousQuestions.isEmpty()) {
-            generated = aiPort.generateQuestionsWithHistory(systemInstruction, safeResumeText,
+            generated = aiPort.generateQuestionsWithHistory(systemInstruction, positionType, safeResumeText,
                     safePortfolioText, portfolioUrl, targetTechnologies, previousQuestions);
         } else {
-            generated = aiPort.generateQuestions(systemInstruction, safeResumeText,
+            generated = aiPort.generateQuestions(systemInstruction, positionType, safeResumeText,
                     safePortfolioText, portfolioUrl, targetTechnologies);
         }
 
