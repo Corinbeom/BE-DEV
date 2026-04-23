@@ -73,8 +73,9 @@ public class CsQuizSessionService {
         CsQuizSession session = new CsQuizSession(member, resolvedTitle, difficulty, topics);
 
         List<CsQuizQuestion> questions = new ArrayList<>();
-        questions.addAll(pickMultipleChoiceQuestionsWithFallback(topics, difficulty, mcqCount, 0));
-        questions.addAll(pickShortAnswerQuestionsWithFallback(topics, difficulty, shortCount, questions.size()));
+        List<CsQuizQuestion> mcqQuestions = pickMultipleChoiceQuestionsWithFallback(topics, difficulty, mcqCount, 0);
+        questions.addAll(mcqQuestions);
+        questions.addAll(pickShortAnswerQuestionsWithFallback(topics, difficulty, shortCount, questions.size(), mcqQuestions));
 
         session.markQuestionsReady(questions);
         return sessionRepository.save(session);
@@ -184,27 +185,50 @@ public class CsQuizSessionService {
         return out;
     }
 
-    private List<CsQuizQuestion> pickShortAnswerQuestionsWithFallback(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, int count, int startIndex) {
+    private List<CsQuizQuestion> pickShortAnswerQuestionsWithFallback(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, int count, int startIndex, List<CsQuizQuestion> selectedMcq) {
         List<CsQuestionBankItem> pool = new ArrayList<>();
         for (CsQuizTopic t : topics) {
             pool.addAll(bankRepository.findAllBy(t, difficulty, CsQuizQuestionType.SHORT_ANSWER));
         }
         Collections.shuffle(pool);
 
+        Set<String> mcqTokens = extractKeyTokens(selectedMcq.stream().map(CsQuizQuestion::getPrompt).toList());
+
         List<CsQuizQuestion> out = new ArrayList<>();
-        int fromBank = Math.min(count, pool.size());
-        for (int i = 0; i < fromBank; i++) {
-            CsQuestionBankItem item = pool.get(i);
-            out.add(CsQuizQuestion.shortAnswer(
+        List<CsQuizQuestion> fallback = new ArrayList<>();
+
+        for (CsQuestionBankItem item : pool) {
+            if (out.size() >= count) break;
+            CsQuizQuestion q = CsQuizQuestion.shortAnswer(
+                    startIndex + out.size() + fallback.size(),
+                    item.getTopic(), item.getDifficulty(),
+                    item.getPrompt(), item.getRubricKeywords(), item.getReferenceAnswer()
+            );
+            Set<String> saTokens = extractKeyTokens(List.of(item.getPrompt()));
+            long overlap = mcqTokens.stream().filter(saTokens::contains).count();
+            if (overlap >= 2) {
+                fallback.add(q);
+            } else {
+                out.add(q);
+            }
+        }
+        // 비중복으로 부족하면 fallback에서 보충
+        for (CsQuizQuestion q : fallback) {
+            if (out.size() >= count) break;
+            out.add(q);
+        }
+
+        // orderIndex 재정렬
+        List<CsQuizQuestion> result = new ArrayList<>();
+        for (int i = 0; i < out.size(); i++) {
+            CsQuizQuestion q = out.get(i);
+            result.add(CsQuizQuestion.shortAnswer(
                     startIndex + i,
-                    item.getTopic(),
-                    item.getDifficulty(),
-                    item.getPrompt(),
-                    item.getRubricKeywords(),
-                    item.getReferenceAnswer()
+                    q.getTopic(), q.getDifficulty(),
+                    q.getPrompt(), q.getRubricKeywords(), q.getReferenceAnswer()
             ));
         }
-        int remaining = count - fromBank;
+        int remaining = count - result.size();
         if (remaining > 0) {
             List<CsQuizAiPort.GeneratedQuizQuestion> generated = aiPort.generateQuestions(
                     questionGenSystemInstruction(),
@@ -213,10 +237,10 @@ public class CsQuizSessionService {
                     0,
                     remaining
             );
-            int idx = out.size();
+            int idx = result.size();
             for (CsQuizAiPort.GeneratedQuizQuestion g : generated) {
                 if (g.type() != CsQuizQuestionType.SHORT_ANSWER) continue;
-                out.add(CsQuizQuestion.shortAnswer(
+                result.add(CsQuizQuestion.shortAnswer(
                         startIndex + idx++,
                         g.topic() == null ? topics.iterator().next() : g.topic(),
                         difficulty,
@@ -225,11 +249,24 @@ public class CsQuizSessionService {
                         AiTextSanitizer.sanitize(g.referenceAnswer())
                 ));
             }
-            if (out.size() < count) {
-                throw new IllegalStateException("주관식 문제 생성이 부족합니다. need=" + count + " got=" + out.size());
+            if (result.size() < count) {
+                throw new IllegalStateException("주관식 문제 생성이 부족합니다. need=" + count + " got=" + result.size());
             }
         }
-        return out;
+        return result;
+    }
+
+    /** 프롬프트에서 의미 있는 토큰(2자 이상) 추출 — MCQ/SA 중복 감지용 */
+    private static Set<String> extractKeyTokens(List<String> prompts) {
+        Set<String> tokens = new java.util.HashSet<>();
+        for (String prompt : prompts) {
+            if (prompt == null) continue;
+            for (String word : prompt.split("[\\s,?!.·]+")) {
+                String clean = word.replaceAll("[^가-힣a-zA-Z0-9]", "");
+                if (clean.length() >= 2) tokens.add(clean);
+            }
+        }
+        return tokens;
     }
 
     private static String questionGenSystemInstruction() {
