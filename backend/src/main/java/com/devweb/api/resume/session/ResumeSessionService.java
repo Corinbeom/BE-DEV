@@ -37,6 +37,7 @@ import com.devweb.domain.member.event.MemberDeletedEvent;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
@@ -84,6 +85,7 @@ public class ResumeSessionService {
         this.objectMapper = objectMapper;
     }
 
+    @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
     public ResumeSession create(
             Long memberId,
             String positionTypeRaw,
@@ -129,6 +131,7 @@ public class ResumeSessionService {
         return sessionRepository.save(session);
     }
 
+    @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
     public ResumeSession createFromResume(
             Long memberId,
             String positionTypeRaw,
@@ -374,12 +377,19 @@ public class ResumeSessionService {
         if (member.getCoachingReportJson() == null || member.getCoachingReportJson().isBlank()) {
             return null;
         }
-        return parseCoachingReport(member.getCoachingReportJson());
+        String generatedAt = member.getCoachingReportGeneratedAt() != null
+                ? member.getCoachingReportGeneratedAt().withNano(0).toString()
+                : null;
+        return parseCoachingReport(member.getCoachingReportJson(), generatedAt);
     }
 
     public CoachingReportResponse generateCoachingReport(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
+
+        if (!member.canRegenerateCoachingReport()) {
+            throw new IllegalArgumentException("코칭 리포트는 24시간에 1회만 재생성할 수 있습니다.");
+        }
 
         List<ResumeSession> sessions = sessionRepository.findAllByMemberId(memberId);
         List<ResumeSession> completedWithReport = sessions.stream()
@@ -397,17 +407,26 @@ public class ResumeSessionService {
 
         try {
             String json = objectMapper.writeValueAsString(generated);
+            LocalDateTime now = LocalDateTime.now();
             member.setCoachingReportJson(json);
+            member.setCoachingReportGeneratedAt(now);
             memberRepository.save(member);
-            return parseCoachingReport(json);
+            return parseCoachingReport(json, now.withNano(0).toString());
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new IllegalStateException("코칭 리포트 JSON 직렬화에 실패했습니다.", e);
         }
     }
 
-    private CoachingReportResponse parseCoachingReport(String json) {
+    private CoachingReportResponse parseCoachingReport(String json, String generatedAt) {
         try {
-            return objectMapper.readValue(json, CoachingReportResponse.class);
+            CoachingReportResponse base = objectMapper.readValue(json, CoachingReportResponse.class);
+            if (generatedAt == null) return base;
+            return new CoachingReportResponse(
+                    base.overallAssessment(), base.growthTrajectory(),
+                    base.persistentStrengths(), base.persistentWeaknesses(),
+                    base.learningPlan(), base.readinessScore(), base.nextSteps(),
+                    generatedAt
+            );
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new IllegalStateException("코칭 리포트 JSON 파싱에 실패했습니다.", e);
         }

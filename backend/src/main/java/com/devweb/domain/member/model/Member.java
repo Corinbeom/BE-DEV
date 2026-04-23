@@ -3,6 +3,7 @@ package com.devweb.domain.member.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "members")
@@ -32,6 +33,9 @@ public class Member {
     @Lob
     @Column(name = "coaching_report_json")
     private String coachingReportJson;
+
+    @Column(name = "coaching_report_generated_at")
+    private LocalDateTime coachingReportGeneratedAt;
 
     protected Member() {
     }
@@ -85,5 +89,18 @@ public class Member {
 
     public void setCoachingReportJson(String coachingReportJson) {
         this.coachingReportJson = coachingReportJson;
+    }
+
+    public LocalDateTime getCoachingReportGeneratedAt() {
+        return coachingReportGeneratedAt;
+    }
+
+    public void setCoachingReportGeneratedAt(LocalDateTime generatedAt) {
+        this.coachingReportGeneratedAt = generatedAt;
+    }
+
+    public boolean canRegenerateCoachingReport() {
+        if (coachingReportGeneratedAt == null) return true;
+        return coachingReportGeneratedAt.isBefore(LocalDateTime.now().minusHours(24));
     }
 }

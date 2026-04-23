@@ -132,7 +132,7 @@ export function LearningInsights({
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-lg text-primary">
+        <span className="material-symbols-outlined text-lg text-muted-foreground">
           insights
         </span>
         <h3 className="text-lg font-bold tracking-tight text-foreground">
@@ -153,8 +153,8 @@ export function LearningInsights({
           </p>
         )}
         {streak > 0 && (
-          <p className="text-sm text-amber-600 dark:text-amber-400">
-            <span className="font-bold">{streak}</span>일 연속 학습 중
+          <p className="text-sm text-muted-foreground">
+            <span className="font-bold text-foreground">{streak}</span>일 연속 학습 중
           </p>
         )}
         {difficultyStats.map(
@@ -195,7 +195,7 @@ export function LearningInsights({
                     <div className="relative h-5 flex-1 overflow-hidden rounded-full bg-muted">
                       {t.count > 0 ? (
                         <div
-                          className="flex h-full items-center rounded-full bg-primary/80 transition-all duration-500"
+                          className="flex h-full items-center rounded-full bg-primary transition-all duration-500"
                           style={{ width: `${Math.max(t.pct, 8)}%` }}
                         >
                           <span className="pl-2 text-[10px] font-bold text-primary-foreground">
@@ -261,7 +261,7 @@ export function LearningInsights({
                           >
                             {resumeCount > 0 && (
                               <div
-                                className={`w-full ${isToday ? "bg-violet-500" : "bg-violet-400/70"}`}
+                                className={`w-full ${isToday ? "bg-primary/60" : "bg-primary/30"}`}
                                 style={{
                                   height:
                                     heightPct > 0
@@ -272,7 +272,7 @@ export function LearningInsights({
                             )}
                             {quizCount > 0 && (
                               <div
-                                className={`w-full ${isToday ? "bg-primary" : "bg-primary/50"}`}
+                                className={`w-full ${isToday ? "bg-primary" : "bg-primary/60"}`}
                                 style={{
                                   height:
                                     heightPct > 0
@@ -290,7 +290,7 @@ export function LearningInsights({
                         )}
                       </div>
                       <span
-                        className={`text-[10px] ${isToday ? "font-bold text-primary" : "text-muted-foreground"}`}
+                        className={`text-[10px] ${isToday ? "font-bold text-foreground" : "text-muted-foreground"}`}
                       >
                         {DAY_LABELS[day.getDay()]}
                       </span>
@@ -324,7 +324,7 @@ export function LearningInsights({
                 <span className="text-[10px] text-muted-foreground">CS 퀴즈</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="size-2.5 rounded-sm bg-violet-500" />
+                <div className="size-2.5 rounded-sm bg-primary/40" />
                 <span className="text-[10px] text-muted-foreground">이력서 면접</span>
               </div>
             </div>

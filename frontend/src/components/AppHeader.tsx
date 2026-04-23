@@ -1,86 +1,38 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
-function headerCopy(pathname: string, displayName: string) {
-  if (pathname.startsWith("/application-tracker")) {
-    return {
-      title: "지원 현황 관리",
-      subtitle: "칸반 보드로 전형 단계를 한눈에 관리해요.",
-      icon: "work",
-      badge: "Tracker",
-    };
-  }
-  if (pathname.startsWith("/study-quiz")) {
-    return {
-      title: "CS 문제풀이",
-      subtitle: "카테고리별 문제로 실전 감각을 쌓아보세요.",
-      icon: "code",
-      badge: "Quiz",
-    };
-  }
-  if (pathname.startsWith("/resume-analyzer")) {
-    return {
-      title: "이력서 기반 면접 준비",
-      subtitle: "이력서/포트폴리오에 맞춘 질문과 피드백을 받아요.",
-      icon: "description",
-      badge: "AI Interview",
-    };
-  }
-  if (pathname.startsWith("/profile")) {
-    return {
-      title: "프로필",
-      subtitle: "개인 정보와 이력서/포트폴리오 파일을 관리해요.",
-      icon: "person",
-      badge: "Profile",
-    };
-  }
-  return {
-    title: `환영합니다, ${displayName}!`,
-    subtitle: "오늘도 화이팅하세요.",
-    icon: "dashboard",
-    badge: "Dashboard",
-  };
+function headerLabel(pathname: string): string {
+  if (pathname.startsWith("/application-tracker")) return "지원 현황";
+  if (pathname.startsWith("/study-quiz")) return "CS 문제풀이";
+  if (pathname.startsWith("/resume-analyzer")) return "이력서 면접";
+  if (pathname.startsWith("/profile")) return "프로필";
+  return "대시보드";
 }
 
-export function AppHeader() {
+interface AppHeaderProps {
+  detailOpen?: boolean;
+  onToggleDetail?: () => void;
+}
+
+export function AppHeader({ detailOpen, onToggleDetail }: AppHeaderProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const displayName =
-    user?.displayName ?? user?.email?.split("@")[0] ?? "사용자";
-  const copy = headerCopy(pathname, displayName);
+  const label = headerLabel(pathname);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="flex items-center justify-between px-8 py-4">
-        <div className="flex items-center gap-4">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <span className="material-symbols-outlined">{copy.icon}</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold tracking-tight text-foreground">
-                {copy.title}
-              </h2>
-              <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wider">
-                {copy.badge}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
-          </div>
-        </div>
-        {/* TODO: 알림 기능 구현 시 hidden 제거 */}
-        <div className="hidden items-center gap-2">
-          <Button variant="ghost" size="icon" className="rounded-full" aria-label="알림">
-            <span className="material-symbols-outlined text-xl">
-              notifications
-            </span>
-          </Button>
-        </div>
-      </div>
+    <header className="flex h-12 flex-shrink-0 items-center justify-between border-b border-border bg-card px-6">
+      <span className="text-[13px] font-semibold text-foreground">{label}</span>
+      {onToggleDetail && (
+        <button
+          onClick={onToggleDetail}
+          className="hidden xl:flex items-center justify-center size-7 rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title={detailOpen ? "패널 숨기기" : "패널 보기"}
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {detailOpen ? "right_panel_close" : "right_panel_open"}
+          </span>
+        </button>
+      )}
     </header>
   );
 }

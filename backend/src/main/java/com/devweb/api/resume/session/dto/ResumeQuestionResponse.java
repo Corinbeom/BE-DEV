@@ -17,7 +17,8 @@ public record ResumeQuestionResponse(
         String intention,
         String keywords,
         String modelAnswer,
-        List<ResumeFeedbackResponse> attempts
+        List<ResumeFeedbackResponse> attempts,
+        int maxAttempts
 ) implements Serializable {
     public static ResumeQuestionResponse from(ResumeQuestion q) {
         InterviewQuestion vo = q.getInterviewQuestion();
@@ -33,7 +34,8 @@ public record ResumeQuestionResponse(
                 vo == null ? null : vo.getIntention(),
                 vo == null ? null : vo.getKeywords(),
                 vo == null ? null : vo.getModelAnswer(),
-                attemptList
+                attemptList,
+                ResumeQuestion.MAX_ATTEMPTS
         );
     }
 }

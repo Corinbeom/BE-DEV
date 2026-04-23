@@ -15,6 +15,15 @@ public final class AiPromptBuilder {
 
     private static final int QUESTIONS_TARGET = 5;
 
+    /**
+     * 모든 프롬프트에 공통으로 적용되는 JSON 출력 포맷 규칙.
+     * 어댑터의 systemInstruction에 포함되어 AI에게 전달된다.
+     */
+    public static final String JSON_FORMAT_RULES =
+            "- JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.\n"
+            + "- 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).\n"
+            + "- 문자열 값 안에는 큰따옴표(\") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).";
+
     private AiPromptBuilder() {}
 
     public static String buildQuestionsPrompt(String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
@@ -51,9 +60,6 @@ public final class AiPromptBuilder {
                   - 이력서만 있으면: 이력서 기반 질문 %d개.
                   - 이력서 + 포트폴리오 모두 있으면: 이력서 기반 최소 2개 + 포트폴리오 기반 최소 2개, 나머지는 양쪽을 교차하여 구성.
                   - 포트폴리오 기반 질문의 badge에는 '포트폴리오 기반'을 포함해 주세요.
-                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                - 모든 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                 - 길이 제한을 지켜주세요:
                   - question: 250자 이내
                   - intention: 350자 이내
@@ -109,7 +115,6 @@ public final class AiPromptBuilder {
                 기준:
                 - 정확성/구체성/근거/깊이/커뮤니케이션을 종합적으로 봅니다.
                 - 답변이 모호하면 어떤 정보를 추가해야 하는지 구체적으로 제시합니다.
-                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
                 - suggestedAnswer는 900자 이내로 작성하세요.
 
                 [Question]
@@ -159,9 +164,6 @@ public final class AiPromptBuilder {
                 }
 
                 규칙:
-                - JSON은 한 줄(minified)로만 출력하세요. 설명 텍스트 금지.
-                - 문자열 값에 줄바꿈 금지(필요하면 \\n).
-                - 문자열 값 안에 큰따옴표(") 넣지 마세요.
                 - topic/difficulty/type은 반드시 조건과 일치해야 합니다.
                 - prompt는 220자 이내로 작성하세요.
                 - MULTIPLE_CHOICE:
@@ -195,9 +197,6 @@ public final class AiPromptBuilder {
                 - followups: 추가 꼬리질문(0~2개)
 
                 제약:
-                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                - 모든 문자열 값에는 줄바꿈 금지(필요하면 \\n).
-                - 문자열 값 안에는 큰따옴표(")를 넣지 마세요.
 
                 [Topic] %s
                 [Difficulty] %s
@@ -230,9 +229,6 @@ public final class AiPromptBuilder {
                 - followups: 추가 꼬리질문(0~3개)
 
                 제약:
-                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                - 모든 문자열 값에는 줄바꿈 금지(필요하면 \\n).
-                - 문자열 값 안에는 큰따옴표(")를 넣지 마세요.
                 - 추측/날조 금지. 모르면 '부족'으로 판단하고 어떤 포인트가 필요한지 제시하세요.
 
                 [Topic] %s
@@ -317,9 +313,6 @@ public final class AiPromptBuilder {
                 규칙:
                 - 과장/추측 금지. 제공된 데이터에서만 근거를 잡아주세요.
                 - 미답변 질문은 '미답변'으로 명시하되, 점수/분석에서 별도로 다루세요.
-                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                 - 길이 제한:
                   - executiveSummary: 500자 이내
                   - badgeSummary.summary: 300자 이내
@@ -367,9 +360,6 @@ public final class AiPromptBuilder {
                 규칙:
                 - 과장/추측 금지. 제공된 데이터에서만 근거를 잡아주세요.
                 - 세션이 1개뿐이면 growthTrajectory에 '단일 세션이므로 추이 분석 불가'라고 명시하세요.
-                - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-                - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-                - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).
                 - 길이 제한:
                   - overallAssessment: 600자 이내
                   - growthTrajectory: 600자 이내
