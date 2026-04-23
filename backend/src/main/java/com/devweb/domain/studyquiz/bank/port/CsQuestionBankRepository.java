@@ -9,5 +9,7 @@ import java.util.List;
 
 public interface CsQuestionBankRepository {
     List<CsQuestionBankItem> findAllBy(CsQuizTopic topic, CsQuizDifficulty difficulty, CsQuizQuestionType type);
+    int countBy(CsQuizTopic topic, CsQuizDifficulty difficulty, CsQuizQuestionType type);
+    List<CsQuestionBankItem> saveAll(List<CsQuestionBankItem> items);
 }
 

@@ -34,8 +34,7 @@ public class CsQuestionBankItem implements Serializable {
     @Column(nullable = false, length = 30)
     private CsQuizQuestionType type;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String prompt;
 
     @BatchSize(size = 50)
@@ -48,8 +47,7 @@ public class CsQuestionBankItem implements Serializable {
     @Column(name = "correct_choice_index")
     private Integer correctChoiceIndex;
 
-    @Lob
-    @Column(name = "reference_answer")
+    @Column(name = "reference_answer", columnDefinition = "TEXT")
     private String referenceAnswer;
 
     @BatchSize(size = 50)

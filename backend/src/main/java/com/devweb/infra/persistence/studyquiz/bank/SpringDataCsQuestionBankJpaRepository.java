@@ -10,5 +10,6 @@ import java.util.List;
 
 public interface SpringDataCsQuestionBankJpaRepository extends JpaRepository<CsQuestionBankItem, Long> {
     List<CsQuestionBankItem> findAllByTopicAndDifficultyAndType(CsQuizTopic topic, CsQuizDifficulty difficulty, CsQuizQuestionType type);
+    int countByTopicAndDifficultyAndType(CsQuizTopic topic, CsQuizDifficulty difficulty, CsQuizQuestionType type);
 }
 
