@@ -52,6 +52,11 @@ public class InterviewMailSender {
 
     @Transactional
     public void sendForSchedule(InterviewMailSchedule schedule) {
+        // 스케줄러에서 전달된 detached entity의 @Lob(extractedText) 스트림이 닫혀있을 수 있으므로
+        // 현재 트랜잭션 내에서 재로드하여 유효한 LOB 스트림을 확보한다.
+        schedule = scheduleRepository.findByMemberId(schedule.getMember().getId())
+                .orElseThrow(() -> new IllegalArgumentException("메일 스케줄을 찾을 수 없습니다."));
+
         Resume resume = schedule.getResume();
         Member member = schedule.getMember();
 
