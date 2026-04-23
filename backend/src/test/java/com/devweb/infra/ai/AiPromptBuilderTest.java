@@ -14,7 +14,7 @@ class AiPromptBuilderTest {
     @DisplayName("buildQuestionsPrompt: targetTechnologies가 null이면 [TargetTechnologies] 섹션 미포함")
     void buildQuestionsPrompt_기본() {
         String prompt = AiPromptBuilder.buildQuestionsPrompt(
-                "이력서 내용", null, null, null);
+                "BE", "이력서 내용", null, null, null);
 
         assertThat(prompt).contains("[ResumeText]");
         assertThat(prompt).contains("이력서 내용");
@@ -25,7 +25,7 @@ class AiPromptBuilderTest {
     @DisplayName("buildQuestionsPrompt: 빈 리스트일 때도 [TargetTechnologies] 섹션 미포함")
     void buildQuestionsPrompt_빈리스트() {
         String prompt = AiPromptBuilder.buildQuestionsPrompt(
-                "이력서 내용", null, null, Collections.emptyList());
+                "BE", "이력서 내용", null, null, Collections.emptyList());
 
         assertThat(prompt).doesNotContain("[TargetTechnologies]");
     }
@@ -36,7 +36,7 @@ class AiPromptBuilderTest {
         List<String> techs = List.of("Java", "Spring", "Kubernetes");
 
         String prompt = AiPromptBuilder.buildQuestionsPrompt(
-                "이력서 내용", null, null, techs);
+                "BE", "이력서 내용", null, null, techs);
 
         assertThat(prompt).contains("[TargetTechnologies]");
         assertThat(prompt).contains("Java, Spring, Kubernetes");
@@ -50,7 +50,7 @@ class AiPromptBuilderTest {
         String resumeText = "3년차 백엔드 개발자, Spring Boot 경험";
 
         String prompt = AiPromptBuilder.buildQuestionsPrompt(
-                resumeText, null, null, null);
+                "BE", resumeText, null, null, null);
 
         assertThat(prompt).contains("[ResumeText]");
         assertThat(prompt).contains(resumeText);
@@ -63,7 +63,7 @@ class AiPromptBuilderTest {
         String portfolioUrl = "https://github.com/example/devweb";
 
         String prompt = AiPromptBuilder.buildQuestionsPrompt(
-                "이력서", portfolioText, portfolioUrl, null);
+                "BE", "이력서", portfolioText, portfolioUrl, null);
 
         assertThat(prompt).contains("[PortfolioText]");
         assertThat(prompt).contains(portfolioText);
