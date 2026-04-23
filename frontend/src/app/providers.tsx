@@ -34,6 +34,8 @@ export function Providers({ children }: { children: ReactNode }) {
                   : "요청 처리 중 오류가 발생했습니다.";
               const detail =
                 error instanceof ApiError ? error.detail : undefined;
+              // 에러를 콘솔에 기록해 에러 리포트 로그 버퍼에 포함되도록 함
+              console.error(message, detail ?? error);
               toast.error(message, {
                 action: {
                   label: "에러 리포트",
