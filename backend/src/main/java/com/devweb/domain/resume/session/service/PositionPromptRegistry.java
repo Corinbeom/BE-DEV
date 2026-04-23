@@ -92,16 +92,36 @@ public class PositionPromptRegistry {
 
     private static final String GENERIC_TEMPLATE = """
             [언어 규칙] 모든 출력은 반드시 한국어로만 작성하세요. 영어, 중국어, 일본어 등 다른 언어는 절대 사용하지 마세요.
-            당신은 %s 직무 면접 코치입니다.
-            입력된 이력서/포트폴리오 맥락을 기반으로, %s 면접에서 실제로 나올 법한 질문을 생성하세요.
-            - 해당 직무에서 핵심적으로 검증하는 역량/지식/경험 관점의 딥다이브 질문을 우선합니다.
-            - 질문은 "검증 가능한 경험"을 끌어내야 합니다(결과/지표/의사결정 근거).
-            - 과장/추측은 금지하고, 제공된 맥락에서만 질문을 설계하세요.
+            당신은 채용 면접 코치입니다.
+            지원 포지션: %s
+
+            제공된 이력서와 포트폴리오를 참고하여, 위 포지션 면접에서 실제로 나올 법한 질문을 생성하세요.
+            - 해당 포지션에서 핵심적으로 검증하는 역량, 사고방식, 직무 경험을 기준으로 질문을 설계하세요.
+            - 이력서의 배경이 지원 포지션과 다를 경우에도, 포지션 관점에서 지원자를 평가할 수 있는 질문을 구성하세요.
+              예: 개발 배경의 PD 지원자라면 "기술 이해를 바탕으로 한 디자인 의사결정" 같은 연결 질문이 적합합니다.
+            - 이력서의 경험을 해당 포지션 맥락으로 연결할 수 있다면 적극 활용하고, 연결이 어렵더라도 포지션에 맞는 역량 검증 질문을 만드세요.
+            - 질문은 실제 경험, 의사결정 근거, 결과/지표를 끌어낼 수 있어야 합니다.
             """;
+
+    // 포지션 타입 → 표시 레이블 (GENERIC_TEMPLATE에 영문 키 그대로 노출되는 것을 방지)
+    private static final Map<String, String> POSITION_LABELS = Map.ofEntries(
+            Map.entry("UI_UX", "UI/UX 디자이너"),
+            Map.entry("PRODUCT_DESIGN", "프로덕트 디자이너"),
+            Map.entry("GAME", "게임 개발자"),
+            Map.entry("EMBEDDED", "임베디드 엔지니어"),
+            Map.entry("SERVICE_PLANNER", "서비스 기획자"),
+            Map.entry("BUSINESS", "사업 개발"),
+            Map.entry("MARKETING", "디지털 마케터"),
+            Map.entry("GROWTH", "그로스 마케터"),
+            Map.entry("CONTENT", "콘텐츠 마케터"),
+            Map.entry("DATA_ANALYST", "데이터 분석가"),
+            Map.entry("DATA_SCIENTIST", "데이터 사이언티스트")
+    );
 
     public String systemInstructionFor(String positionType) {
         String known = KNOWN.get(positionType.toUpperCase());
         if (known != null) return known;
-        return GENERIC_TEMPLATE.formatted(positionType, positionType);
+        String label = POSITION_LABELS.getOrDefault(positionType.toUpperCase(), positionType);
+        return GENERIC_TEMPLATE.formatted(label);
     }
 }

@@ -1,163 +1,178 @@
-# AI 호출 토큰 최소화 — Plan
+# DevWeb UI 전면 리팩토링 — Blueprint
 
-## 현황 분석
+> **의회 합의 완료** (PM · Dev · Designer · SRE · QA 전원 [Approved])
+> 브랜치: `refactor/ui-redesign` (develop에서 분기)
 
-### AI 호출 지점 (6개)
+---
 
-| # | 호출 지점 | 트리거 | 빈도 | 캐싱 | 횟수 제한 |
-|---|---|---|---|---|---|
-| 1 | `QuestionGenerator.generateQuestions` | 세션 생성 | 세션당 1회 | 불필요 (1회성) | O (세션 생성 = 1회) |
-| 2 | `AnswerFeedbackGenerator.generateFeedback` | 답변 제출 | **질문당 무제한** | **X** | **X** |
-| 3 | `CsQuizFeedbackGenerator` (객관식 오답) | 오답 제출 | **문제당 무제한** | **X** | **X** |
-| 4 | `CsQuizFeedbackGenerator` (주관식) | 답변 제출 | **문제당 무제한** | **X** | **X** |
-| 5 | `ResumeSessionService.generateReport` | 리포트 생성 | 세션당 1회 | O (reportJson) | O (캐시 있으면 스킵) |
-| 6 | `ResumeSessionService.generateCoachingReport` | 코칭 리포트 | **무제한 재생성** | △ (덮어씀) | **X** |
+## 디자인 시스템 확정
 
-### 토큰 낭비 핫스팟 (우선순위순)
+### 컬러 팔레트
 
-**1. 피드백 무제한 재시도 (#2, #3, #4) — 가장 큰 낭비**
-- 질문 5개 × 답변 10회 = 50회 AI 호출 가능 (제한 없음)
-- 피드백 1회당 ~700 토큰 → 세션당 최대 35,000 토큰
-- CS 퀴즈도 동일 구조
+| 역할 | Hex | oklch (Tailwind 4) | 설명 |
+|---|---|---|---|
+| Brand / Text Heading | `#1A1A2E` | `oklch(0.18 0.06 280)` | Deep Midnight |
+| **Accent / CTA** | `#E8C547` | `oklch(0.82 0.16 88)` | Pre-dawn Gold ← 배경으로만 사용 |
+| Background (Light) | `#F8F7F4` | `oklch(0.98 0.005 80)` | Warm Off-white |
+| Surface (Light) | `#FFFFFF` | — | 카드/패널 |
+| Background (Dark) | `#0F0F17` | `oklch(0.12 0.02 280)` | Void |
+| Surface (Dark) | `#1A1A2E` | `oklch(0.18 0.06 280)` | — |
+| Muted Text | `#6B6B7B` | `oklch(0.50 0.01 280)` | Cool Gray |
+| Success | `#2D7D6F` | `oklch(0.52 0.10 175)` | Deep Teal |
+| Danger | `#D94F3D` | `oklch(0.55 0.18 25)` | Muted Red |
 
-**2. 프롬프트 중복 규칙 — 구조적 낭비**
-- "JSON 한 줄 minified", "큰따옴표 금지", "줄바꿈 금지" 등 동일 규칙이 AiPromptBuilder 내 6개 프롬프트 + Retry Rules에 14회 반복
-- 프롬프트당 ~150토큰 × 14 = 매 호출마다 낭비
-- Retry 시 원본 프롬프트 전체 + retry rules를 다시 보냄 → attempt 2/3에서 프롬프트 크기 누적 증가
+**골드 사용 규칙 (QA 강제):**
+- ✅ `bg-accent text-[#1A1A2E]` — Primary 버튼, 강조 배지
+- ✅ `border-l-4 border-accent` — Tier 1 카드 accent line
+- ❌ 텍스트 색 / 링크 색 / ghost 버튼 색으로 사용 금지 (WCAG AA 미충족)
 
-**3. 코칭 리포트 무제한 재생성 (#6)**
-- 데이터 변경 없이 버튼 연타로 재생성 가능
-- 코칭 프롬프트 ~460토큰 + 세션 데이터 8,000~10,000토큰 = 1회당 ~10,000토큰
+### 타이포그래피
 
-**4. maxOutputTokens 일괄 8192**
-- Gemini: 모든 호출에 `maxOutputTokens: 8192` 동일 적용
-- 피드백은 실제 ~500토큰만 필요한데 8192 할당 → 불필요한 예약
+| 용도 | 폰트 | 비고 |
+|---|---|---|
+| 본문 전체 | **Geist** | `next/font/google`, Manrope 대체 |
+| 숫자 / 통계 / 코드 | **Geist Mono** | 점수, 비율, 날짜 강조 |
 
-## 개선 계획
+### 카드 계층 (Hierarchy)
 
-### P0: 도메인 레벨 피드백 횟수 제한
-
-**목표:** 질문/문제당 AI 피드백 호출 횟수를 최대 3회로 제한하여 가장 빈번한 토큰 낭비 차단.
-
-**데이터 구조:**
-- 제한 없음 (엔티티 변경 불필요). `question.getAttempts().size()` 로 현재 시도 횟수 확인 가능.
-
-**엔티티 로직 (Rich Domain Model):**
-- `ResumeQuestion.canAttempt()` — attempts 크기 < MAX_ATTEMPTS (3회)
-- `CsQuizQuestion.canAttempt()` — 동일 (각 3회)
-
-**서비스 변경:**
-- `ResumeQuestionService.createFeedback()` — `question.canAttempt()` 검증 추가
-- `CsQuizQuestionService.submitAttempt()` — `question.canAttempt()` 검증 추가
-- 초과 시 `IllegalStateException("최대 답변 횟수(3회)를 초과했습니다.")`
-
-**프론트엔드:**
-- 피드백 UI에서 시도 횟수 표시 (e.g. "3/3회")
-- MAX 도달 시 답변 입력 비활성화 + 안내 메시지
-
-### P1: 프롬프트 공통 규칙 추출 (중복 제거)
-
-**목표:** 6개 프롬프트에 반복되는 JSON 포맷 규칙을 상수로 추출하여 프롬프트 크기 축소.
-
-**변경 파일:** `AiPromptBuilder.java`
-
-**방법:**
-```java
-private static final String JSON_FORMAT_RULES = """
-        - JSON은 한 줄로(minified) 출력하세요. 공백/개행/설명 문장 금지.
-        - 모든 문자열 값에는 줄바꿈을 넣지 마세요(필요하면 \\n 으로 escape).
-        - 문자열 값 안에는 큰따옴표(") 문자를 넣지 마세요.
-        """;
 ```
-- 각 프롬프트에서 중복 3줄 제거 → `JSON_FORMAT_RULES` 참조
-- Retry Rules에서도 동일 3줄 제거 → 차별화된 축소 규칙만 남김
+Primary Content
+  border border-border, bg-card, rounded-xl
+  → 세션 카드, 질문 카드 등 핵심 콘텐츠
+  → 위계는 색이 아닌 구조·여백·타이포그래피로 표현
 
-**효과:** 프롬프트당 ~50토큰 절약 × 6개 = 호출당 ~50토큰 절약
+Secondary Info
+  border border-border, bg-card, rounded-xl
+  → 통계, 메타 정보, 사이드 패널
 
-### P2: Retry Rules를 시스템 인스트럭션으로 이동
-
-**목표:** Retry 시 프롬프트를 누적하지 않고, 시스템 인스트럭션에 포맷 규칙을 넣어 retry 비용 절감.
-
-**변경 파일:** `GeminiInterviewAiAdapter.java`, `GroqInterviewAiAdapter.java`
-
-**방법:**
-- 공통 JSON 포맷 규칙을 systemInstruction에 추가 (1회만 전송)
-- 각 프롬프트에서 포맷 규칙 제거 (스키마 + 도메인 지시만 남김)
-- Retry 시: attempt 2/3에서 프롬프트 원문은 유지, 길이 제한만 축소된 systemInstruction 사용
-
-**효과:** Retry 시 프롬프트 크기가 증가하지 않음 → attempt 2/3에서 각 ~150토큰 절약
-
-### P3: maxOutputTokens 프로필별 분리
-
-**목표:** AI 호출 유형에 따라 적절한 출력 토큰 상한 설정.
-
-**변경 파일:** `GeminiInterviewAiAdapter.java`
-
-**방법:**
-```java
-int tokens = switch (profile) {
-    case FEEDBACK -> 2048;
-    case QUESTIONS, QUIZ_QUESTIONS -> 4096;
-    case SESSION_REPORT -> 4096;
-    case COACHING -> 4096;
-};
+Ghost / Empty State
+  border-dashed border-border, bg-transparent, rounded-xl
+  → 빈 상태, 드롭존, 플레이스홀더
 ```
 
-**효과:** FEEDBACK에서 8192→2048, 과도한 예약 방지 + 응답 속도 개선 가능성
+> ⚠️ border-l-4 좌측 색상 띠는 **전면 폐기** (2026-04 사용자 피드백).
+> 내비게이션 active 표시용 border-l-2는 예외적으로 유지.
 
-### P4: 코칭 리포트 재생성 쿨다운
+### 공통 규칙
+- 모서리: `rounded-xl` 통일 (rounded-lg/2xl 혼재 제거)
+- 이모지: **전면 제거** — Material Symbols Outlined 아이콘으로 대체
+- 그라데이션: 다크 그라데이션(`from-[#1A1A2E] to-[#2D2D4A]`)만 허용, 파스텔 그라데이션 금지
+- 섀도: `shadow-sm` 이상 사용 금지. 대신 border로 구분
+- `prefers-reduced-motion`: 모든 애니메이션에 대응 필수
 
-**목표:** 데이터 변경 없이 반복 재생성 방지.
+---
 
-**데이터 구조:**
-- `Member` 엔티티에 `coachingReportGeneratedAt` (LocalDateTime) 필드 추가
+## 구현 프로세스 (모든 Phase 공통)
 
-**엔티티 로직:**
-- `Member.canRegenerateCoachingReport()` — generatedAt이 null이거나 24시간 경과
+```
+① PM + Designer 사전 설계 검토  →  ② Dev 구현  →  ③ PM + Designer 코드 리뷰 (비판적)  →  ④ QA Final Audit  →  ⑤ 머지
+```
 
-**서비스 변경:**
-- `generateCoachingReport()` — `member.canRegenerateCoachingReport()` 검증
-- 초과 시 `IllegalStateException("코칭 리포트는 24시간에 1회만 재생성할 수 있습니다.")`
+> Phase별 코드 작성 **전** PM·Designer의 설계 합의가 선행되어야 한다.
+> 코드 작성 **후** PM·Designer의 비판적 리뷰 없이 머지 불가.
 
-**프론트엔드:**
-- 재생성 버튼에 남은 쿨다운 시간 표시
-- 쿨다운 중 버튼 비활성화
+---
 
-## 변경 파일 목록
+## 구현 우선순위
 
-### Backend
-| 파일 | 변경 내용 |
-|---|---|
-| `domain/resume/session/model/ResumeQuestion.java` | `canAttempt()` 메서드 + MAX_ATTEMPTS 상수 |
-| `domain/studyquiz/session/model/CsQuizQuestion.java` | `canAttempt()` 메서드 + MAX_ATTEMPTS 상수 |
-| `domain/member/model/Member.java` | `coachingReportGeneratedAt` + `canRegenerateCoachingReport()` |
-| `api/resume/question/ResumeQuestionService.java` | canAttempt 검증 |
-| `api/studyquiz/question/CsQuizQuestionService.java` | canAttempt 검증 |
-| `api/resume/session/ResumeSessionService.java` | 코칭 리포트 쿨다운 검증 |
-| `infra/ai/AiPromptBuilder.java` | JSON_FORMAT_RULES 상수 추출, 프롬프트 축소 |
-| `infra/ai/gemini/GeminiInterviewAiAdapter.java` | 시스템 인스트럭션 포맷 규칙, maxOutputTokens 분리, retry 개선 |
-| `infra/ai/groq/GroqInterviewAiAdapter.java` | 동일 |
+| Phase | 대상 | 핵심 변경 | 상태 |
+|---|---|---|---|
+| **P0** | `globals.css` + 폰트 | 컬러 변수 전면 교체, Geist 적용 → 모든 페이지 즉시 반영 | ⬜ |
+| **P1** | AppSidebar · AppHeader | 컬러 정리, 네비게이션 UX 개선, 이모지 제거 | ⬜ |
+| **P2** | Dashboard | 캐러셀 제거, 정보 위계 재설계, 통계 타이포 강화 | ⬜ |
+| **P3** | Resume Analyzer (Hub + Practice + Report) | 카드 시스템 교체, 이모지 제거, 면접 리포트 UI 개선 | ⬜ |
+| **P4** | CS Quiz (Hub + Practice) | 동일 패턴 적용, 정답/오답 색상 teal/red로 교체 | ⬜ |
+| **P5** | Application Tracker · Profile | Kanban 카드 정리, 프로필 레이아웃 개선 | ⬜ |
+| **P6** | 랜딩 페이지 (`/login`) | **P0~P5 완료 후** 실제 서비스 UI 스크린샷 포함 전면 재설계 | ⬜ |
 
-### Frontend
-| 파일 | 변경 내용 |
-|---|---|
-| `features/resume-analyzer/api/types.ts` | ResumeQuestion에 maxAttempts 추가 |
-| `features/resume-analyzer/components/ResumePortfolioPrepView.tsx` | 시도 횟수 표시 + 제한 도달 시 비활성화 |
-| `features/study-quiz/components/StudyQuizPracticeView.tsx` | 동일 |
-| `features/resume-analyzer/components/InterviewReportView.tsx` | 코칭 리포트 쿨다운 UI |
+---
+
+## Phase별 상세 설계
+
+### P0: globals.css + 폰트 (기반 작업)
+**변경 파일:** `app/globals.css`, `app/layout.tsx`
+
+- `--primary` → oklch(0.18 0.06 280) [Deep Midnight]
+- `--accent` → oklch(0.82 0.16 88) [Pre-dawn Gold]
+- `--background` → oklch(0.98 0.005 80) [Warm Off-white]
+- `--muted` → oklch(0.50 0.01 280)
+- Dark mode 변수 재정의
+- `next/font/google`에서 Geist + Geist Mono 로드
+- `layout.tsx`에서 Manrope → Geist className 교체
+
+### P1: AppSidebar · AppHeader
+**변경 파일:** `components/AppSidebar.tsx`, `components/AppHeader.tsx`
+
+- 사이드바 배경: Light → `bg-background border-r`, Dark → `bg-surface`
+- 활성 메뉴: 좌측 `border-l-2 border-accent` accent line + `bg-accent/10`
+- 이모지 아이콘 제거, Material Symbols 통일
+- 네비 항목 레이블 정리 (현재 기능 기준으로 갱신)
+
+### P2: Dashboard
+**변경 파일:** `features/dashboard/components/DashboardView.tsx`
+
+- 캐러셀(Embla) 제거
+- 상단: Today's Focus 1개 강조 카드 (Tier 1)
+- 중단: 핵심 지표 3개 (숫자 Geist Mono, 크고 단호하게)
+- 하단 2/3: 최근 세션 목록 | 1/3: Quick Actions
+- 파스텔 그라데이션 stat 카드 → Tier 2 카드로 교체
+
+### P3: Resume Analyzer
+**변경 파일:** Hub, Practice, Report 컴포넌트
+
+- 세션 카드 → Tier 1 (border-l-4 gold)
+- 이모지 제거
+- 면접 리포트: 점수 Geist Mono, 섹션 구분 명확화
+- AI 코칭 리포트: 재분석 쿨다운 UI 개선
+
+### P4: CS Quiz
+**변경 파일:** Hub, Practice 컴포넌트
+
+- 정답: emerald → Deep Teal (`#2D7D6F`)
+- 오답: red → Muted Red (`#D94F3D`)
+- 객관식 선택지 UI: 기존 radio → border-l-4 Tier 1 스타일
+
+### P5: Application Tracker · Profile
+**변경 파일:** ApplicationTrackerView, ProfileView
+
+- Kanban 카드 left border → Tier 1 패턴
+- 통계 카드 그라데이션 제거
+- 프로필 헤더 그라데이션 → Deep Midnight flat
+
+### P6: 랜딩 페이지 (최후순위)
+**변경 파일:** `app/login/page.tsx`
+
+> P0~P5 완료 후 실제 서비스 UI 스크린샷 촬영하여 삽입
+
+**4섹션 구조:**
+```
+Section 1 — Hero (Dark, #0F0F17)
+  헤드라인 + 서브카피 + CTA (단 하나)
+  우측: 실제 앱 UI 스크린샷 패널
+
+Section 2 — Feature Showcase
+  4개 기능 각각 별도 설명:
+  ① AI 면접 질문 생성 + 실시간 피드백
+  ② 누적 AI 코칭 리포트 (성장 궤적)
+  ③ CS 퀴즈 세션
+  ④ 지원 현황 칸반
+
+Section 3 — UI Preview
+  실제 스크린샷 카드 3~4장
+
+Section 4 — Login CTA
+  OAuth 버튼 (Google · Kakao)
+```
+
+---
 
 ## 예상 효과
 
 | 항목 | Before | After |
 |---|---|---|
-| 피드백 호출/세션 (최악) | 무제한 (50+ 가능) | 최대 25회 (5질문 × 5회) |
-| 프롬프트 크기 (피드백) | ~700토큰 | ~600토큰 |
-| Retry 추가 비용 | +150토큰/attempt | +50토큰/attempt |
-| 코칭 리포트 재생성 | 무제한 | 24시간 쿨다운 |
-| maxOutputTokens (피드백) | 8192 | 2048 |
-
-## 구현 순서
-
-1. P0 → P1 → P2 → P3 → P4 (의존성 없이 독립적)
-2. 단일 브랜치 `refactor/ai-token-optimization`
-3. Backend compileJava + test → Frontend tsc --noEmit 검증
+| 컬러 | 인디고 (AI 뻔함) | Deep Midnight + Gold (브랜드 아이덴티티) |
+| 폰트 | Manrope | Geist + Geist Mono |
+| 카드 | 단일 패턴 | 3-tier hierarchy |
+| 이모지 | 곳곳에 산재 | 전면 제거 |
+| 랜딩 | 구기능 나열 | 실제 UI 스크린샷 포함 전체 기능 노출 |
+| 그라데이션 | 파스텔 남용 | 다크 그라데이션만 허용 |
