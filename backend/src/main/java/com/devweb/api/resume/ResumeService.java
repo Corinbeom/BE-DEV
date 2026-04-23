@@ -9,6 +9,8 @@ import com.devweb.domain.resume.port.ResumeRepository;
 import com.devweb.domain.resume.session.model.StoredFileRef;
 import com.devweb.domain.resume.session.port.FileStoragePort;
 import com.devweb.domain.resume.session.port.TextExtractorPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +24,7 @@ import java.util.List;
 @Transactional
 public class ResumeService {
 
+    private static final Logger log = LoggerFactory.getLogger(ResumeService.class);
     private static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
 
     private final ResumeRepository resumeRepository;
@@ -59,7 +62,13 @@ public class ResumeService {
         Resume resume = new Resume(member, resolvedTitle, fileType);
 
         byte[] bytes = readBytes(file);
-        StoredFileRef storedFile = fileStorage.save(bytes, file.getOriginalFilename(), file.getContentType());
+        StoredFileRef storedFile;
+        try {
+            storedFile = fileStorage.save(bytes, file.getOriginalFilename(), file.getContentType());
+        } catch (Exception e) {
+            log.error("[ResumeService] 파일 저장(S3) 실패: filename={}, error={}", file.getOriginalFilename(), e.getMessage(), e);
+            throw new RuntimeException("파일 저장에 실패했습니다. 잠시 후 다시 시도해주세요.", e);
+        }
         resume.attachFile(storedFile);
 
         try {
@@ -92,7 +101,12 @@ public class ResumeService {
         String storageKey = resume.getStoredFile() != null ? resume.getStoredFile().getStorageKey() : null;
         resumeRepository.delete(resume);
         if (storageKey != null) {
-            fileStorage.delete(storageKey);
+            try {
+                fileStorage.delete(storageKey);
+            } catch (Exception e) {
+                // S3 삭제 실패는 non-fatal — DB 레코드는 이미 삭제됨
+                log.warn("[ResumeService] S3 파일 삭제 실패 (DB 레코드는 삭제됨): key={}, error={}", storageKey, e.getMessage());
+            }
         }
     }
 
