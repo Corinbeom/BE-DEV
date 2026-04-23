@@ -85,6 +85,7 @@ public class ResumeSessionService {
         this.objectMapper = objectMapper;
     }
 
+    @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
     public ResumeSession create(
             Long memberId,
             String positionTypeRaw,
@@ -130,6 +131,7 @@ public class ResumeSessionService {
         return sessionRepository.save(session);
     }
 
+    @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
     public ResumeSession createFromResume(
             Long memberId,
             String positionTypeRaw,

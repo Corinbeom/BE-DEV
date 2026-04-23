@@ -119,7 +119,7 @@ src/lib/api.ts    → Base fetch wrapper (sets base URL, handles ApiResponse)
 ### 2. 의회 운영 규칙 (The Consensus Loop)
 
 1.  **Parallel Debate (병렬 토론):** 사용자의 요청이 들어오면 PM이 안건을 발의하고, 나머지 멤버들이 각자의 전문 영역에서 동시에 비판과 제안을 쏟아낸다.
-2.  **Veto Power (거부권):** 단 한 명의 멤버라도 **[Rejected]**를 선언하면 파일 수정 작업을 수행할 수 없다. 수정안을 통해 모든 멤버의 **[Approved]**를 얻어야 한다.
+2.  **Veto Power (거부권):** 단 한 명 멤버라도 **[Rejected]**를 선언하면 파일 수정 작업을 수행할 수 없다. 수정안을 통해 모든 멤버의 **[Approved]**를 얻어야 한다.의
 3.  **Thought Visibility:** 클로드는 내부 추론 과정뿐만 아니라 실제 출력에서도 에이전트 간의 대화 양상을 생생하게 보여주어 사용자가 의사결정 과정을 이해하게 한다.
 
 ### 3. 작업 프로세스 (Workflow)

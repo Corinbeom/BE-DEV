@@ -1,379 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useRecruitmentEntries } from "@/features/application-tracker/hooks/useRecruitmentEntries";
 import { useCsQuizSessions } from "@/features/study-quiz/hooks/useCsQuizSessions";
 import { useResumeSessions } from "@/features/resume-analyzer/hooks/useResumeSessions";
-import type { CsQuizSession } from "@/features/study-quiz/api/types";
-import { LearningInsights } from "./LearningInsights";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import type { ResumeSession } from "@/features/resume-analyzer/api/types";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
 import { cn } from "@/lib/utils";
 
-const LEARNING_RESOURCES = [
-  { key: "programmers", name: "프로그래머스", url: "https://school.programmers.co.kr/learn/challenges", icon: "code", color: "text-blue-600 bg-blue-500/10" },
-  { key: "baekjoon", name: "백준", url: "https://www.acmicpc.net", icon: "terminal", color: "text-sky-600 bg-sky-500/10" },
-  { key: "leetcode", name: "LeetCode", url: "https://leetcode.com/problemset", icon: "data_object", color: "text-amber-600 bg-amber-500/10" },
-  { key: "swea", name: "SWEA", url: "https://swexpertacademy.com/main/main.do", icon: "developer_board", color: "text-indigo-600 bg-indigo-500/10" },
-  { key: "codeforces", name: "Codeforces", url: "https://codeforces.com", icon: "emoji_events", color: "text-red-600 bg-red-500/10" },
-];
+// Pulse palette — matches PA colors from design
+const PA = {
+  primary: "oklch(0.385 0.175 280)",
+  green: "oklch(0.52 0.18 150)",
+  amber: "oklch(0.55 0.18 60)",
+  violet: "oklch(0.52 0.18 295)",
+  red: "oklch(0.52 0.20 25)",
+};
 
-export function DashboardView() {
-  const { data: entries = [], error: entriesError } = useRecruitmentEntries();
-  const { data: quizSessions = [], error: quizError } = useCsQuizSessions();
-  const { data: resumeSessions = [], error: resumeError } = useResumeSessions();
-
-  const hasDataError = !!(entriesError || quizError || resumeError);
-
-  const recentEntries = entries.slice(0, 4);
-  const recentQuizSessions = quizSessions.slice(0, 3);
-  const latestResumeSession = resumeSessions[0] ?? null;
-
-  /* ── Hero Carousel ── */
-  const heroSlides = useHeroSlides({
-    latestResumeSession,
-    quizCount: quizSessions.length,
-    entryCount: entries.length,
-  });
-
-  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  useEffect(() => {
-    if (!carouselApi) return;
-    const onSelect = () => setCurrentSlide(carouselApi.selectedScrollSnap());
-    carouselApi.on("select", onSelect);
-    onSelect();
-    return () => { carouselApi.off("select", onSelect); };
-  }, [carouselApi]);
-
-  return (
-    <>
-      {/* AI Hero Banner — Embla Carousel with drag/swipe + autoplay */}
-      <Carousel
-        opts={{ loop: true }}
-        plugins={[Autoplay({ delay: 8000, stopOnInteraction: false, stopOnMouseEnter: true })]}
-        setApi={setCarouselApi}
-        className="rounded-2xl shadow-xl shadow-primary/15"
-      >
-        <CarouselContent className="ml-0">
-          {heroSlides.map((slide, i) => (
-            <CarouselItem key={i} className="pl-0">
-              <section
-                className={cn(
-                  "relative overflow-hidden rounded-2xl p-8 text-primary-foreground bg-gradient-to-br transition-colors duration-500",
-                  slide.gradient,
-                )}
-              >
-                <div className="relative z-10 flex flex-col items-center justify-between gap-6 md:flex-row">
-                  <div className="max-w-xl">
-                    <Badge className="mb-3 border-primary-foreground/20 bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/20">
-                      {slide.badge}
-                    </Badge>
-                    <h3 className="mb-2 text-2xl font-bold">{slide.title}</h3>
-                    <p className="mb-6 leading-relaxed text-primary-foreground/80">
-                      {slide.description}
-                    </p>
-                    <Link
-                      href={slide.href}
-                      className={cn(
-                        buttonVariants(),
-                        "gap-2 bg-white text-primary shadow-lg hover:bg-white/90",
-                      )}
-                    >
-                      <span className="material-symbols-outlined text-lg">
-                        {slide.buttonIcon}
-                      </span>
-                      {slide.buttonText}
-                    </Link>
-                  </div>
-
-                  {/* Right mini card */}
-                  <Card className="hidden border-primary-foreground/20 bg-primary-foreground/10 shadow-none backdrop-blur-sm lg:block">
-                    <CardContent className="flex h-40 w-64 flex-col justify-between p-4">
-                      <div className="flex items-center gap-2">
-                        <div className={cn("size-2.5 rounded-full", slide.card.dotColor)} />
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary-foreground/90">
-                          {slide.card.label}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        {slide.card.lines.map((line, li) => (
-                          <p
-                            key={li}
-                            className={cn(
-                              "text-xs",
-                              li === 1
-                                ? "truncate text-sm font-semibold text-primary-foreground"
-                                : "text-primary-foreground/60",
-                            )}
-                          >
-                            {line}
-                          </p>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Slide indicators */}
-                <div className="relative z-10 mt-5 flex justify-center gap-2 md:justify-start">
-                  {heroSlides.map((_, di) => (
-                    <button
-                      key={di}
-                      onClick={() => carouselApi?.scrollTo(di)}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-300",
-                        di === currentSlide
-                          ? "w-6 bg-white"
-                          : "w-1.5 bg-white/40 hover:bg-white/60",
-                      )}
-                      aria-label={`슬라이드 ${di + 1}`}
-                    />
-                  ))}
-                </div>
-
-                <div className="pointer-events-none absolute -right-20 -top-20 size-80 rounded-full bg-white/5 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-20 -left-20 size-80 rounded-full bg-white/8 blur-3xl" />
-              </section>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
-
-      {/* Data Error Banner */}
-      {hasDataError && (
-        <div className="flex items-center gap-3 rounded-lg border border-destructive/50 bg-destructive/5 px-4 py-3">
-          <span className="material-symbols-outlined text-destructive">warning</span>
-          <p className="text-sm text-destructive">
-            일부 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
-          </p>
-        </div>
-      )}
-
-      {/* Summary Strip */}
-      <section className="flex flex-wrap items-baseline gap-x-8 gap-y-3 px-1">
-        <div>
-          <span className="text-3xl font-extrabold text-foreground">{entries.length}</span>
-          <span className="ml-1.5 text-sm text-muted-foreground">총 지원</span>
-        </div>
-        {entries.filter((e) => e.step === "INTERVIEWING").length > 0 && (
-          <div>
-            <span className="text-3xl font-extrabold text-amber-600">{entries.filter((e) => e.step === "INTERVIEWING").length}</span>
-            <span className="ml-1.5 text-sm text-muted-foreground">면접 진행</span>
-          </div>
-        )}
-        {entries.filter((e) => e.step === "OFFERED").length > 0 && (
-          <div>
-            <span className="text-3xl font-extrabold text-emerald-600">{entries.filter((e) => e.step === "OFFERED").length}</span>
-            <span className="ml-1.5 text-sm text-muted-foreground">오퍼</span>
-          </div>
-        )}
-        <div>
-          <span className="text-3xl font-extrabold text-violet-600">{quizSessions.length}</span>
-          <span className="ml-1.5 text-sm text-muted-foreground">퀴즈 세션</span>
-        </div>
-        <div>
-          <span className="text-3xl font-extrabold text-primary">{resumeSessions.length}</span>
-          <span className="ml-1.5 text-sm text-muted-foreground">면접 세션</span>
-        </div>
-      </section>
-
-      {/* Learning Resources */}
-      <section>
-        <h3 className="mb-4 text-lg font-bold tracking-tight text-foreground">
-          학습 리소스
-        </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {LEARNING_RESOURCES.map((res) => (
-            <a
-              key={res.key}
-              href={res.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group"
-            >
-              <Card className="transition-all hover:-translate-y-1 hover:shadow-md hover:border-primary/30">
-                <CardContent className="flex flex-col items-center gap-2 p-4">
-                  <div className={cn("flex size-10 items-center justify-center rounded-lg", res.color)}>
-                    <span className="material-symbols-outlined text-xl">{res.icon}</span>
-                  </div>
-                  <span className="text-xs font-semibold text-muted-foreground transition-colors group-hover:text-foreground">
-                    {res.name}
-                  </span>
-                </CardContent>
-              </Card>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* Learning Insights */}
-      <LearningInsights
-        quizSessions={quizSessions}
-        resumeSessions={resumeSessions}
-      />
-
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* CS Quiz Sessions */}
-        <div className="space-y-4 lg:col-span-1">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold tracking-tight text-foreground">
-              최근 CS 퀴즈
-            </h3>
-            <Link
-              href="/study-quiz"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
-              전체 보기
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {recentQuizSessions.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center gap-3 p-8 text-center">
-                  <span className="material-symbols-outlined text-3xl text-muted-foreground">
-                    quiz
-                  </span>
-                  <p className="text-sm text-muted-foreground">
-                    아직 CS 퀴즈 기록이 없어요.
-                  </p>
-                  <Link
-                    href="/study-quiz"
-                    className="text-sm font-semibold text-primary hover:underline"
-                  >
-                    퀴즈 시작하기
-                  </Link>
-                </CardContent>
-              </Card>
-            ) : (
-              recentQuizSessions.map((session) => (
-                <QuizSessionItem key={session.id} session={session} />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Recent Applications */}
-        <div className="space-y-4 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold tracking-tight text-foreground">
-              최근 지원
-            </h3>
-            <Link
-              href="/application-tracker"
-              className="text-muted-foreground transition-colors hover:text-primary"
-              aria-label="전체 보기"
-            >
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </Link>
-          </div>
-
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <th className="px-6 py-3">회사</th>
-                    <th className="px-6 py-3">포지션</th>
-                    <th className="px-6 py-3">지원일</th>
-                    <th className="px-6 py-3">상태</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {recentEntries.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-6 py-8 text-center text-sm text-muted-foreground"
-                      >
-                        아직 지원 내역이 없어요.{" "}
-                        <Link
-                          className="font-semibold text-primary hover:underline"
-                          href="/application-tracker"
-                        >
-                          지원 현황
-                        </Link>
-                        에서 추가해 보세요.
-                      </td>
-                    </tr>
-                  ) : (
-                    recentEntries.map((e) => (
-                      <RecentRow
-                        key={e.id}
-                        company={e.companyName}
-                        role={e.position}
-                        applied={e.appliedDate ?? "-"}
-                        status={toKoreanStep(e.step)}
-                        statusTone={toneFromStep(e.step)}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="border-t border-border bg-muted/30 p-3 text-center">
-              <Link
-                href="/application-tracker"
-                className="flex w-full items-center justify-center gap-2 rounded-lg py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
-              >
-                전체 지원 이력 보기
-                <span className="material-symbols-outlined text-sm">
-                  arrow_forward
-                </span>
-              </Link>
-            </div>
-          </Card>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function toKoreanStep(step: string) {
-  switch (step) {
-    case "READY":
-      return "준비";
-    case "APPLIED":
-      return "지원";
-    case "DOC_PASSED":
-      return "서류 합격";
-    case "TEST_PHASE":
-      return "테스트";
-    case "INTERVIEWING":
-      return "면접";
-    case "OFFERED":
-      return "최종 합격";
-    case "REJECTED":
-      return "불합격";
-    default:
-      return step;
-  }
-}
-
-function toneFromStep(step: string) {
-  switch (step) {
-    case "OFFERED":
-      return "success" as const;
-    case "INTERVIEWING":
-      return "warn" as const;
-    case "REJECTED":
-      return "danger" as const;
-    default:
-      return "neutral" as const;
-  }
-}
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 function topicLabel(topic: string) {
   const map: Record<string, string> = {
@@ -392,210 +37,414 @@ function topicLabel(topic: string) {
 
 function statusKorean(status: string) {
   switch (status) {
-    case "QUESTIONS_READY":
-      return "완료";
-    case "CREATED":
-      return "생성 중";
-    case "FAILED":
-      return "실패";
-    default:
-      return status;
+    case "QUESTIONS_READY": return "완료";
+    case "CREATED": return "생성 중";
+    case "FAILED": return "실패";
+    default: return status;
   }
 }
 
-function statusVariant(status: string) {
-  switch (status) {
-    case "QUESTIONS_READY":
-      return "default" as const;
-    case "CREATED":
-      return "secondary" as const;
-    case "FAILED":
-      return "destructive" as const;
-    default:
-      return "outline" as const;
+function formatRelativeDate(isoString: string | null): string {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "방금 전";
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay}일 전`;
+  return date.toLocaleDateString("ko-KR");
+}
+
+function stepLabel(step: string) {
+  switch (step) {
+    case "READY": return "준비";
+    case "APPLIED": return "지원";
+    case "DOC_PASSED": return "서류 통과";
+    case "TEST_PHASE": return "코딩테스트";
+    case "INTERVIEWING": return "면접 진행";
+    case "OFFERED": return "최종 합격";
+    case "REJECTED": return "불합격";
+    default: return step;
   }
 }
 
-function QuizSessionItem({ session }: { session: CsQuizSession }) {
-  const topics = Array.isArray(session.topics) ? session.topics : [];
-  const topicDisplay = topics.slice(0, 2).map(topicLabel).join(", ");
-  const extraCount = topics.length - 2;
+function stepColor(step: string) {
+  switch (step) {
+    case "INTERVIEWING": return PA.amber;
+    case "OFFERED": return PA.green;
+    case "APPLIED":
+    case "DOC_PASSED": return PA.primary;
+    case "TEST_PHASE": return PA.violet;
+    case "REJECTED": return PA.red;
+    default: return PA.violet;
+  }
+}
 
+/* ── Sub-components ──────────────────────────────────────────────────────── */
+
+function StatCard({
+  value,
+  label,
+  icon,
+  color,
+  trend,
+}: {
+  value: number;
+  label: string;
+  icon: string;
+  color: string;
+  trend?: string;
+}) {
   return (
-    <Link href={`/study-quiz/practice?sessionId=${session.id}`}>
-      <Card className="group transition-all hover:shadow-md hover:border-primary/30">
-        <CardContent className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <span className="material-symbols-outlined">quiz</span>
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                {session.title}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {topicDisplay}
-                {extraCount > 0 ? ` +${extraCount}` : ""}
-              </p>
-            </div>
-          </div>
-          <div className="ml-3 shrink-0 text-right">
-            <Badge variant={statusVariant(session.status)}>
-              {statusKorean(session.status)}
-            </Badge>
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              {new Date(session.createdAt).toLocaleDateString("ko-KR")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+    <div className="rounded-xl border border-border bg-card p-[18px_20px] transition-shadow hover:shadow-md hover:shadow-black/5">
+      <div className="mb-3.5 flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
+        <div
+          className="flex size-7 items-center justify-center rounded-lg"
+          style={{ background: `color-mix(in oklab, ${color} 15%, transparent)` }}
+        >
+          <span
+            className="material-symbols-outlined text-[15px]"
+            style={{ color }}
+          >
+            {icon}
+          </span>
+        </div>
+      </div>
+      <p
+        className="font-sans text-[38px] font-bold leading-none tracking-[-0.04em]"
+        style={{ color }}
+      >
+        {value}
+      </p>
+      {trend && (
+        <p className="mt-2 text-[11px] text-muted-foreground">{trend}</p>
+      )}
+    </div>
   );
 }
 
-/* ── Hero slide data ── */
-interface HeroSlide {
-  badge: string;
-  title: string;
-  description: string;
-  buttonText: string;
-  buttonIcon: string;
-  href: string;
-  gradient: string;
-  card: {
-    dotColor: string;
-    label: string;
-    lines: string[];
-  };
-}
+/* ── Main Component ──────────────────────────────────────────────────────── */
 
-function useHeroSlides({
-  latestResumeSession,
-  quizCount,
-  entryCount,
-}: {
-  latestResumeSession: import("@/features/resume-analyzer/api/types").ResumeSession | null;
-  quizCount: number;
-  entryCount: number;
-}): HeroSlide[] {
-  return [
-    {
-      badge: "AI Interview Coach",
-      title: "이력서 기반 모의 면접",
-      gradient: "from-primary via-primary to-primary/80",
-      description: latestResumeSession
-        ? `최근 분석: ${latestResumeSession.title}${latestResumeSession.questions.length > 0 ? ` · 질문 ${latestResumeSession.questions.length}개 준비됨` : ""}`
-        : "이력서를 업로드하면 AI가 분석해 맞춤 면접 질문을 생성해 드립니다.",
-      buttonText: latestResumeSession ? "이어서 연습하기" : "분석 시작하기",
-      buttonIcon: "play_circle",
-      href: latestResumeSession
-        ? `/resume-analyzer/practice?sessionId=${latestResumeSession.id}`
-        : "/resume-analyzer/practice",
-      card: latestResumeSession
-        ? {
-            dotColor: "bg-green-400",
-            label: "최근 분석 완료",
-            lines: [
-              "세션",
-              latestResumeSession.title,
-              `${latestResumeSession.positionType ?? "포지션 미지정"} · ${new Date(latestResumeSession.createdAt).toLocaleDateString("ko-KR")}`,
-            ],
-          }
-        : {
-            dotColor: "bg-green-400 animate-pulse",
-            label: "AI 코치 대기 중",
-            lines: ["이력서를 업로드하고", "맞춤 면접 질문을", "받아보세요"],
-          },
-    },
-    {
-      badge: "CS Quiz",
-      title: "CS 기술 면접 준비",
-      gradient: "from-violet-700 via-violet-700 to-violet-600/80",
-      description:
-        quizCount > 0
-          ? `지금까지 ${quizCount}개 퀴즈 세션을 진행했어요. 더 풀어볼까요?`
-          : "9가지 토픽의 CS 문제로 기술 면접 실력을 키워보세요.",
-      buttonText: "퀴즈 풀기",
-      buttonIcon: "code",
-      href: "/study-quiz",
-      card: {
-        dotColor: "bg-violet-400",
-        label: "CS 퀴즈",
-        lines: [
-          "진행 세션",
-          `${quizCount}개`,
-          "OS · 네트워크 · DB · Spring 외 5개",
-        ],
-      },
-    },
-    {
-      badge: "Tracker",
-      title: "지원 현황 관리",
-      gradient: "from-emerald-600 via-emerald-600 to-emerald-500/80",
-      description:
-        entryCount > 0
-          ? `현재 ${entryCount}개 지원을 관리 중이에요. 새 지원을 추가해 보세요.`
-          : "칸반 보드로 전형 단계를 한눈에 관리하세요.",
-      buttonText: "지원 현황 보기",
-      buttonIcon: "work",
-      href: "/application-tracker",
-      card: {
-        dotColor: "bg-amber-400",
-        label: "지원 현황",
-        lines: [
-          "총 지원",
-          `${entryCount}건`,
-          "준비 · 지원 · 면접 · 오퍼",
-        ],
-      },
-    },
-  ];
-}
+export function DashboardView() {
+  const { user } = useAuth();
+  const { data: entries = [], error: entriesError } = useRecruitmentEntries();
+  const { data: quizSessions = [], error: quizError } = useCsQuizSessions();
+  const { data: resumeSessions = [], error: resumeError } = useResumeSessions();
 
-function RecentRow({
-  company,
-  role,
-  applied,
-  status,
-  statusTone,
-}: {
-  company: string;
-  role: string;
-  applied: string;
-  status: string;
-  statusTone: "success" | "warn" | "neutral" | "danger";
-}) {
-  const toneClasses =
-    statusTone === "success"
-      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-      : statusTone === "warn"
-        ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-        : statusTone === "danger"
-          ? "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-          : "bg-muted text-muted-foreground";
+  const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? "사용자";
+  const hasDataError = !!(entriesError || quizError || resumeError);
+
+  const interviewingCount = entries.filter((e) => e.step === "INTERVIEWING").length;
+  const offeredCount = entries.filter((e) => e.step === "OFFERED").length;
+
+  const recentEntries = entries.slice(0, 4);
+  const recentResumeSessions = resumeSessions.slice(0, 2);
+  const recentQuizSessions = quizSessions.slice(0, 2);
+
+  // Today's focus: find incomplete session or suggest next action
+  const incompleteResume = resumeSessions.find(
+    (s) => s.status === "QUESTIONS_READY" && s.answeredQuestionCount < s.totalQuestionCount
+  );
+  const focusHref = incompleteResume
+    ? `/resume-analyzer/practice?sessionId=${incompleteResume.id}`
+    : "/resume-analyzer";
+  const focusTitle = incompleteResume
+    ? incompleteResume.title
+    : "이력서 기반 맞춤 면접 연습";
+  const focusDesc = incompleteResume
+    ? `${incompleteResume.positionType ?? "포지션 미지정"} · 남은 질문 ${
+        incompleteResume.totalQuestionCount - incompleteResume.answeredQuestionCount
+      }개`
+    : "이력서/포트폴리오 분석 → AI 맞춤 질문 생성";
+
+  const today = new Date().toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
 
   return (
-    <tr className="group transition-colors hover:bg-muted/50">
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-md bg-foreground text-[10px] font-bold text-background">
-            {company.slice(0, 1).toUpperCase()}
-          </div>
-          <span className="text-sm font-semibold text-foreground">{company}</span>
+    <>
+      {/* Data Error Banner */}
+      {hasDataError && (
+        <div className="flex items-center gap-3 rounded-xl border border-destructive/50 bg-destructive/5 px-4 py-3">
+          <span className="material-symbols-outlined text-destructive">warning</span>
+          <p className="text-sm text-destructive">
+            일부 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+          </p>
         </div>
-      </td>
-      <td className="px-6 py-4 text-sm text-foreground">{role}</td>
-      <td className="px-6 py-4 text-sm text-muted-foreground">{applied}</td>
-      <td className="px-6 py-4">
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-            toneClasses
-          )}
+      )}
+
+      {/* ① Greeting strip */}
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h1 className="font-sans text-xl font-bold tracking-[-0.02em] text-foreground">
+            좋은 아침이에요, {displayName}님
+          </h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">{today}</p>
+        </div>
+        <Link
+          href="/resume-analyzer/report"
+          className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
         >
-          {status}
-        </span>
-      </td>
-    </tr>
+          <span className="material-symbols-outlined text-sm">analytics</span>
+          면접 리포트 보러가기
+        </Link>
+      </div>
+
+      {/* ② 4-stat row — Pulse style */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          value={entries.length}
+          label="총 지원"
+          icon="work"
+          color={PA.primary}
+          trend={
+            interviewingCount > 0
+              ? `면접 ${interviewingCount}건 진행 중`
+              : offeredCount > 0
+              ? `합격 ${offeredCount}건`
+              : undefined
+          }
+        />
+        <StatCard
+          value={interviewingCount}
+          label="면접 진행"
+          icon="record_voice_over"
+          color={PA.amber}
+        />
+        <StatCard
+          value={quizSessions.length}
+          label="퀴즈 세션"
+          icon="quiz"
+          color={PA.violet}
+        />
+        <StatCard
+          value={resumeSessions.length}
+          label="면접 세션"
+          icon="description"
+          color={PA.green}
+        />
+      </section>
+
+      {/* ③ Two-column: AI feature cards + recent applications */}
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* AI feature cards */}
+        <div className="flex flex-col gap-3">
+          {/* Today's focus hero */}
+          <Link href={focusHref}>
+            <div className="group rounded-xl border border-border bg-card p-[18px_20px] transition-all hover:border-primary/50 hover:shadow-md hover:shadow-black/5">
+              <div className="mb-3 flex items-center gap-2.5">
+                <div
+                  className="flex size-8 items-center justify-center rounded-lg"
+                  style={{ background: `color-mix(in oklab, ${PA.primary} 15%, transparent)` }}
+                >
+                  <span className="material-symbols-outlined text-[17px]" style={{ color: PA.primary }}>
+                    description
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground">AI 이력서 분석</span>
+              </div>
+              <p className="text-sm font-semibold text-foreground">{focusTitle}</p>
+              <p className="mt-1 text-[12px] text-muted-foreground">{focusDesc}</p>
+              <p
+                className="mt-4 flex items-center gap-1 text-[13px] font-semibold"
+                style={{ color: PA.primary }}
+              >
+                {incompleteResume ? "이어서 연습하기" : "연습 시작하기"}
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </p>
+            </div>
+          </Link>
+
+          {/* CS Quiz card */}
+          <Link href="/study-quiz">
+            <div className="group rounded-xl border border-border bg-card p-[18px_20px] transition-all hover:border-chart-4/50 hover:shadow-md hover:shadow-black/5">
+              <div className="mb-3 flex items-center gap-2.5">
+                <div
+                  className="flex size-8 items-center justify-center rounded-lg"
+                  style={{ background: `color-mix(in oklab, ${PA.violet} 15%, transparent)` }}
+                >
+                  <span className="material-symbols-outlined text-[17px]" style={{ color: PA.violet }}>
+                    quiz
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground">CS 퀴즈</span>
+              </div>
+              {recentQuizSessions.length > 0 ? (
+                <>
+                  <p className="text-sm font-semibold text-foreground">
+                    {recentQuizSessions[0].title}
+                  </p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    {(Array.isArray(recentQuizSessions[0].topics)
+                      ? recentQuizSessions[0].topics.slice(0, 2).map(topicLabel).join(" · ")
+                      : "") || "토픽 미지정"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-foreground">
+                    CS 기술 면접 실력을 점검해 보세요
+                  </p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    OS · 네트워크 · DB · Spring · Java 외 4개 토픽
+                  </p>
+                </>
+              )}
+              <p
+                className="mt-4 flex items-center gap-1 text-[13px] font-semibold"
+                style={{ color: PA.violet }}
+              >
+                {recentQuizSessions.length > 0 ? "계속하기" : "퀴즈 시작하기"}
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Recent applications */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <span className="text-[13px] font-bold text-foreground">최근 지원</span>
+            <Link
+              href="/application-tracker"
+              className="text-[12px] font-medium text-primary hover:underline"
+            >
+              전체 보기
+            </Link>
+          </div>
+          {recentEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+              <span className="material-symbols-outlined text-3xl text-muted-foreground/40">work</span>
+              <p className="text-xs text-muted-foreground">아직 지원 기록이 없어요.</p>
+              <Link href="/application-tracker" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                지원 추가하기
+              </Link>
+            </div>
+          ) : (
+            recentEntries.map((e, i) => {
+              const color = stepColor(e.step);
+              return (
+                <div
+                  key={e.id}
+                  className={cn(
+                    "flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/50",
+                    i < recentEntries.length - 1 && "border-b border-border"
+                  )}
+                >
+                  <div
+                    className="flex size-[30px] flex-shrink-0 items-center justify-center rounded-lg text-[11px] font-bold text-white"
+                    style={{ background: stepColor(e.step) }}
+                  >
+                    {e.companyName.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold text-foreground">{e.companyName}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {e.position ?? "포지션 미지정"}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      style={{
+                        color,
+                        background: `color-mix(in oklab, ${color} 15%, transparent)`,
+                      }}
+                    >
+                      {stepLabel(e.step)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      {/* ④ Recent resume sessions */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-semibold text-foreground">최근 면접 세션</p>
+          <Link
+            href="/resume-analyzer"
+            className="flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            전체 보기
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+        {resumeSessions.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card px-5 py-10 text-center">
+            <span className="material-symbols-outlined text-3xl text-muted-foreground/40">description</span>
+            <p className="text-sm font-semibold text-foreground">아직 면접 세션이 없어요</p>
+            <p className="text-xs text-muted-foreground">이력서를 업로드하고 AI 맞춤 면접 연습을 시작해보세요</p>
+            <Link
+              href="/resume-analyzer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-2 gap-1.5")}
+            >
+              <span className="material-symbols-outlined text-sm">upload_file</span>
+              면접 세션 시작하기
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {recentResumeSessions.map((s) => (
+              <ResumeSessionCard key={s.id} session={s} />
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
+/* ── ResumeSessionCard ───────────────────────────────────────────────────── */
+
+function ResumeSessionCard({ session }: { session: ResumeSession }) {
+  const done = session.answeredQuestionCount;
+  const total = session.totalQuestionCount;
+  const progressPct = total > 0 ? (done / total) * 100 : 0;
+
+  return (
+    <Link href={`/resume-analyzer/practice?sessionId=${session.id}`}>
+      <div className="group rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/30">
+        <div className="flex items-start gap-3">
+          <span className="material-symbols-outlined mt-0.5 shrink-0 text-xl text-muted-foreground">
+            description
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-foreground">{session.title}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {session.positionType ?? "포지션 미지정"} ·{" "}
+              {formatRelativeDate(session.lastAttemptAt ?? session.completedAt ?? session.createdAt)}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>
+              <span className="font-bold text-foreground">{done}</span>/{total} 답변
+            </span>
+            <span>{Math.round(progressPct)}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{
+                width: `${Math.max(progressPct, done > 0 ? 4 : 0)}%`,
+                background: PA.green,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }

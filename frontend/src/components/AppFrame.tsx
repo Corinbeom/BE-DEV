@@ -1,10 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
+import { AppDetailPanel } from "./AppDetailPanel";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,6 +69,19 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const { user, isLoading, serverStatus, retryConnection } = useAuth();
   const router = useRouter();
 
+  const [detailOpen, setDetailOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("detailPanelOpen") !== "false";
+  });
+
+  function toggleDetail() {
+    setDetailOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem("detailPanelOpen", String(next));
+      return next;
+    });
+  }
+
   useEffect(() => {
     if (!isLoading && serverStatus === "ready" && !user) {
       router.replace("/login");
@@ -104,13 +118,17 @@ export function AppFrame({ children }: { children: ReactNode }) {
 
   if (!user) return null;
 
+  // Pulse × Blade: [220px sidebar] | [header + content] | [300px detail panel]
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <AppSidebar />
-      <main className="flex-1 overflow-y-auto">
-        <AppHeader />
-        <div className="mx-auto max-w-7xl space-y-8 p-8">{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <AppHeader detailOpen={detailOpen} onToggleDetail={toggleDetail} />
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="mx-auto max-w-5xl space-y-6 p-6">{children}</div>
+        </main>
+      </div>
+      {detailOpen && <AppDetailPanel />}
     </div>
   );
 }

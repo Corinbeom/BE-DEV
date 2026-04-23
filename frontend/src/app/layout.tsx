@@ -1,13 +1,28 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { DM_Sans, DM_Mono, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const manrope = Manrope({
-  variable: "--font-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
+const notoSansKR = Noto_Sans_KR({
+  variable: "--font-noto-kr",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -35,7 +50,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1"
         />
       </head>
-      <body className={`${manrope.variable} antialiased`}>
+      <body
+        className={`${dmSans.variable} ${dmMono.variable} ${notoSansKR.variable} antialiased`}
+      >
         <Providers>{children}</Providers>
         <Toaster richColors position="top-right" />
         <SpeedInsights />

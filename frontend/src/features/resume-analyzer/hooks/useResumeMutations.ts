@@ -9,8 +9,12 @@ import {
 } from "../api/resumeSessionApi";
 
 export function useCreateResumeSession() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createResumeSession,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resumeSessions"] });
+    },
   });
 }
 

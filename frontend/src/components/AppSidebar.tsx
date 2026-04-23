@@ -1,12 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { primaryNav } from "./nav";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 
 function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
@@ -29,31 +26,21 @@ export function AppSidebar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-border bg-sidebar md:flex">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5">
-        <Image
-          src="/logos/bluehour-logo.png"
-          alt="Bluehour"
-          width={44}
-          height={44}
-          className="rounded-xl shadow-md"
-          priority
-        />
-        <div>
-          <h1 className="text-lg font-bold tracking-tight text-foreground">
-            Bluehour
-          </h1>
-          <p className="text-[11px] font-medium text-muted-foreground">
-            Before Your Sunrise
-          </p>
+    <aside className="hidden w-[220px] flex-shrink-0 flex-col bg-sidebar md:flex">
+      {/* Logo — Blade style text mark */}
+      <div className="px-5 pb-[18px] pt-[22px]">
+        <div className="font-sans text-lg font-bold tracking-[-0.02em] text-sidebar-foreground">
+          Bluehour
+        </div>
+        <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-sidebar-foreground/30">
+          Before Your Sunrise
         </div>
       </div>
 
-      <div className="px-6"><Separator /></div>
+      <div className="mx-5 h-px bg-sidebar-border" />
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 px-2.5 py-3">
         {primaryNav.map((item) => {
           const active = isActivePath(pathname, item.href);
           return (
@@ -61,18 +48,27 @@ export function AppSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                buttonVariants({ variant: active ? "secondary" : "ghost", size: "default" }),
-                "w-full justify-start gap-3 h-10 px-3 text-sm font-medium transition-all",
+                "relative mb-0.5 flex w-full items-center gap-2.5 px-2.5 py-[9px] text-[13px] transition-colors duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring",
                 active
-                  ? "bg-primary/10 text-primary font-semibold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "bg-sidebar-accent font-medium text-sidebar-foreground"
+                  : "text-sidebar-foreground/45 hover:bg-white/[0.05] hover:text-sidebar-foreground"
               )}
             >
+              {/* Active indicator bar */}
+              {active && (
+                <div className="absolute inset-y-0 left-0 w-[3px] rounded-r bg-sidebar-primary" />
+              )}
               <span
                 className={cn(
-                  "material-symbols-outlined text-[20px]",
-                  active ? "text-primary" : "text-muted-foreground"
+                  "material-symbols-outlined text-[17px]",
+                  active ? "text-sidebar-foreground" : "text-sidebar-foreground/35"
                 )}
+                style={{
+                  fontVariationSettings: active
+                    ? '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24'
+                    : '"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24',
+                }}
               >
                 {item.icon}
               </span>
@@ -82,39 +78,33 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="px-6"><Separator /></div>
+      <div className="mx-5 h-px bg-sidebar-border" />
 
-      {/* User Profile Area */}
-      <div className="p-3">
+      {/* User profile */}
+      <div className="p-3.5">
         <DropdownMenu>
-          <DropdownMenuTrigger
-            className={cn(
-              "flex w-full items-center gap-3 rounded-xl p-2.5 transition-all",
-              "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isActivePath(pathname, "/profile") && "bg-primary/10"
-            )}
-          >
-            <Avatar className="size-9 border-2 border-primary/20">
+          <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+            <Avatar className="size-[26px] flex-shrink-0 border border-sidebar-foreground/20">
               <AvatarImage src={user?.photoUrl ?? undefined} alt={displayName} />
-              <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">
+              <AvatarFallback className="bg-sidebar-primary/25 text-[11px] font-bold text-sidebar-primary">
                 {initial}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-sm font-semibold text-foreground">
+              <p className="truncate text-[12px] font-semibold text-sidebar-foreground">
                 {displayName}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-[10px] text-sidebar-foreground/35">
                 {user?.email}
               </p>
             </div>
-            <span className="material-symbols-outlined text-lg text-muted-foreground">
+            <span className="material-symbols-outlined text-base text-sidebar-foreground/30">
               unfold_more
             </span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem
-              onClick={() => window.location.href = "/profile"}
+              onClick={() => (window.location.href = "/profile")}
               className="flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-lg">person</span>
