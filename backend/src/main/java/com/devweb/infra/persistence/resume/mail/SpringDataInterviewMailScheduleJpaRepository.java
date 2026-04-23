@@ -13,7 +13,7 @@ public interface SpringDataInterviewMailScheduleJpaRepository extends JpaReposit
     Optional<InterviewMailSchedule> findByMemberId(Long memberId);
 
     @Query("SELECT s FROM InterviewMailSchedule s " +
-           "JOIN FETCH s.resume JOIN FETCH s.member " +
+           "JOIN FETCH s.member " +
            "WHERE s.enabled = true AND s.sendHour = :sendHour")
     List<InterviewMailSchedule> findAllByEnabledTrueAndSendHour(@Param("sendHour") int sendHour);
 }
