@@ -1,0 +1,21 @@
+name: Hourly Interview Mail Trigger
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # 매시간 정각 (UTC) — KST sendHour와 자동 매칭
+  workflow_dispatch:        # 수동 실행 (테스트용)
+
+jobs:
+  trigger-mail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger mail batch
+        run: |
+          curl -f \
+            --retry 3 \
+            --retry-delay 15 \
+            --retry-all-errors \
+            --max-time 90 \
+            -X POST \
+            -H "X-Cron-Secret: ${{ secrets.DEVWEB_CRON_SECRET }}" \
+            "${{ secrets.BACKEND_URL }}/api/internal/mail-trigger"

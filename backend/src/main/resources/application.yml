@@ -107,4 +107,7 @@ devweb:
     api-key: ${RESEND_API_KEY:}
     from: ${RESEND_FROM:onboarding@resend.dev}
 
+  cron:
+    secret: ${DEVWEB_CRON_SECRET:}
+
 
