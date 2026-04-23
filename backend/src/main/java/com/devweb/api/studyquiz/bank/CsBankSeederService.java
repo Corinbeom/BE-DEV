@@ -9,8 +9,8 @@ import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
 import com.devweb.infra.ai.AiTextSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,8 +32,10 @@ public class CsBankSeederService {
 
     public record SeedResult(int generated, int skipped, int failed) {}
 
-    @Transactional
-    public SeedResult seed() {
+    // @Async: HTTP 요청은 즉시 202 반환, 시딩은 백그라운드 실행
+    // @Transactional 없음 — 각 saveAll이 자체 트랜잭션, AI 호출 중 DB 커넥션 점유 방지
+    @Async
+    public void seed() {
         int generated = 0;
         int skipped = 0;
         int failed = 0;
@@ -88,11 +90,17 @@ public class CsBankSeederService {
                     log.error("[BankSeeder] AI 생성 실패 — {}/{}: {}", topic, difficulty, e.getMessage());
                     failed++;
                 }
+
+                // Groq 12,000 TPM 제한 방어: 조합 사이 15초 대기 (콤보당 ~9,000 토큰 소모)
+                try { Thread.sleep(15_000); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    log.warn("[BankSeeder] 인터럽트 — 중단");
+                    break;
+                }
             }
         }
 
         log.info("[BankSeeder] 완료 — 생성={}, 스킵={}, 실패={}", generated, skipped, failed);
-        return new SeedResult(generated, skipped, failed);
     }
 
     private static String systemInstruction() {

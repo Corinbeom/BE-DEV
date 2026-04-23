@@ -40,8 +40,8 @@ public class CsBankSeederController {
                     .body(ApiResponse.fail("UNAUTHORIZED", "인증 실패"));
         }
 
-        log.info("[BankSeeder] 시딩 요청 수신");
-        CsBankSeederService.SeedResult result = seederService.seed();
-        return ResponseEntity.ok(ApiResponse.success(result));
+        log.info("[BankSeeder] 시딩 요청 수신 — 백그라운드 실행 시작");
+        seederService.seed();
+        return ResponseEntity.accepted().body(ApiResponse.success("seeding started — 서버 로그에서 진행상황 확인"));
     }
 }
