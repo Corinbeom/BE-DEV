@@ -1229,8 +1229,9 @@ function SessionCompletedView({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <Card>
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-            <span className="material-symbols-outlined text-4xl text-[oklch(0.52_0.10_175)]">
+          <div className="flex size-16 items-center justify-center rounded-full bg-[oklch(0.52_0.18_150)]/15">
+            <span className="material-symbols-outlined text-4xl text-[oklch(0.52_0.18_150)]"
+              style={{ fontVariationSettings: '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24' }}>
               task_alt
             </span>
           </div>
@@ -1243,6 +1244,28 @@ function SessionCompletedView({
               <p className="mt-1 text-xs text-muted-foreground">완료 시각: {completedAtLabel}</p>
             )}
           </div>
+          {report && (
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                종합 점수
+              </span>
+              <div className="flex items-end gap-1">
+                <span
+                  className={cn(
+                    "text-5xl font-bold tabular-nums",
+                    report.overallScore >= 8
+                      ? "text-[oklch(0.52_0.18_150)]"
+                      : report.overallScore >= 5
+                        ? "text-foreground"
+                        : "text-[oklch(0.52_0.20_25)]"
+                  )}
+                >
+                  {report.overallScore}
+                </span>
+                <span className="mb-1.5 text-sm text-muted-foreground">/10</span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1317,13 +1340,6 @@ function SessionCompletedView({
 
 // ─── Session Report Card ───
 function SessionReportCard({ report }: { report: SessionReport }) {
-  const scoreColor =
-    report.overallScore >= 8
-      ? "text-[oklch(0.52_0.10_175)]"
-      : report.overallScore >= 5
-        ? "text-foreground"
-        : "text-[oklch(0.55_0.18_25)]";
-
   const [openBadges, setOpenBadges] = useState<Set<string>>(
     () => new Set(report.badgeSummaries.slice(0, 1).map((b) => b.badge))
   );
@@ -1346,14 +1362,7 @@ function SessionReportCard({ report }: { report: SessionReport }) {
               <span className="material-symbols-outlined">auto_awesome</span>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-foreground">AI 회고 리포트</p>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">종합 점수</span>
-                  <span className={cn("text-2xl font-bold", scoreColor)}>{report.overallScore}</span>
-                  <span className="text-xs text-muted-foreground">/10</span>
-                </div>
-              </div>
+              <p className="text-sm font-bold text-foreground">AI 회고 리포트</p>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {report.executiveSummary}
               </p>
@@ -1445,9 +1454,7 @@ function SessionReportCard({ report }: { report: SessionReport }) {
           <CardContent className="p-5">
             <div className="mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-sm text-destructive">warning</span>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                반복 역량 갭
-              </p>
+              <p className="text-sm font-semibold text-foreground">반복 역량 갭</p>
             </div>
             <ul className="space-y-2">
               {report.repeatedGaps.map((gap, i) => (
@@ -1468,9 +1475,7 @@ function SessionReportCard({ report }: { report: SessionReport }) {
           <CardContent className="p-5">
             <div className="mb-3 flex items-center gap-2">
               <span className="material-symbols-outlined text-sm text-primary">trending_up</span>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Top 3 개선 포인트
-              </p>
+              <p className="text-sm font-semibold text-foreground">Top 3 개선 포인트</p>
             </div>
             <div className="space-y-3">
               {report.topImprovements.map((imp, i) => (
@@ -1492,9 +1497,12 @@ function SessionReportCard({ report }: { report: SessionReport }) {
         </Card>
       )}
 
-      <Card className="bg-muted/40">
+      <Card className="border-primary/20 bg-primary/[0.06]">
         <CardContent className="flex items-start gap-3 p-5">
-          <span className="material-symbols-outlined mt-0.5 text-muted-foreground">lightbulb</span>
+          <span className="material-symbols-outlined mt-0.5 text-primary"
+            style={{ fontVariationSettings: '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24' }}>
+            auto_awesome
+          </span>
           <p className="text-sm leading-relaxed text-foreground">{report.closingAdvice}</p>
         </CardContent>
       </Card>
@@ -1515,7 +1523,7 @@ function StatTile({
 }) {
   const toneClass =
     tone === "teal"
-      ? "text-[oklch(0.52_0.10_175)] bg-[oklch(0.52_0.10_175)]/10"
+      ? "text-[oklch(0.52_0.18_150)] bg-[oklch(0.52_0.18_150)]/10"
       : tone === "neutral"
         ? "text-foreground bg-card"
         : "text-primary bg-primary/10";
