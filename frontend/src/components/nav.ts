@@ -6,9 +6,9 @@ export type NavItem = {
 
 export const primaryNav: NavItem[] = [
   { href: "/dashboard", label: "대시보드", icon: "dashboard" },
-  { href: "/resume-analyzer", label: "이력서 면접", icon: "description" },
-  { href: "/study-quiz", label: "CS 문제풀이", icon: "code" },
-  { href: "/application-tracker", label: "지원 현황", icon: "work" },
+  { href: "/resume-analyzer", label: "이력서 면접", icon: "record_voice_over" },
+  { href: "/study-quiz", label: "CS 문제풀이", icon: "quiz" },
+  { href: "/application-tracker", label: "지원 현황", icon: "work_history" },
 ];
 
 

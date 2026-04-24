@@ -382,7 +382,7 @@ export function DashboardView() {
         </div>
         {resumeSessions.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card px-5 py-10 text-center">
-            <span className="material-symbols-outlined text-3xl text-muted-foreground/40">description</span>
+            <span className="material-symbols-outlined text-3xl text-muted-foreground/40">record_voice_over</span>
             <p className="text-sm font-semibold text-foreground">아직 면접 세션이 없어요</p>
             <p className="text-xs text-muted-foreground">이력서를 업로드하고 AI 맞춤 면접 연습을 시작해보세요</p>
             <Link

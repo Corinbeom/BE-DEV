@@ -612,7 +612,7 @@ export function ResumePortfolioPrepView() {
 
   return (
     <div className="-mx-6 -mt-6">
-      <div className="grid min-h-[calc(100vh-3rem)] grid-cols-1 md:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr] 2xl:grid-cols-[220px_1fr_240px]">
+      <div className="grid min-h-[calc(100vh-3rem)] grid-cols-1 md:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr_240px]">
 
         {/* ── LEFT nav (260px) ─────────────────────────────────── */}
         <aside className="sticky top-0 flex max-h-[calc(100vh-3rem)] w-[220px] shrink-0 flex-col overflow-hidden border-r border-border bg-card">
@@ -914,7 +914,7 @@ export function ResumePortfolioPrepView() {
         </main>
 
         {/* ── RIGHT metadata (260px, xl only) ─────────────────── */}
-        <div className="sticky top-0 hidden max-h-[calc(100vh-3rem)] flex-col overflow-y-auto border-l border-border bg-card 2xl:flex">
+        <div className="sticky top-0 hidden max-h-[calc(100vh-3rem)] flex-col overflow-y-auto border-l border-border bg-card xl:flex">
           <div className="shrink-0 border-b border-border px-4 py-3">
             <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               출제 의도
