@@ -299,6 +299,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     private int tokensForProfile(RetryProfile profile) {
         int profileLimit = switch (profile) {
             case FEEDBACK -> 2048;
+            case QUESTIONS -> maxOutputTokens; // 5문항 × modelAnswer 등 출력량이 크므로 상한 해제
             default -> 4096;
         };
         return Math.min(maxOutputTokens, profileLimit);
@@ -531,7 +532,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                 "question", Map.of("type", "string", "maxLength", 400),
                 "intention", Map.of("type", "string", "nullable", true, "maxLength", 600),
                 "keywords", Map.of("type", "string", "nullable", true, "maxLength", 300),
-                "modelAnswer", Map.of("type", "string", "nullable", true, "maxLength", 1200)
+                "modelAnswer", Map.of("type", "string", "nullable", true, "maxLength", 500)
         ));
         questionItem.put("required", List.of("badge", "likelihood", "question", "intention", "keywords", "modelAnswer"));
 
