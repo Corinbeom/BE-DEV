@@ -309,7 +309,7 @@ export function LearningInsights({
                       <TooltipContent className="flex flex-col gap-0.5">
                         <p className="font-semibold">{dayLabel}</p>
                         {quizCount > 0 && <p>CS 퀴즈 {quizCount}세션</p>}
-                        {resumeCount > 0 && <p>이력서 면접 {resumeCount}세션</p>}
+                        {resumeCount > 0 && <p>AI 면접 준비 {resumeCount}세션</p>}
                       </TooltipContent>
                     </Tooltip>
                   );
@@ -325,7 +325,7 @@ export function LearningInsights({
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="size-2.5 rounded-sm bg-primary/40" />
-                <span className="text-[10px] text-muted-foreground">이력서 면접</span>
+                <span className="text-[10px] text-muted-foreground">AI 면접 준비</span>
               </div>
             </div>
 

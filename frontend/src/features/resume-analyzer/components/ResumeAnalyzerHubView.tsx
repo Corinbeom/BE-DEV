@@ -99,7 +99,7 @@ export function ResumeAnalyzerHubView() {
       {/* ── Hero ────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-foreground">이력서 면접</h1>
+          <h1 className="text-[22px] font-bold text-foreground">AI 면접 준비</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             이력서를 분석해 맞춤 면접 질문과 AI 피드백을 받아보세요.
           </p>

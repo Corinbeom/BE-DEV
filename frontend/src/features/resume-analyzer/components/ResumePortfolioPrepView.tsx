@@ -227,7 +227,7 @@ export function ResumePortfolioPrepView() {
         {/* Hero — 좌측 정렬 (Pulse E1) */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            AI 면접 질문 생성기
+            AI 면접 준비
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             이력서를 분석해 실제 면접 질문과 AI 피드백을 받아보세요.

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 function headerLabel(pathname: string): string {
   if (pathname.startsWith("/application-tracker")) return "지원 현황";
   if (pathname.startsWith("/study-quiz")) return "CS 문제풀이";
-  if (pathname.startsWith("/resume-analyzer")) return "이력서 면접";
+  if (pathname.startsWith("/resume-analyzer")) return "AI 면접 준비";
   if (pathname.startsWith("/profile")) return "프로필";
   return "대시보드";
 }
