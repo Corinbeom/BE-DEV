@@ -71,7 +71,7 @@ function FocusPanel() {
     <div className="flex flex-col gap-5">
       {/* Gradient hero card */}
       <div>
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <p className="mb-3 text-sm font-bold text-foreground">
           오늘의 집중
         </p>
         <div
@@ -93,7 +93,7 @@ function FocusPanel() {
 
       {/* Quick actions */}
       <div>
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <p className="mb-3 text-sm font-bold text-foreground">
           빠른 실행
         </p>
         <div className="flex flex-col gap-1.5">
@@ -162,7 +162,7 @@ function ActivityPanel() {
       {/* Recent resume sessions */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-sm font-bold text-foreground">
             최근 면접 세션
           </p>
           <Link href="/resume-analyzer" className="text-xs font-medium text-primary hover:underline">
@@ -204,7 +204,7 @@ function ActivityPanel() {
       {/* Recent applications */}
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-sm font-bold text-foreground">
             최근 지원
           </p>
           <Link href="/application-tracker" className="text-xs font-medium text-primary hover:underline">
@@ -258,7 +258,7 @@ function ActivityPanel() {
       {/* CS Quiz stats */}
       {quizSessions.length > 0 && (
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="mb-2 text-sm font-bold text-foreground">
             퀴즈 현황
           </p>
           <div className="rounded-lg border border-border bg-card px-3 py-2.5">

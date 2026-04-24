@@ -16,6 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.devweb.api.studyquiz.session.dto.CsQuizStatsResponse;
+import com.devweb.domain.member.event.MemberDeletedEvent;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,6 +26,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class CsQuizSessionServiceTest {
@@ -255,6 +259,146 @@ class CsQuizSessionServiceTest {
         assertThatThrownBy(() -> sut.get(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
+    }
+
+    // ─────────────────────────────────────────────
+    // listByMember 테스트
+    // ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("멤버 세션 목록 조회 성공")
+    void listByMember_성공() {
+        // given
+        CsQuizSession s1 = new CsQuizSession(member, "세션1", CsQuizDifficulty.LOW, Set.of(CsQuizTopic.OS));
+        CsQuizSession s2 = new CsQuizSession(member, "세션2", CsQuizDifficulty.MID, Set.of(CsQuizTopic.DB));
+        given(sessionRepository.findAllByMemberId(1L)).willReturn(List.of(s1, s2));
+
+        // when
+        List<CsQuizSession> result = sut.listByMember(1L);
+
+        // then
+        assertThat(result).hasSize(2);
+        then(sessionRepository).should().findAllByMemberId(1L);
+    }
+
+    @Test
+    @DisplayName("멤버 세션이 없으면 빈 리스트 반환")
+    void listByMember_세션없음_빈리스트() {
+        // given
+        given(sessionRepository.findAllByMemberId(42L)).willReturn(List.of());
+
+        // when
+        List<CsQuizSession> result = sut.listByMember(42L);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    // ─────────────────────────────────────────────
+    // delete 테스트
+    // ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("세션 삭제 성공")
+    void delete_성공() {
+        // given
+        CsQuizSession session = new CsQuizSession(member, "삭제할 세션", CsQuizDifficulty.HIGH, Set.of(CsQuizTopic.JAVA));
+        given(sessionRepository.findById(1L)).willReturn(Optional.of(session));
+
+        // when
+        sut.delete(1L);
+
+        // then
+        then(sessionRepository).should().deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 세션 삭제 시 ResourceNotFoundException, deleteById 미호출")
+    void delete_실패_존재하지않는_세션() {
+        // given
+        given(sessionRepository.findById(99L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> sut.delete(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("99");
+        then(sessionRepository).should(never()).deleteById(anyLong());
+    }
+
+    // ─────────────────────────────────────────────
+    // getStats 테스트
+    // ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("통계 조회 성공 — 토픽별 정답률 계산")
+    void getStats_성공_데이터있음() {
+        // given
+        Object[] osRow  = new Object[]{CsQuizTopic.OS,  10L, 7L};
+        Object[] dbRow  = new Object[]{CsQuizTopic.DB,   5L, 2L};
+        given(sessionRepository.findStatsGroupedByTopic(1L)).willReturn(List.of(osRow, dbRow));
+
+        // when
+        CsQuizStatsResponse result = sut.getStats(1L);
+
+        // then
+        assertThat(result.totalAttempts()).isEqualTo(15);
+        assertThat(result.correctCount()).isEqualTo(9);
+        assertThat(result.overallAccuracy()).isCloseTo(0.6, within(0.001));
+        assertThat(result.topicAccuracies()).hasSize(2);
+        CsQuizStatsResponse.TopicAccuracy osStat = result.topicAccuracies().get(0);
+        assertThat(osStat.topic()).isEqualTo("OS");
+        assertThat(osStat.accuracy()).isCloseTo(0.7, within(0.001));
+    }
+
+    @Test
+    @DisplayName("통계 조회 성공 — 풀이 데이터 없을 때 정답률 0")
+    void getStats_성공_데이터없음() {
+        // given
+        given(sessionRepository.findStatsGroupedByTopic(1L)).willReturn(List.of());
+
+        // when
+        CsQuizStatsResponse result = sut.getStats(1L);
+
+        // then
+        assertThat(result.totalAttempts()).isZero();
+        assertThat(result.correctCount()).isZero();
+        assertThat(result.overallAccuracy()).isZero();
+        assertThat(result.topicAccuracies()).isEmpty();
+    }
+
+    // ─────────────────────────────────────────────
+    // onMemberDeleted 테스트
+    // ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("멤버 삭제 이벤트 수신 시 해당 멤버의 모든 세션 삭제")
+    void onMemberDeleted_세션있음_모두삭제() {
+        // given
+        CsQuizSession s1 = new CsQuizSession(member, "세션1", CsQuizDifficulty.LOW, Set.of(CsQuizTopic.OS));
+        CsQuizSession s2 = new CsQuizSession(member, "세션2", CsQuizDifficulty.MID, Set.of(CsQuizTopic.DB));
+        // ID 주입을 위해 findById 셋업 (delete 내부에서 get() 호출)
+        given(sessionRepository.findAllByMemberId(1L)).willReturn(List.of(s1, s2));
+        given(sessionRepository.findById(s1.getId())).willReturn(Optional.of(s1));
+        given(sessionRepository.findById(s2.getId())).willReturn(Optional.of(s2));
+
+        // when
+        sut.onMemberDeleted(new MemberDeletedEvent(1L));
+
+        // then
+        then(sessionRepository).should(times(2)).deleteById(any());
+    }
+
+    @Test
+    @DisplayName("멤버 삭제 이벤트 수신 시 세션이 없으면 deleteById 미호출")
+    void onMemberDeleted_세션없음_deleteById_미호출() {
+        // given
+        given(sessionRepository.findAllByMemberId(99L)).willReturn(List.of());
+
+        // when
+        sut.onMemberDeleted(new MemberDeletedEvent(99L));
+
+        // then
+        then(sessionRepository).should(never()).deleteById(anyLong());
     }
 
     // ─────────────────────────────────────────────

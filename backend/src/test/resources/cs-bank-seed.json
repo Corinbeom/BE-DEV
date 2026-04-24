@@ -1,0 +1,6 @@
+[
+  {"topic":"OS","difficulty":"LOW","type":"MULTIPLE_CHOICE","prompt":"운영체제의 역할은?","choices":["자원 관리","전원 공급","컴파일","네트워크 제어"],"correctChoiceIndex":0,"referenceAnswer":"하드웨어 자원 관리","rubricKeywords":null},
+  {"topic":"OS","difficulty":"LOW","type":"SHORT_ANSWER","prompt":"컨텍스트 스위칭이란?","choices":null,"correctChoiceIndex":null,"referenceAnswer":"CPU 상태 저장·복원","rubricKeywords":["상태","저장","복원"]},
+  {"topic":"UNKNOWN_TOPIC","difficulty":"LOW","type":"MULTIPLE_CHOICE","prompt":"잘못된 토픽 문제","choices":["A","B"],"correctChoiceIndex":0,"referenceAnswer":"무시되어야 함","rubricKeywords":null},
+  {"topic":"OS","difficulty":"LOW","type":"MULTIPLE_CHOICE","prompt":"choices 없는 객관식","choices":null,"correctChoiceIndex":null,"referenceAnswer":"무시되어야 함","rubricKeywords":null}
+]
