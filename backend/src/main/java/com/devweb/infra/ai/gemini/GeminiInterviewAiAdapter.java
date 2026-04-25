@@ -257,12 +257,28 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         }
     }
 
+    @Override
+    public InterviewAiPort.GeneratedJdMatchAnalysis analyzeJdMatch(String systemInstruction, String resumeText, String portfolioText, String jdText) {
+        requireApiKey();
+
+        String prompt = AiPromptBuilder.buildJdMatchPrompt(resumeText, portfolioText, jdText);
+        Map<String, Object> schema = jdMatchResponseSchema();
+
+        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, schema, RetryProfile.JD_MATCH);
+        try {
+            return objectMapper.treeToValue(json, InterviewAiPort.GeneratedJdMatchAnalysis.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Gemini JD 매칭 분석 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
     private enum RetryProfile {
         QUESTIONS,
         QUIZ_QUESTIONS,
         FEEDBACK,
         SESSION_REPORT,
-        COACHING
+        COACHING,
+        JD_MATCH
     }
 
     private JsonNode generateStructuredJsonWithRetry(
@@ -300,6 +316,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         int profileLimit = switch (profile) {
             case FEEDBACK -> 2048;
             case QUESTIONS -> maxOutputTokens; // 5문항 × modelAnswer 등 출력량이 크므로 상한 해제
+            case JD_MATCH -> 4096;
             default -> 4096;
         };
         return Math.min(maxOutputTokens, profileLimit);
@@ -357,6 +374,15 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - learningPlan은 정확히 3개로 제한하세요.
                     - nextSteps는 300자 이내로 짧게 작성하세요.
                     """;
+            case JD_MATCH -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - matchedKeywords는 최대 10개로 제한하세요.
+                    - missingKeywords는 최대 8개로 제한하세요.
+                    - summary는 200자 이내로 짧게 작성하세요.
+                    - recommendations는 최대 3개로 제한하세요.
+                    """;
         };
     }
 
@@ -404,6 +430,16 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - persistentStrengths/persistentWeaknesses는 각 최대 3개로 제한하세요.
                     - learningPlan은 정확히 3개, action은 150자 이내로 아주 짧게 작성하세요.
                     - nextSteps는 200자 이내로 아주 짧게 작성하세요.
+                    """;
+            case JD_MATCH -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - matchedKeywords는 최대 5개로 제한하세요.
+                    - missingKeywords는 최대 5개로 제한하세요.
+                    - suggestion은 1문장으로만 작성하세요.
+                    - summary는 150자 이내로 아주 짧게 작성하세요.
+                    - recommendations는 최대 2개로 제한하세요.
                     """;
         };
     }
@@ -619,6 +655,37 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                 "nextSteps", Map.of("type", "string", "maxLength", 600)
         ));
         schema.put("required", List.of("overallAssessment", "growthTrajectory", "persistentStrengths", "persistentWeaknesses", "learningPlan", "readinessScore", "nextSteps"));
+        return schema;
+    }
+
+    private static Map<String, Object> jdMatchResponseSchema() {
+        Map<String, Object> matchedKeywordItem = new LinkedHashMap<>();
+        matchedKeywordItem.put("type", "object");
+        matchedKeywordItem.put("properties", Map.of(
+                "keyword", Map.of("type", "string", "maxLength", 100),
+                "category", Map.of("type", "string", "maxLength", 60)
+        ));
+        matchedKeywordItem.put("required", List.of("keyword", "category"));
+
+        Map<String, Object> missingKeywordItem = new LinkedHashMap<>();
+        missingKeywordItem.put("type", "object");
+        missingKeywordItem.put("properties", Map.of(
+                "keyword", Map.of("type", "string", "maxLength", 100),
+                "importance", Map.of("type", "string", "maxLength", 10),
+                "suggestion", Map.of("type", "string", "maxLength", 300)
+        ));
+        missingKeywordItem.put("required", List.of("keyword", "importance", "suggestion"));
+
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", Map.of(
+                "matchRate", Map.of("type", "integer"),
+                "matchedKeywords", Map.of("type", "array", "items", matchedKeywordItem, "minItems", 0, "maxItems", 20),
+                "missingKeywords", Map.of("type", "array", "items", missingKeywordItem, "minItems", 0, "maxItems", 15),
+                "summary", Map.of("type", "string", "maxLength", 500),
+                "recommendations", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 5)
+        ));
+        schema.put("required", List.of("matchRate", "matchedKeywords", "missingKeywords", "summary", "recommendations"));
         return schema;
     }
 

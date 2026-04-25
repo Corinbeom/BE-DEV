@@ -104,13 +104,22 @@ export function ResumeAnalyzerHubView() {
             이력서를 분석해 맞춤 면접 질문과 AI 피드백을 받아보세요.
           </p>
         </div>
-        <Link
-          href="/resume-analyzer/practice"
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
-        >
-          <span className="material-symbols-outlined text-sm">smart_toy</span>
-          새 세션 시작
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href="/resume-analyzer/match"
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/50"
+          >
+            <span className="material-symbols-outlined text-sm">contract_edit</span>
+            공고 매칭 분석
+          </Link>
+          <Link
+            href="/resume-analyzer/practice"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+          >
+            <span className="material-symbols-outlined text-sm">smart_toy</span>
+            새 세션 시작
+          </Link>
+        </div>
       </div>
 
       {/* ── Stats strip ─────────────────────────────────────── */}

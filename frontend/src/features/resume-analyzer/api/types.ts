@@ -116,3 +116,22 @@ export type ResumeInterviewStats = {
   weeklyTrends: WeeklyTrend[];
 };
 
+export type MatchedKeyword = {
+  keyword: string;
+  category: string;
+};
+
+export type MissingKeyword = {
+  keyword: string;
+  importance: "HIGH" | "MID" | "LOW";
+  suggestion: string;
+};
+
+export type JdMatchAnalysis = {
+  matchRate: number;
+  matchedKeywords: MatchedKeyword[];
+  missingKeywords: MissingKeyword[];
+  summary: string;
+  recommendations: string[];
+};
+

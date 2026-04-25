@@ -391,6 +391,57 @@ public final class AiPromptBuilder {
                 """.formatted(nullToEmpty(coachingData));
     }
 
+    public static String buildJdMatchPrompt(String resumeText, String portfolioText, String jdText) {
+        return """
+                아래 이력서/포트폴리오와 채용공고(JD)를 분석하여 키워드 매칭률과 상세 분석 결과를 반환하세요.
+
+                출력은 반드시 아래 JSON 스키마를 정확히 따르세요:
+                {
+                  "matchRate": 75,
+                  "matchedKeywords": [
+                    { "keyword": "Spring Boot", "category": "기술 스택" }
+                  ],
+                  "missingKeywords": [
+                    { "keyword": "Kubernetes", "importance": "HIGH", "suggestion": "Docker 경험을 쿠버네티스 개념으로 확장하는 학습을 권장합니다." }
+                  ],
+                  "summary": "전반적인 매칭 상태 요약 (3~5문장)",
+                  "recommendations": ["구체적인 보완 제안 1", "구체적인 보완 제안 2"]
+                }
+
+                각 필드 설명:
+                - matchRate: 이력서/포트폴리오 키워드와 JD 요구사항의 매칭률 (0~100 정수)
+                - matchedKeywords: 이력서에 존재하고 JD에서도 요구하는 키워드 목록
+                  - keyword: 키워드 (기술명, 역량, 자격증 등)
+                  - category: 분류 (예: 기술 스택, 언어/프레임워크, 자격증/학력, 경험/역량, 도메인 지식)
+                - missingKeywords: JD가 요구하지만 이력서에 없거나 부족한 키워드 목록
+                  - keyword: 부족한 키워드
+                  - importance: 중요도 (HIGH/MID/LOW)
+                  - suggestion: 해당 키워드를 보완하기 위한 구체적 방법 (1~2문장)
+                - summary: 매칭 상태 전반에 대한 자연어 요약 (300자 이내)
+                - recommendations: 지원 성공률을 높이기 위한 보완 제안 (2~5개 배열, 각 150자 이내)
+
+                분석 규칙:
+                - matchRate는 JD 핵심 요구사항 대비 이력서 보유 역량 비율로 계산하세요.
+                - 추측/날조 금지: 이력서에 없는 기술을 있다고 판단하지 마세요.
+                - [PortfolioText]가 있으면 이력서와 함께 종합 분석하세요.
+                - matchedKeywords: 최소 1개, 최대 20개
+                - missingKeywords: 최소 0개, 최대 15개
+
+                [ResumeText]
+                %s
+
+                [PortfolioText]
+                %s
+
+                [JobDescription]
+                %s
+                """.formatted(
+                nullToEmpty(resumeText),
+                nullToEmpty(portfolioText),
+                nullToEmpty(jdText)
+        );
+    }
+
     public static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }
