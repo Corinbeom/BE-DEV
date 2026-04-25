@@ -43,5 +43,17 @@ public interface InterviewAiPort {
     ) {}
 
     GeneratedCoachingReport generateCoachingReport(String systemInstruction, String coachingData);
+
+    record MatchedKeyword(String keyword, String category) {}
+    record MissingKeyword(String keyword, String importance, String suggestion) {}
+    record GeneratedJdMatchAnalysis(
+            int matchRate,
+            List<MatchedKeyword> matchedKeywords,
+            List<MissingKeyword> missingKeywords,
+            String summary,
+            List<String> recommendations
+    ) {}
+
+    GeneratedJdMatchAnalysis analyzeJdMatch(String systemInstruction, String resumeText, String portfolioText, String jdText);
 }
 

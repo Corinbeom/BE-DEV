@@ -1,6 +1,7 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
 import type {
   CoachingReport,
+  JdMatchAnalysis,
   PositionType,
   ResumeFeedback,
   ResumeInterviewStats,
@@ -123,6 +124,28 @@ export async function generateCoachingReport() {
   );
   if (!res.success || !res.data) {
     throw new Error(res.error?.message ?? "AI 코칭 리포트 생성에 실패했습니다.");
+  }
+  return res.data;
+}
+
+export async function analyzeJdMatch(input: {
+  resumeId: number;
+  portfolioResumeId?: number | null;
+  jdText: string;
+}) {
+  const res = await apiFetch<ApiResponse<JdMatchAnalysis>>(
+    "/api/resume-sessions/jd-match",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        resumeId: input.resumeId,
+        portfolioResumeId: input.portfolioResumeId ?? null,
+        jdText: input.jdText,
+      }),
+    },
+  );
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "JD 매칭 분석에 실패했습니다.");
   }
   return res.data;
 }
