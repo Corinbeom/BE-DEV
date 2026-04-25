@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { apiBaseUrl } from "@/lib/api";
 import Image from "next/image";
@@ -23,6 +24,34 @@ const STARS = [
   { top: "25%", left: "50%", size: 2, dur: "4.2s", delay: "1.8s" },
   { top: "12%", left: "92%", size: 1.5, dur: "3.6s", delay: "0.7s" },
 ];
+
+/* ── Animation Variants ── */
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+const heroContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+};
+const heroItem = {
+  hidden: { opacity: 0, y: 28 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: EASE },
+  },
+};
+const pointListContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.25 } },
+};
+const pointListItem = {
+  hidden: { opacity: 0, x: -12 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.4, ease: "easeOut" as const },
+  },
+};
 
 /* ── Mockup Components ── */
 
@@ -358,6 +387,8 @@ export default function LoginPage() {
   const router = useRouter();
   const loginSectionRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const prefersReduced = useReducedMotion();
+  const [scrolled, setScrolled] = useState(false);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (gridRef.current) {
@@ -380,6 +411,12 @@ export default function LoginPage() {
     const prev = html.style.backgroundColor;
     html.style.backgroundColor = "#0a1628";
     return () => { html.style.backgroundColor = prev; };
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   if (serverStatus === "checking") {
@@ -466,7 +503,15 @@ export default function LoginPage() {
       <div className="pointer-events-none fixed -left-48 top-1/2 size-[440px] rounded-full bg-blue-600/10 blur-3xl" />
 
       {/* ── Nav ── */}
-      <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0a1628]/80 backdrop-blur-md">
+      <motion.nav
+        className="fixed top-0 z-50 w-full backdrop-blur-md"
+        animate={{
+          backgroundColor: scrolled ? "rgba(10,22,40,0.88)" : "rgba(10,22,40,0)",
+          borderBottomColor: scrolled ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0)",
+        }}
+        style={{ borderBottomWidth: "1px", borderBottomStyle: "solid" }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Image
             src="/logos/bluehour-wordmark-white.png"
@@ -482,27 +527,44 @@ export default function LoginPage() {
             시작하기
           </button>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* ── Hero ── */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-20">
-        <div className="flex flex-col items-center text-center animate-in fade-in duration-700">
-          <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300">
+        <motion.div
+          className="flex flex-col items-center text-center"
+          variants={heroContainer}
+          initial={prefersReduced ? false : "hidden"}
+          animate="visible"
+        >
+          <motion.span
+            variants={heroItem}
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300"
+          >
             <span className="size-1.5 animate-pulse rounded-full bg-blue-400" />
             AI 기반 취업 준비 플랫폼 · 베타 오픈
-          </span>
-          <h1 className="text-4xl font-bold tracking-tight text-white/95 sm:text-5xl lg:text-6xl">
+          </motion.span>
+
+          <motion.h1
+            variants={heroItem}
+            className="text-4xl font-bold tracking-tight text-white/95 sm:text-5xl lg:text-6xl"
+          >
             당신의 아침이<br />시작되는 곳
-          </h1>
-          <p className="mt-5 max-w-xl text-base text-white/55 sm:text-lg">
+          </motion.h1>
+
+          <motion.p
+            variants={heroItem}
+            className="mt-5 max-w-xl text-base text-white/55 sm:text-lg"
+          >
             이력서 분석부터 AI 면접 연습, JD 매칭률 분석, CS 퀴즈까지.
             <br className="hidden sm:block" />
             취업 준비의 모든 단계를 하나의 흐름으로.
-          </p>
-          <div className="mt-10 flex items-center gap-3">
+          </motion.p>
+
+          <motion.div variants={heroItem} className="mt-10 flex items-center gap-3">
             <button
               onClick={() => loginSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:bg-blue-500"
+              className="btn-shimmer rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:bg-blue-500 hover:shadow-blue-500/40"
             >
               무료로 시작하기
             </button>
@@ -512,8 +574,9 @@ export default function LoginPage() {
             >
               기능 살펴보기
             </button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
+
         <span className="material-symbols-outlined absolute bottom-10 animate-bounce text-2xl text-white/30">
           keyboard_arrow_down
         </span>
@@ -542,7 +605,13 @@ export default function LoginPage() {
                   )}
                 >
                   {/* Text side */}
-                  <div className="flex flex-1 flex-col">
+                  <motion.div
+                    className="flex flex-1 flex-col"
+                    initial={prefersReduced ? false : { opacity: 0, x: feat.reverse ? 36 : -36 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: "-80px" }}
+                    transition={{ duration: 0.65, ease: EASE }}
+                  >
                     <span className="mb-4 text-xs font-semibold uppercase tracking-widest text-blue-400/70">
                       {feat.label} —
                     </span>
@@ -554,9 +623,19 @@ export default function LoginPage() {
                     <p className="mt-5 max-w-md text-sm leading-relaxed text-white/50">
                       {feat.desc}
                     </p>
-                    <ul className="mt-8 flex flex-col gap-5">
+                    <motion.ul
+                      className="mt-8 flex flex-col gap-5"
+                      variants={pointListContainer}
+                      initial={prefersReduced ? false : "hidden"}
+                      whileInView="visible"
+                      viewport={{ once: true, margin: "-60px" }}
+                    >
                       {feat.points.map((pt) => (
-                        <li key={pt.title} className="flex items-start gap-3">
+                        <motion.li
+                          key={pt.title}
+                          variants={pointListItem}
+                          className="flex items-start gap-3"
+                        >
                           <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
                             <span className="material-symbols-outlined text-[16px] text-blue-400">{pt.icon}</span>
                           </div>
@@ -564,17 +643,26 @@ export default function LoginPage() {
                             <p className="text-sm font-semibold text-white/85">{pt.title}</p>
                             <p className="mt-0.5 text-[13px] leading-relaxed text-white/45">{pt.desc}</p>
                           </div>
-                        </li>
+                        </motion.li>
                       ))}
-                    </ul>
-                  </div>
+                    </motion.ul>
+                  </motion.div>
 
                   {/* Mockup side */}
-                  <div className="flex flex-1 justify-center">
-                    <div className="w-full max-w-sm">
+                  <motion.div
+                    className="flex flex-1 justify-center"
+                    initial={prefersReduced ? false : { opacity: 0, x: feat.reverse ? -36 : 36 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: "-80px" }}
+                    transition={{ duration: 0.65, ease: EASE, delay: 0.1 }}
+                  >
+                    <motion.div
+                      className="w-full max-w-sm"
+                      whileHover={prefersReduced ? undefined : { y: -8, transition: { duration: 0.25, ease: "easeOut" } }}
+                    >
                       <Mockup />
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 </div>
               </div>
             </section>
@@ -591,7 +679,13 @@ export default function LoginPage() {
           <div className="h-px w-full bg-gradient-to-r from-transparent via-white/8 to-transparent" />
         </div>
 
-        <div className="mx-auto max-w-lg text-center">
+        <motion.div
+          className="mx-auto max-w-lg text-center"
+          initial={prefersReduced ? false : { opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+        >
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
             지금 시작하세요
           </h2>
@@ -633,7 +727,7 @@ export default function LoginPage() {
               </p>
             </CardFooter>
           </Card>
-        </div>
+        </motion.div>
       </section>
 
       {/* Footer */}
