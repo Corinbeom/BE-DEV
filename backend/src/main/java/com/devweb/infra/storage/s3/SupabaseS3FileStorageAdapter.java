@@ -7,10 +7,14 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.net.URI;
@@ -63,6 +67,16 @@ public class SupabaseS3FileStorageAdapter implements FileStoragePort {
         s3Client.putObject(request, RequestBody.fromBytes(bytes));
 
         return new StoredFileRef(key, originalFilename, contentType, (long) bytes.length);
+    }
+
+    @Override
+    public byte[] load(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) throw new IllegalArgumentException("storageKey는 필수입니다.");
+        ResponseBytes<GetObjectResponse> obj = s3Client.getObject(
+                GetObjectRequest.builder().bucket(bucket).key(storageKey).build(),
+                ResponseTransformer.toBytes()
+        );
+        return obj.asByteArray();
     }
 
     @Override

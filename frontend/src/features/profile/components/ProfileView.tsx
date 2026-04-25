@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   useResumeFiles,
@@ -8,6 +8,7 @@ import {
   useDeleteResumeFile,
 } from "../hooks/useResumeFiles";
 import { useDeleteAccount } from "@/features/auth/hooks/useDeleteAccount";
+import { fetchResumeFileBlob } from "../api/resumeFileApi";
 import type { ResumeFile, ResumeFileType } from "../api/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,14 +35,135 @@ function extractStatusDot(status: string) {
   }
 }
 
+function FilePreviewModal({
+  file,
+  onClose,
+}: {
+  file: ResumeFile;
+  onClose: () => void;
+}) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isPdf = file.contentType === "application/pdf";
+
+  useEffect(() => {
+    let url = "";
+    fetchResumeFileBlob(file.id)
+      .then((blob) => {
+        url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "파일을 불러올 수 없습니다.");
+        setLoading(false);
+      });
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [file.id]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      {/* Modal */}
+      <div className="relative z-10 flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        {/* Header */}
+        <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-3">
+          <span className="material-symbols-outlined text-[18px] text-muted-foreground">
+            {file.fileType === "RESUME" ? "description" : "folder_open"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-foreground">{file.title}</p>
+            <p className="truncate text-xs text-muted-foreground">{file.originalFilename}</p>
+          </div>
+          {blobUrl && (
+            <a
+              href={blobUrl}
+              download={file.originalFilename ?? "file"}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <span className="material-symbols-outlined text-sm">download</span>
+              다운로드
+            </a>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="size-7 shrink-0"
+            aria-label="닫기"
+          >
+            <span className="material-symbols-outlined text-sm">close</span>
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 overflow-hidden">
+          {loading ? (
+            <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span className="material-symbols-outlined animate-spin">progress_activity</span>
+              파일 불러오는 중...
+            </div>
+          ) : error ? (
+            <div className="flex flex-1 items-center justify-center p-6">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          ) : isPdf ? (
+            <iframe
+              src={blobUrl!}
+              className="h-full w-full"
+              title={file.title}
+            />
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+              <span className="material-symbols-outlined text-5xl text-muted-foreground/40">
+                description
+              </span>
+              <p className="text-sm text-muted-foreground">
+                이 파일 형식은 미리보기를 지원하지 않습니다.
+              </p>
+              {blobUrl && (
+                <a
+                  href={blobUrl}
+                  download={file.originalFilename ?? "file"}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  파일 다운로드
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FileCard({
   file,
   onDelete,
   isDeleting,
+  onPreview,
 }: {
   file: ResumeFile;
   onDelete: () => void;
   isDeleting: boolean;
+  onPreview: () => void;
 }) {
   const dot = extractStatusDot(file.extractStatus);
   const isResume = file.fileType === "RESUME";
@@ -76,16 +198,27 @@ function FileCard({
         </div>
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onDelete}
-        disabled={isDeleting}
-        className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
-        aria-label="삭제"
-      >
-        <span className="material-symbols-outlined text-sm">delete</span>
-      </Button>
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onPreview}
+          className="size-7 text-muted-foreground hover:text-foreground"
+          aria-label="미리보기"
+        >
+          <span className="material-symbols-outlined text-sm">visibility</span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onDelete}
+          disabled={isDeleting}
+          className="size-7 text-muted-foreground hover:text-destructive"
+          aria-label="삭제"
+        >
+          <span className="material-symbols-outlined text-sm">delete</span>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -105,6 +238,7 @@ export function ProfileView() {
   const [uploadTitle, setUploadTitle] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [previewFile, setPreviewFile] = useState<ResumeFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const resumeFiles = files?.filter((f) => f.fileType === "RESUME") ?? [];
@@ -139,6 +273,10 @@ export function ProfileView() {
   }
 
   return (
+    <>
+    {previewFile && (
+      <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />
+    )}
     <div className="flex flex-col gap-5">
       {/* ── Compact Hero ── */}
       <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4">
@@ -205,6 +343,7 @@ export function ProfileView() {
                     file={f}
                     onDelete={() => onDeleteFile(f)}
                     isDeleting={deleteMutation.isPending}
+                    onPreview={() => setPreviewFile(f)}
                   />
                 ))}
               </div>
@@ -356,5 +495,6 @@ export function ProfileView() {
         </div>
       </div>
     </div>
+    </>
   );
 }

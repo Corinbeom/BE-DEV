@@ -45,6 +45,17 @@ public class LocalFileStorageAdapter implements FileStoragePort {
     }
 
     @Override
+    public byte[] load(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) throw new IllegalArgumentException("storageKey는 필수입니다.");
+        Path target = baseDir.resolve(storageKey).normalize();
+        try {
+            return Files.readAllBytes(target);
+        } catch (IOException e) {
+            throw new IllegalStateException("파일을 읽을 수 없습니다: " + storageKey, e);
+        }
+    }
+
+    @Override
     public void delete(String storageKey) {
         if (storageKey == null || storageKey.isBlank()) return;
         try {
