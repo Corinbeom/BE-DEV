@@ -374,24 +374,6 @@ export function LearningInsights({
           </Card>
         )}
       </div>
-
-      {/* Interview Practice Stats — 리포트 링크 */}
-      {hasInterviewStats && interviewStats && (
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <h4 className="text-sm font-semibold text-foreground">면접 연습 분석</h4>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {interviewStats.attemptedQuestions}/{interviewStats.totalQuestions}문항 완료
-                · 연습률 {Math.round(interviewStats.practiceRate * 100)}%
-              </p>
-            </div>
-            <Link href="/resume-analyzer/report">
-              <Button variant="outline" size="sm">리포트 보기</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
     </section>
   );
 }
