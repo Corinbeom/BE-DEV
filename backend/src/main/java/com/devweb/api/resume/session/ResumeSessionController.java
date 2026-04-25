@@ -1,6 +1,8 @@
 package com.devweb.api.resume.session;
 
 import com.devweb.api.resume.session.dto.CreateResumeSessionRequest;
+import com.devweb.api.resume.session.dto.JdMatchAnalysisResponse;
+import com.devweb.api.resume.session.dto.JdMatchRequest;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
 import com.devweb.api.resume.session.dto.ResumeSessionResponse;
 import com.devweb.api.resume.session.dto.CoachingReportResponse;
@@ -96,6 +98,13 @@ public class ResumeSessionController {
     public ApiResponse<CoachingReportResponse> generateCoachingReport() {
         Long memberId = AuthUtils.currentMemberId();
         return ApiResponse.success(service.generateCoachingReport(memberId));
+    }
+
+    @Operation(summary = "공고-이력서 매칭 분석", description = "이력서와 채용공고(JD) 텍스트를 AI로 분석하여 매칭률·매칭 키워드·부족 키워드를 반환합니다. 결과는 저장되지 않습니다.")
+    @PostMapping("/jd-match")
+    public ApiResponse<JdMatchAnalysisResponse> analyzeJdMatch(@Valid @RequestBody JdMatchRequest request) {
+        Long memberId = AuthUtils.currentMemberId();
+        return ApiResponse.success(service.analyzeJdMatch(memberId, request));
     }
 
     @Operation(summary = "세션 삭제", description = "이력서 분석 세션을 삭제합니다.")

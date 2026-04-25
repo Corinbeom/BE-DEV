@@ -16,6 +16,8 @@ import com.devweb.domain.resume.session.port.TextExtractorPort;
 import com.devweb.domain.resume.session.port.UrlTextFetcherPort;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.resume.session.service.QuestionGenerator;
+import com.devweb.api.resume.session.dto.JdMatchAnalysisResponse;
+import com.devweb.api.resume.session.dto.JdMatchRequest;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.BadgeStats;
 import com.devweb.api.resume.session.dto.ResumeInterviewStatsResponse.FrequentItem;
@@ -503,6 +505,44 @@ public class ResumeSessionService {
         return sb.toString();
     }
 
+    private static final int JD_MATCH_RESUME_MAX_CHARS = 3000;
+    private static final int JD_MATCH_PORTFOLIO_MAX_CHARS = 2000;
+
+    @Transactional(readOnly = true)
+    public JdMatchAnalysisResponse analyzeJdMatch(Long memberId, JdMatchRequest request) {
+        Resume resume = resumeRepository.findById(request.resumeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Resume를 찾을 수 없습니다. id=" + request.resumeId()));
+        if (!resume.getMember().getId().equals(memberId)) {
+            throw new UnauthorizedException("해당 이력서에 접근할 권한이 없습니다.");
+        }
+        if (resume.getExtractStatus() != ResumeExtractStatus.EXTRACTED || resume.getExtractedText() == null) {
+            throw new IllegalArgumentException("텍스트 추출이 완료되지 않은 이력서입니다. id=" + request.resumeId());
+        }
+
+        String resumeText = truncate(resume.getExtractedText(), JD_MATCH_RESUME_MAX_CHARS);
+        String portfolioText = null;
+
+        if (request.portfolioResumeId() != null) {
+            Resume portfolio = resumeRepository.findById(request.portfolioResumeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Portfolio Resume를 찾을 수 없습니다. id=" + request.portfolioResumeId()));
+            if (portfolio.getExtractStatus() == ResumeExtractStatus.EXTRACTED && portfolio.getExtractedText() != null) {
+                portfolioText = truncate(portfolio.getExtractedText(), JD_MATCH_PORTFOLIO_MAX_CHARS);
+            }
+        }
+
+        String systemInstruction = "당신은 채용 전문 컨설턴트입니다. 이력서와 채용공고를 정밀 분석하여 객관적인 매칭률과 구체적인 개선 방향을 제시합니다.";
+        InterviewAiPort.GeneratedJdMatchAnalysis generated = interviewAiPort.analyzeJdMatch(systemInstruction, resumeText, portfolioText, request.jdText());
+
+        List<JdMatchAnalysisResponse.MatchedKeyword> matched = generated.matchedKeywords().stream()
+                .map(k -> new JdMatchAnalysisResponse.MatchedKeyword(k.keyword(), k.category()))
+                .toList();
+        List<JdMatchAnalysisResponse.MissingKeyword> missing = generated.missingKeywords().stream()
+                .map(k -> new JdMatchAnalysisResponse.MissingKeyword(k.keyword(), k.importance(), k.suggestion()))
+                .toList();
+
+        return new JdMatchAnalysisResponse(generated.matchRate(), matched, missing, generated.summary(), generated.recommendations());
+    }
+
     @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
     public void delete(Long id) {
         get(id);
@@ -553,6 +593,11 @@ public class ResumeSessionService {
     @EventListener
     public void onMemberDeleted(MemberDeletedEvent event) {
         listByMember(event.memberId()).forEach(session -> delete(session.getId()));
+    }
+
+    private static String truncate(String text, int maxChars) {
+        if (text == null || text.length() <= maxChars) return text;
+        return text.substring(0, maxChars);
     }
 }
 

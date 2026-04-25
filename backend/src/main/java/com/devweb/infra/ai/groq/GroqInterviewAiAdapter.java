@@ -223,9 +223,21 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         }
     }
 
+    @Override
+    public InterviewAiPort.GeneratedJdMatchAnalysis analyzeJdMatch(String systemInstruction, String resumeText, String portfolioText, String jdText) {
+        requireApiKey();
+        String prompt = AiPromptBuilder.buildJdMatchPrompt(resumeText, portfolioText, jdText);
+        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, RetryProfile.JD_MATCH);
+        try {
+            return objectMapper.treeToValue(json, InterviewAiPort.GeneratedJdMatchAnalysis.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Groq JD 매칭 분석 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
     // ===== Retry & HTTP =====
 
-    private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK, SESSION_REPORT, COACHING }
+    private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK, SESSION_REPORT, COACHING, JD_MATCH }
 
     private JsonNode generateStructuredJsonWithRetry(String systemInstruction, String userPrompt, RetryProfile profile) {
         log.debug("Groq API 호출 시작: profile={}", profile);
@@ -405,6 +417,15 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - learningPlan은 정확히 3개로 제한하세요.
                     - nextSteps는 300자 이내로 짧게 작성하세요.
                     """;
+            case JD_MATCH -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - matchedKeywords는 최대 10개로 제한하세요.
+                    - missingKeywords는 최대 8개로 제한하세요.
+                    - summary는 200자 이내로 짧게 작성하세요.
+                    - recommendations는 최대 3개로 제한하세요.
+                    """;
         };
     }
 
@@ -452,6 +473,16 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - persistentStrengths/persistentWeaknesses는 각 최대 3개로 제한하세요.
                     - learningPlan은 정확히 3개, action은 150자 이내로 아주 짧게 작성하세요.
                     - nextSteps는 200자 이내로 아주 짧게 작성하세요.
+                    """;
+            case JD_MATCH -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - matchedKeywords는 최대 5개로 제한하세요.
+                    - missingKeywords는 최대 5개로 제한하세요.
+                    - suggestion은 1문장으로만 작성하세요.
+                    - summary는 150자 이내로 아주 짧게 작성하세요.
+                    - recommendations는 최대 2개로 제한하세요.
                     """;
         };
     }
