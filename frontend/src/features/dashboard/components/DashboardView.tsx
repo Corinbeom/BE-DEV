@@ -184,16 +184,16 @@ export function DashboardView() {
       <div className="flex items-baseline justify-between">
         <div>
           <h1 className="font-sans text-xl font-bold tracking-[-0.02em] text-foreground">
-            좋은 아침이에요, {displayName}님
+            오늘도 당신을 응원합니다, {displayName}님
           </h1>
           <p className="mt-0.5 text-[13px] text-muted-foreground">{today}</p>
         </div>
         <Link
           href="/resume-analyzer/report"
-          className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
+          className={cn(buttonVariants({ size: "lg" }), "gap-1.5")}
         >
           <span className="material-symbols-outlined text-sm">analytics</span>
-          면접 리포트 보러가기
+          면접 리포트 확인
         </Link>
       </div>
 
