@@ -127,7 +127,9 @@ public class ResumeSessionService {
 
         session.markExtracted(resumeText, portfolioText);
 
-        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl, List.of());
+        String resumeTextForAi    = truncate(resumeText,    QUESTIONS_RESUME_MAX_CHARS);
+        String portfolioTextForAi = truncate(portfolioText, QUESTIONS_PORTFOLIO_MAX_CHARS);
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeTextForAi, portfolioTextForAi, portfolioUrl, List.of());
         session.markQuestionsReady(questions);
 
         return sessionRepository.save(session);
@@ -184,7 +186,9 @@ public class ResumeSessionService {
         session.markExtracted(resumeText, portfolioText);
 
         List<String> safeTechs = targetTechnologies != null ? targetTechnologies : List.of();
-        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl, safeTechs);
+        String resumeTextForAi    = truncate(resumeText,    QUESTIONS_RESUME_MAX_CHARS);
+        String portfolioTextForAi = truncate(portfolioText, QUESTIONS_PORTFOLIO_MAX_CHARS);
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeTextForAi, portfolioTextForAi, portfolioUrl, safeTechs);
         session.markQuestionsReady(questions);
 
         return sessionRepository.save(session);
@@ -504,6 +508,10 @@ public class ResumeSessionService {
         }
         return sb.toString();
     }
+
+    // Groq llama-3.3-70b-versatile TPM 12,000 제한 대응 — 질문 생성 입력 truncation 상한
+    private static final int QUESTIONS_RESUME_MAX_CHARS    = 3_500;
+    private static final int QUESTIONS_PORTFOLIO_MAX_CHARS = 2_000;
 
     private static final int JD_MATCH_RESUME_MAX_CHARS = 3000;
     private static final int JD_MATCH_PORTFOLIO_MAX_CHARS = 2000;
