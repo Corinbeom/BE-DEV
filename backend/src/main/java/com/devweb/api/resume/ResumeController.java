@@ -7,10 +7,13 @@ import com.devweb.domain.resume.model.Resume;
 import com.devweb.domain.resume.model.ResumeFileType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Tag(name = "이력서 파일", description = "이력서/포트폴리오 파일 업로드 및 관리")
@@ -52,6 +55,20 @@ public class ResumeController {
     @GetMapping("/{id}")
     public ApiResponse<ResumeResponse> get(@PathVariable Long id) {
         return ApiResponse.success(ResumeResponse.from(service.get(id)));
+    }
+
+    @Operation(summary = "이력서 파일 다운로드/미리보기", description = "이력서 파일 바이너리를 반환합니다. (Content-Disposition: inline)")
+    @GetMapping("/{id}/file")
+    public ResponseEntity<byte[]> getFile(@PathVariable Long id) {
+        Long memberId = AuthUtils.currentMemberId();
+        ResumeService.FileData data = service.serveFile(memberId, id);
+        String contentType = data.contentType() != null ? data.contentType() : "application/octet-stream";
+        String filename = data.filename() != null ? data.filename() : "file";
+        String encodedFilename = new String(filename.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + encodedFilename + "\"")
+                .body(data.bytes());
     }
 
     @Operation(summary = "이력서 삭제", description = "이력서 파일과 메타데이터를 삭제합니다.")

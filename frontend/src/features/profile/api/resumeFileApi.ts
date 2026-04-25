@@ -53,3 +53,14 @@ export async function deleteResumeFile(id: number): Promise<void> {
     throw new Error(res.error?.message ?? "파일 삭제에 실패했습니다.");
   }
 }
+
+export async function fetchResumeFileBlob(id: number): Promise<Blob> {
+  const res = await fetch(`${apiBaseUrl()}/api/resumes/${id}/file`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`파일을 불러올 수 없습니다. (${res.status})`);
+  }
+  return res.blob();
+}

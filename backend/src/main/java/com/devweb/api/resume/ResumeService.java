@@ -27,6 +27,8 @@ public class ResumeService {
     private static final Logger log = LoggerFactory.getLogger(ResumeService.class);
     private static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
 
+    public record FileData(byte[] bytes, String contentType, String filename) {}
+
     private final ResumeRepository resumeRepository;
     private final MemberRepository memberRepository;
     private final FileStoragePort fileStorage;
@@ -90,6 +92,21 @@ public class ResumeService {
     public Resume get(Long id) {
         return resumeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resume를 찾을 수 없습니다. id=" + id));
+    }
+
+    @Transactional(readOnly = true)
+    public FileData serveFile(Long memberId, Long resumeId) {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resume를 찾을 수 없습니다. id=" + resumeId));
+        if (!resume.getMember().getId().equals(memberId)) {
+            throw new IllegalArgumentException("본인의 파일만 조회할 수 있습니다.");
+        }
+        StoredFileRef stored = resume.getStoredFile();
+        if (stored == null || stored.getStorageKey() == null) {
+            throw new ResourceNotFoundException("파일이 존재하지 않습니다.");
+        }
+        byte[] bytes = fileStorage.load(stored.getStorageKey());
+        return new FileData(bytes, stored.getContentType(), stored.getOriginalFilename());
     }
 
     public void delete(Long memberId, Long resumeId) {
