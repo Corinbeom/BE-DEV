@@ -14,8 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -33,10 +33,10 @@ import java.util.Set;
 
 /**
  * Groq API 어댑터 (OpenAI 호환 엔드포인트).
- * application.yml에서 devweb.ai.provider=groq 로 설정하면 활성화된다.
+ * AiRoutingAdapter에 의해 빠른 응답이 필요한 피드백 기능에 사용된다.
  */
 @Component
-@ConditionalOnProperty(name = "devweb.ai.provider", havingValue = "groq")
+@Qualifier("groqAi")
 public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
     private static final Logger log = LoggerFactory.getLogger(GroqInterviewAiAdapter.class);
@@ -143,9 +143,10 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     ) {
         int remaining = totalCount;
         List<CsQuizAiPort.GeneratedQuizQuestion> out = new ArrayList<>();
+        List<String> generatedPrompts = new ArrayList<>();
         while (remaining > 0) {
             int batch = Math.min(3, remaining);
-            String prompt = AiPromptBuilder.buildCsQuizQuestionsPrompt(topics, difficulty, type, batch);
+            String prompt = AiPromptBuilder.buildCsQuizQuestionsPrompt(topics, difficulty, type, batch, generatedPrompts);
             JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, RetryProfile.QUIZ_QUESTIONS);
             JsonNode questions = json.get("questions");
             if (questions == null || !questions.isArray()) {
@@ -155,6 +156,7 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     questions,
                     objectMapper.getTypeFactory().constructCollectionType(List.class, CsQuizAiPort.GeneratedQuizQuestion.class)
             );
+            got.forEach(q -> { if (q.prompt() != null) generatedPrompts.add(q.prompt()); });
             out.addAll(got);
             remaining -= got.size();
             if (got.isEmpty()) break;

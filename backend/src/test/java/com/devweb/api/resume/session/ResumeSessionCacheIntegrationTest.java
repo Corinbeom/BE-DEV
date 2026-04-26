@@ -6,12 +6,12 @@ import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.model.StoredFileRef;
 import com.devweb.domain.resume.session.port.FileStoragePort;
-import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.resume.session.port.ResumeSessionRepository;
 import com.devweb.domain.resume.session.port.TextExtractorPort;
 import com.devweb.domain.resume.session.port.UrlTextFetcherPort;
 import com.devweb.domain.resume.session.service.QuestionGenerator;
-import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
+import com.devweb.infra.ai.gemini.GeminiInterviewAiAdapter;
+import com.devweb.infra.ai.groq.GroqInterviewAiAdapter;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,8 +42,8 @@ class ResumeSessionCacheIntegrationTest {
     @Autowired EntityManager em;
     @Autowired ResumeSessionRepository sessionRepository;
 
-    @MockBean InterviewAiPort interviewAiPort;
-    @MockBean CsQuizAiPort csQuizAiPort;
+    @MockBean GeminiInterviewAiAdapter geminiAdapter;
+    @MockBean GroqInterviewAiAdapter groqAdapter;
     @MockBean FileStoragePort fileStoragePort;
     @MockBean TextExtractorPort textExtractorPort;
     @MockBean UrlTextFetcherPort urlTextFetcherPort;

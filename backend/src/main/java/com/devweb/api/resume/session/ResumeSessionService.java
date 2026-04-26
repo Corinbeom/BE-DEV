@@ -127,9 +127,7 @@ public class ResumeSessionService {
 
         session.markExtracted(resumeText, portfolioText);
 
-        String resumeTextForAi    = truncate(resumeText,    QUESTIONS_RESUME_MAX_CHARS);
-        String portfolioTextForAi = truncate(portfolioText, QUESTIONS_PORTFOLIO_MAX_CHARS);
-        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeTextForAi, portfolioTextForAi, portfolioUrl, List.of());
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl, List.of());
         session.markQuestionsReady(questions);
 
         return sessionRepository.save(session);
@@ -186,9 +184,7 @@ public class ResumeSessionService {
         session.markExtracted(resumeText, portfolioText);
 
         List<String> safeTechs = targetTechnologies != null ? targetTechnologies : List.of();
-        String resumeTextForAi    = truncate(resumeText,    QUESTIONS_RESUME_MAX_CHARS);
-        String portfolioTextForAi = truncate(portfolioText, QUESTIONS_PORTFOLIO_MAX_CHARS);
-        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeTextForAi, portfolioTextForAi, portfolioUrl, safeTechs);
+        List<ResumeQuestion> questions = questionGenerator.generate(positionType, resumeText, portfolioText, portfolioUrl, safeTechs);
         session.markQuestionsReady(questions);
 
         return sessionRepository.save(session);
@@ -509,13 +505,6 @@ public class ResumeSessionService {
         return sb.toString();
     }
 
-    // Groq llama-3.3-70b-versatile TPM 12,000 제한 대응 — 질문 생성 입력 truncation 상한
-    private static final int QUESTIONS_RESUME_MAX_CHARS    = 3_500;
-    private static final int QUESTIONS_PORTFOLIO_MAX_CHARS = 2_000;
-
-    private static final int JD_MATCH_RESUME_MAX_CHARS = 3000;
-    private static final int JD_MATCH_PORTFOLIO_MAX_CHARS = 2000;
-
     @Transactional(readOnly = true)
     public JdMatchAnalysisResponse analyzeJdMatch(Long memberId, JdMatchRequest request) {
         Resume resume = resumeRepository.findById(request.resumeId())
@@ -527,14 +516,14 @@ public class ResumeSessionService {
             throw new IllegalArgumentException("텍스트 추출이 완료되지 않은 이력서입니다. id=" + request.resumeId());
         }
 
-        String resumeText = truncate(resume.getExtractedText(), JD_MATCH_RESUME_MAX_CHARS);
+        String resumeText = resume.getExtractedText();
         String portfolioText = null;
 
         if (request.portfolioResumeId() != null) {
             Resume portfolio = resumeRepository.findById(request.portfolioResumeId())
                     .orElseThrow(() -> new ResourceNotFoundException("Portfolio Resume를 찾을 수 없습니다. id=" + request.portfolioResumeId()));
             if (portfolio.getExtractStatus() == ResumeExtractStatus.EXTRACTED && portfolio.getExtractedText() != null) {
-                portfolioText = truncate(portfolio.getExtractedText(), JD_MATCH_PORTFOLIO_MAX_CHARS);
+                portfolioText = portfolio.getExtractedText();
             }
         }
 
@@ -601,11 +590,6 @@ public class ResumeSessionService {
     @EventListener
     public void onMemberDeleted(MemberDeletedEvent event) {
         listByMember(event.memberId()).forEach(session -> delete(session.getId()));
-    }
-
-    private static String truncate(String text, int maxChars) {
-        if (text == null || text.length() <= maxChars) return text;
-        return text.substring(0, maxChars);
     }
 }
 

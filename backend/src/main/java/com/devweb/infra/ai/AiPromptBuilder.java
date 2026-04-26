@@ -159,8 +159,20 @@ public final class AiPromptBuilder {
     }
 
     public static String buildCsQuizQuestionsPrompt(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, CsQuizQuestionType type, int count) {
+        return buildCsQuizQuestionsPrompt(topics, difficulty, type, count, List.of());
+    }
+
+    public static String buildCsQuizQuestionsPrompt(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, CsQuizQuestionType type, int count, List<String> existingPrompts) {
         String topicsCsv = topics.stream().map(Enum::name).sorted().reduce((a, b) -> a + ", " + b).orElse("");
-        return """
+        String exclusionBlock = "";
+        if (existingPrompts != null && !existingPrompts.isEmpty()) {
+            String list = existingPrompts.stream()
+                    .limit(10)
+                    .map(p -> "- " + p)
+                    .collect(java.util.stream.Collectors.joining("\n"));
+            exclusionBlock = "\n아래 문제들과 완전히 다른 내용·주제로만 생성하세요(중복 금지):\n" + list + "\n";
+        }
+        return ("""
                 아래 조건을 만족하는 CS 퀴즈 문제를 정확히 %d개 생성하세요.
                 난이도는 모두 %s, 토픽은 다음 목록 중에서만 선택하세요: %s
                 문제 유형은 모두 %s 입니다.
@@ -194,7 +206,7 @@ public final class AiPromptBuilder {
                   - correctChoiceIndex는 -1
                   - referenceAnswer는 550자 이내
                   - rubricKeywords는 3~6개
-                """.formatted(count, difficulty.name(), topicsCsv, type.name());
+                """.formatted(count, difficulty.name(), topicsCsv, type.name())) + exclusionBlock;
     }
 
     public static String buildCsMultipleChoiceFeedbackPrompt(

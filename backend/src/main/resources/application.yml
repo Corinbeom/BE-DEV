@@ -85,13 +85,9 @@ devweb:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   cookie-domain: ${COOKIE_DOMAIN:}
 
-  # AI 공급자 선택: gemini(기본값) 또는 groq
-  ai:
-    provider: ${AI_PROVIDER:gemini}
-
   gemini:
     api-key: ${GEMINI_API_KEY:}
-    model: gemini-2.5-flash
+    model: gemini-3.1-flash-lite-preview
     base-url: https://generativelanguage.googleapis.com
     request-timeout-seconds: 90
     max-output-tokens: 8192

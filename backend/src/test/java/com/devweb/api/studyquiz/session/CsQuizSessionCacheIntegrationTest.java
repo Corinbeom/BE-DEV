@@ -5,8 +5,8 @@ import com.devweb.domain.member.port.MemberRepository;
 import com.devweb.domain.studyquiz.bank.model.CsQuestionBankItem;
 import com.devweb.domain.studyquiz.bank.port.CsQuestionBankRepository;
 import com.devweb.domain.studyquiz.session.model.*;
-import com.devweb.domain.resume.session.port.InterviewAiPort;
-import com.devweb.domain.studyquiz.session.port.CsQuizAiPort;
+import com.devweb.infra.ai.gemini.GeminiInterviewAiAdapter;
+import com.devweb.infra.ai.groq.GroqInterviewAiAdapter;
 import com.devweb.domain.studyquiz.session.port.CsQuizSessionRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,8 +44,8 @@ class CsQuizSessionCacheIntegrationTest {
     @Autowired CsQuizSessionRepository sessionRepository;
     @Autowired MemberRepository memberRepository;
 
-    @MockBean CsQuizAiPort csQuizAiPort;
-    @MockBean InterviewAiPort interviewAiPort;
+    @MockBean GeminiInterviewAiAdapter geminiAdapter;
+    @MockBean GroqInterviewAiAdapter groqAdapter;
     @MockBean CsQuestionBankRepository bankRepository;
 
     private Member member;

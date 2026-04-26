@@ -165,19 +165,23 @@ public class CsQuizSessionService {
                     remaining,
                     0
             );
+            List<CsQuestionBankItem> toBank = new ArrayList<>();
             int idx = out.size();
             for (CsQuizAiPort.GeneratedQuizQuestion g : generated) {
                 if (g.type() != CsQuizQuestionType.MULTIPLE_CHOICE) continue;
-                out.add(CsQuizQuestion.multipleChoice(
-                        startIndex + idx++,
-                        g.topic() == null ? topics.iterator().next() : g.topic(),
-                        difficulty,
-                        AiTextSanitizer.sanitize(g.prompt()),
-                        g.choices() == null ? List.of() : AiTextSanitizer.sanitizeList(g.choices()),
-                        g.correctChoiceIndex() == null ? 0 : g.correctChoiceIndex(),
-                        AiTextSanitizer.sanitize(g.referenceAnswer())
-                ));
+                List<String> choices = g.choices() == null ? List.of() : AiTextSanitizer.sanitizeList(g.choices());
+                CsQuizTopic topic = g.topic() == null ? topics.iterator().next() : g.topic();
+                String prompt = AiTextSanitizer.sanitize(g.prompt());
+                int correctIdx = g.correctChoiceIndex() == null ? 0 : g.correctChoiceIndex();
+                String refAnswer = AiTextSanitizer.sanitize(g.referenceAnswer());
+                out.add(CsQuizQuestion.multipleChoice(startIndex + idx++, topic, difficulty, prompt, choices, correctIdx, refAnswer));
+                if (choices.size() >= 2 && correctIdx >= 0 && correctIdx < choices.size()) {
+                    try {
+                        toBank.add(CsQuestionBankItem.multipleChoice(topic, difficulty, prompt, choices, correctIdx, refAnswer));
+                    } catch (IllegalArgumentException ignored) {}
+                }
             }
+            if (!toBank.isEmpty()) bankRepository.saveAll(toBank);
             if (out.size() < count) {
                 throw new IllegalStateException("객관식 문제 생성이 부족합니다. need=" + count + " got=" + out.size());
             }
@@ -237,18 +241,20 @@ public class CsQuizSessionService {
                     0,
                     remaining
             );
+            List<CsQuestionBankItem> toBank = new ArrayList<>();
             int idx = result.size();
             for (CsQuizAiPort.GeneratedQuizQuestion g : generated) {
                 if (g.type() != CsQuizQuestionType.SHORT_ANSWER) continue;
-                result.add(CsQuizQuestion.shortAnswer(
-                        startIndex + idx++,
-                        g.topic() == null ? topics.iterator().next() : g.topic(),
-                        difficulty,
-                        AiTextSanitizer.sanitize(g.prompt()),
-                        AiTextSanitizer.sanitizeList(g.rubricKeywords()),
-                        AiTextSanitizer.sanitize(g.referenceAnswer())
-                ));
+                CsQuizTopic topic = g.topic() == null ? topics.iterator().next() : g.topic();
+                String prompt = AiTextSanitizer.sanitize(g.prompt());
+                List<String> keywords = AiTextSanitizer.sanitizeList(g.rubricKeywords());
+                String refAnswer = AiTextSanitizer.sanitize(g.referenceAnswer());
+                result.add(CsQuizQuestion.shortAnswer(startIndex + idx++, topic, difficulty, prompt, keywords, refAnswer));
+                try {
+                    toBank.add(CsQuestionBankItem.shortAnswer(topic, difficulty, prompt, keywords, refAnswer));
+                } catch (IllegalArgumentException ignored) {}
             }
+            if (!toBank.isEmpty()) bankRepository.saveAll(toBank);
             if (result.size() < count) {
                 throw new IllegalStateException("주관식 문제 생성이 부족합니다. need=" + count + " got=" + result.size());
             }

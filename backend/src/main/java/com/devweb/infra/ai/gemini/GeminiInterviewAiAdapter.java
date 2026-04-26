@@ -14,8 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Component
-@ConditionalOnProperty(name = "devweb.ai.provider", havingValue = "gemini", matchIfMissing = true)
+@Qualifier("geminiAi")
 public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiInterviewAiAdapter.class);
@@ -143,9 +143,10 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     ) {
         int remaining = totalCount;
         List<CsQuizAiPort.GeneratedQuizQuestion> out = new java.util.ArrayList<>();
+        List<String> generatedPrompts = new java.util.ArrayList<>();
         while (remaining > 0) {
             int batch = Math.min(3, remaining);
-            String prompt = AiPromptBuilder.buildCsQuizQuestionsPrompt(topics, difficulty, type, batch);
+            String prompt = AiPromptBuilder.buildCsQuizQuestionsPrompt(topics, difficulty, type, batch, generatedPrompts);
             JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, csQuizQuestionResponseSchema(), RetryProfile.QUIZ_QUESTIONS);
             JsonNode questions = json.get("questions");
             if (questions == null || !questions.isArray()) {
@@ -155,6 +156,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     questions,
                     objectMapper.getTypeFactory().constructCollectionType(List.class, CsQuizAiPort.GeneratedQuizQuestion.class)
             );
+            got.forEach(q -> { if (q.prompt() != null) generatedPrompts.add(q.prompt()); });
             out.addAll(got);
             remaining -= got.size();
             if (got.size() == 0) break;
