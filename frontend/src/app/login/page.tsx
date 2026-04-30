@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { track } from "@vercel/analytics/react";
 
 /* ── Star Data ── */
 const STARS = [
@@ -563,13 +564,19 @@ export default function LoginPage() {
 
           <motion.div variants={heroItem} className="mt-10 flex items-center gap-3">
             <button
-              onClick={() => loginSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => {
+                track("CTA_Start_Free_Click");
+                loginSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+              }}
               className="btn-shimmer rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:bg-blue-500 hover:shadow-blue-500/40"
             >
               무료로 시작하기
             </button>
             <button
-              onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={() => {
+                track("CTA_Features_Click");
+                document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+              }}
               className="rounded-xl border border-white/15 bg-white/8 px-6 py-3 text-sm font-medium text-white/70 backdrop-blur-sm transition-colors hover:bg-white/15"
             >
               기능 살펴보기
@@ -699,7 +706,10 @@ export default function LoginPage() {
                 <Button
                   variant="outline"
                   className="h-12 gap-3 border-white/20 bg-white/90 text-sm font-semibold text-gray-800 shadow-sm transition-all hover:bg-white hover:shadow-md"
-                  onClick={() => { window.location.href = `${backendUrl}/oauth2/authorization/google`; }}
+                  onClick={() => {
+                    track("Login_Google_Click");
+                    window.location.href = `${backendUrl}/oauth2/authorization/google`;
+                  }}
                 >
                   <svg className="size-5" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -711,7 +721,10 @@ export default function LoginPage() {
                 </Button>
                 <Button
                   className="h-12 gap-3 border-[#FEE500] bg-[#FEE500] text-sm font-semibold text-[#3C1E1E] shadow-sm transition-all hover:bg-[#FDD800] hover:shadow-md"
-                  onClick={() => { window.location.href = `${backendUrl}/oauth2/authorization/kakao`; }}
+                  onClick={() => {
+                    track("Login_Kakao_Click");
+                    window.location.href = `${backendUrl}/oauth2/authorization/kakao`;
+                  }}
                 >
                   <svg className="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.584 1.522 4.857 3.814 6.218L4.7 20.5a.5.5 0 0 0 .746.434l4.686-2.762A11.5 11.5 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z" />
