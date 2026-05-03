@@ -17,13 +17,21 @@ public class AnswerFeedbackGenerator {
     }
 
     public Feedback generate(String positionType, String question, String intention, String keywords, String modelAnswer, String answerText) {
+        return generate(positionType, question, intention, keywords, modelAnswer, answerText, null);
+    }
+
+    public Feedback generate(String positionType, String question, String intention, String keywords, String modelAnswer, String answerText,
+                              InterviewAiPort.BehavioralMetrics behavioralMetrics) {
         String systemInstruction = promptRegistry.systemInstructionFor(positionType);
-        InterviewAiPort.GeneratedFeedback f =
-                aiPort.generateFeedback(systemInstruction, question, intention, keywords, modelAnswer, answerText);
+        InterviewAiPort.GeneratedFeedback f = behavioralMetrics != null
+                ? aiPort.generateFeedbackWithBehavior(systemInstruction, question, intention, keywords, modelAnswer, answerText, behavioralMetrics)
+                : aiPort.generateFeedback(systemInstruction, question, intention, keywords, modelAnswer, answerText);
         return new Feedback(
                 AiTextSanitizer.sanitizeList(f.strengths()),
                 AiTextSanitizer.sanitizeList(f.improvements()),
                 AiTextSanitizer.sanitize(f.suggestedAnswer()),
-                AiTextSanitizer.sanitizeList(f.followups()));
+                AiTextSanitizer.sanitizeList(f.followups()),
+                AiTextSanitizer.sanitizeList(f.deliveryStrengths()),
+                AiTextSanitizer.sanitizeList(f.deliveryImprovements()));
     }
 }

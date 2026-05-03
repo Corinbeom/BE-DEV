@@ -1,6 +1,7 @@
 package com.devweb.common;
 
 import jakarta.validation.ConstraintViolationException;
+import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -94,6 +95,11 @@ public class GlobalExceptionHandler {
         if (msg != null && msg.length() > 2000) msg = msg.substring(0, 2000) + "...";
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(ApiResponse.fail("UPSTREAM_ERROR", msg == null ? "외부 서비스 호출에 실패했습니다." : msg));
+    }
+
+    @ExceptionHandler(ClientAbortException.class)
+    public void handleClientAbort(ClientAbortException e) {
+        log.debug("클라이언트 연결 끊김 (정상): {}", e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

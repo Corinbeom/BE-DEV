@@ -190,6 +190,26 @@
   animation: progress-indeterminate 1.5s ease-in-out infinite;
 }
 
+/* Sound bar animation (TTS 재생 시 파형 표시) */
+@keyframes sound-bar {
+  0%, 100% { transform: scaleY(0.2); }
+  50%       { transform: scaleY(1); }
+}
+.animate-sound-bar {
+  transform-origin: bottom;
+  animation: sound-bar 0.8s ease-in-out infinite;
+}
+
+/* 질문 단어별 등장 애니메이션 */
+@keyframes word-reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-word-reveal {
+  opacity: 0;
+  animation: word-reveal 0.35s ease forwards;
+}
+
 /* Button glow effect */
 @keyframes pulse-glow {
   0%,
