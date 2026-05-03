@@ -99,6 +99,10 @@ devweb:
     request-timeout-seconds: 60
     max-output-tokens: 4096
 
+  supertone:
+    api-key: ${SUPERTONE_API_KEY:}
+    voice-id: ${SUPERTONE_VOICE_ID:}
+
   resend:
     api-key: ${RESEND_API_KEY:}
     from: ${RESEND_FROM:onboarding@resend.dev}

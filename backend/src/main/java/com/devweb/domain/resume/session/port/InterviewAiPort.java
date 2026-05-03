@@ -7,7 +7,18 @@ public interface InterviewAiPort {
     record GeneratedQuestion(String badge, int likelihood, String question, String intention, String keywords, String modelAnswer) {
     }
 
-    record GeneratedFeedback(List<String> strengths, List<String> improvements, String suggestedAnswer, List<String> followups) {
+    record GeneratedFeedback(
+            List<String> strengths,
+            List<String> improvements,
+            String suggestedAnswer,
+            List<String> followups,
+            List<String> deliveryStrengths,
+            List<String> deliveryImprovements
+    ) {
+        /** 행동 분석 없는 기존 호환 생성자 */
+        public GeneratedFeedback(List<String> strengths, List<String> improvements, String suggestedAnswer, List<String> followups) {
+            this(strengths, improvements, suggestedAnswer, followups, null, null);
+        }
     }
 
     List<GeneratedQuestion> generateQuestions(String systemInstruction, String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies);
@@ -17,6 +28,15 @@ public interface InterviewAiPort {
     }
 
     GeneratedFeedback generateFeedback(String systemInstruction, String question, String intention, String keywords, String modelAnswer, String answerText);
+
+    /** 행동 분석 지표 포함 오버로드 — null 전달 시 기존 동작과 동일 */
+    record BehavioralMetrics(Double eyeContactRatio, Double postureStability, Double expressionVariety, Double fidgetingScore) {}
+
+    default GeneratedFeedback generateFeedbackWithBehavior(String systemInstruction, String question, String intention,
+                                                            String keywords, String modelAnswer, String answerText,
+                                                            BehavioralMetrics behavioralMetrics) {
+        return generateFeedback(systemInstruction, question, intention, keywords, modelAnswer, answerText);
+    }
 
     record BadgeSummary(String badge, String summary, List<String> strengths, List<String> weaknesses) {}
     record Improvement(String title, String description) {}

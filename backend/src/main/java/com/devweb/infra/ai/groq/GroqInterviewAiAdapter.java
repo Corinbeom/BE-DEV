@@ -109,6 +109,19 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return parseFeedbackAsInterview(json);
     }
 
+    @Override
+    public InterviewAiPort.GeneratedFeedback generateFeedbackWithBehavior(
+            String systemInstruction, String question, String intention,
+            String keywords, String modelAnswer, String answerText,
+            InterviewAiPort.BehavioralMetrics m) {
+        requireApiKey();
+        String prompt = AiPromptBuilder.buildFeedbackPromptWithBehavior(
+                question, intention, keywords, modelAnswer, answerText,
+                m.eyeContactRatio(), m.postureStability(), m.expressionVariety(), m.fidgetingScore());
+        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, RetryProfile.FEEDBACK);
+        return parseFeedbackWithDeliveryAsInterview(json);
+    }
+
     // ===== CsQuizAiPort =====
 
     @Override
@@ -356,12 +369,38 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             List<String> followups
     ) {}
 
+    private record FeedbackWithDeliveryPayload(
+            List<String> strengths,
+            List<String> improvements,
+            String suggestedAnswer,
+            List<String> followups,
+            List<String> deliveryStrengths,
+            List<String> deliveryImprovements
+    ) {}
+
     private InterviewAiPort.GeneratedFeedback parseFeedbackAsInterview(JsonNode json) {
         try {
             FeedbackPayload p = objectMapper.treeToValue(json, FeedbackPayload.class);
             return new InterviewAiPort.GeneratedFeedback(p.strengths(), p.improvements(), p.suggestedAnswer(), p.followups());
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Groq 피드백 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
+    private InterviewAiPort.GeneratedFeedback parseFeedbackWithDeliveryAsInterview(JsonNode json) {
+        try {
+            FeedbackWithDeliveryPayload p = objectMapper.treeToValue(json, FeedbackWithDeliveryPayload.class);
+            return new InterviewAiPort.GeneratedFeedback(
+                    p.strengths(), p.improvements(), p.suggestedAnswer(), p.followups(),
+                    p.deliveryStrengths(), p.deliveryImprovements());
+        } catch (JsonProcessingException e) {
+            // deliveryStrengths/deliveryImprovements 파싱 실패 시 기존 피드백으로 폴백
+            try {
+                FeedbackPayload p = objectMapper.treeToValue(json, FeedbackPayload.class);
+                return new InterviewAiPort.GeneratedFeedback(p.strengths(), p.improvements(), p.suggestedAnswer(), p.followups());
+            } catch (JsonProcessingException e2) {
+                throw new IllegalStateException("Groq 피드백(행동 분석 포함) 응답 파싱에 실패했습니다.", e2);
+            }
         }
     }
 
