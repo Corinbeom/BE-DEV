@@ -1,5 +1,5 @@
 import { apiFetch, type ApiResponse } from "@/lib/api";
-import type { SpeechInterviewSession, SubmitAnswerRequest } from "./types";
+import type { ChatRequest, ChatResponse, SpeechInterviewSession } from "./types";
 
 function unwrap<T>(res: ApiResponse<T>): T {
   if (!res.success || !res.data) {
@@ -9,39 +9,15 @@ function unwrap<T>(res: ApiResponse<T>): T {
 }
 
 export async function createSpeechInterview(
-  resumeSessionId: number,
-  useCamera: boolean
+  resumeSessionId: number
 ): Promise<SpeechInterviewSession> {
   const res = await apiFetch<ApiResponse<SpeechInterviewSession>>("/api/speech-interviews", {
     method: "POST",
-    body: JSON.stringify({ resumeSessionId, useCamera }),
+    body: JSON.stringify({ resumeSessionId, useCamera: false }),
   });
   return unwrap(res);
 }
 
-export async function submitSpeechAnswer(
-  sessionId: number,
-  body: SubmitAnswerRequest
-): Promise<SpeechInterviewSession> {
-  const res = await apiFetch<ApiResponse<SpeechInterviewSession>>(
-    `/api/speech-interviews/${sessionId}/answers`,
-    {
-      method: "POST",
-      body: JSON.stringify(body),
-    }
-  );
-  return unwrap(res);
-}
-
-export async function completeSpeechInterview(
-  sessionId: number
-): Promise<SpeechInterviewSession> {
-  const res = await apiFetch<ApiResponse<SpeechInterviewSession>>(
-    `/api/speech-interviews/${sessionId}/complete`,
-    { method: "POST" }
-  );
-  return unwrap(res);
-}
 
 export async function listSpeechInterviews(): Promise<SpeechInterviewSession[]> {
   const res = await apiFetch<ApiResponse<SpeechInterviewSession[]>>("/api/speech-interviews");
@@ -53,6 +29,20 @@ export async function getSpeechInterview(
 ): Promise<SpeechInterviewSession> {
   const res = await apiFetch<ApiResponse<SpeechInterviewSession>>(
     `/api/speech-interviews/${sessionId}`
+  );
+  return unwrap(res);
+}
+
+export async function chatWithInterviewer(
+  sessionId: number,
+  body: ChatRequest
+): Promise<ChatResponse> {
+  const res = await apiFetch<ApiResponse<ChatResponse>>(
+    `/api/speech-interviews/${sessionId}/chat`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
   );
   return unwrap(res);
 }

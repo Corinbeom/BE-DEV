@@ -67,6 +67,18 @@ public class AiRoutingAdapter implements InterviewAiPort, CsQuizAiPort {
         return gemini.analyzeJdMatch(systemInstruction, resumeText, portfolioText, jdText);
     }
 
+    @Override
+    public InterviewAiPort.GeneratedInterviewerTurn conductInterview(
+            String systemInstruction,
+            String resumeContext,
+            String positionType,
+            java.util.List<InterviewAiPort.ChatMessage> history,
+            int turnCount,
+            int maxTurns
+    ) {
+        return gemini.conductInterview(systemInstruction, resumeContext, positionType, history, turnCount, maxTurns);
+    }
+
     // ── Light → Groq ──
 
     @Override

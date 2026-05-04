@@ -11,15 +11,7 @@ export type SpeechInterviewQuestion = {
 export type SpeechInterviewAnswer = {
   answerText: string;
   feedbackStatus: "PENDING" | "COMPLETED" | "FAILED";
-  behavioralMetrics?: BehavioralMetricsDto;
   feedback?: SpeechFeedback;
-};
-
-export type BehavioralMetricsDto = {
-  eyeContactRatio: number;
-  postureStability: number;
-  expressionVariety: number;
-  fidgetingScore: number;
 };
 
 export type SpeechFeedback = {
@@ -27,23 +19,26 @@ export type SpeechFeedback = {
   improvements: string[];
   suggestedAnswer: string;
   followups: string[];
-  deliveryStrengths?: string[];
-  deliveryImprovements?: string[];
 };
 
 export type SpeechInterviewSession = {
   id: number;
   title: string;
   positionType: string | null;
-  useCamera: boolean;
-  status: "CREATED" | "COMPLETED";
+  status: "CREATED" | "IN_PROGRESS" | "COMPLETED";
   createdAt: string;
   completedAt?: string;
   questions: SpeechInterviewQuestion[];
 };
 
-export type SubmitAnswerRequest = {
-  questionId: number;
-  answerText: string;
-  behavioralMetrics?: BehavioralMetricsDto;
+export type ChatRequest = {
+  userMessage: string;
+};
+
+export type ChatResponse = {
+  aiMessage: string;
+  turnIndex: number;
+  isComplete: boolean;
+  questionId: number | null;
+  badge: string | null;
 };

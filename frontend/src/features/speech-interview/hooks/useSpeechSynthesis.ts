@@ -7,6 +7,7 @@ export type SpeechSynthesisHook = {
   stop: () => void;
   isSpeaking: boolean;
   isSupported: boolean;
+  isError?: boolean;
 };
 
 function loadVoices(): Promise<SpeechSynthesisVoice[]> {

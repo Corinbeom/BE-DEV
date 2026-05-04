@@ -75,5 +75,26 @@ public interface InterviewAiPort {
     ) {}
 
     GeneratedJdMatchAnalysis analyzeJdMatch(String systemInstruction, String resumeText, String portfolioText, String jdText);
+
+    record ChatMessage(String role, String content) {}
+
+    record GeneratedInterviewerTurn(
+            String message,
+            String badge,
+            boolean isComplete,
+            String intention,
+            String keywords
+    ) {}
+
+    default GeneratedInterviewerTurn conductInterview(
+            String systemInstruction,
+            String resumeContext,
+            String positionType,
+            List<ChatMessage> history,
+            int turnCount,
+            int maxTurns
+    ) {
+        throw new UnsupportedOperationException("conductInterview가 구현되지 않았습니다.");
+    }
 }
 

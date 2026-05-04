@@ -126,6 +126,14 @@ export function InterviewQuestion({ question, questionIndex, totalQuestions, tts
         </div>
       </div>
 
+      {/* TTS 에러 안내 */}
+      {tts.isError && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-400/80">
+          <span className="material-symbols-outlined text-sm">warning</span>
+          음성을 사용할 수 없습니다. 화면의 질문을 읽고 진행해 주세요.
+        </p>
+      )}
+
       {/* 답변 시작 버튼 */}
       <button
         onClick={handleDone}

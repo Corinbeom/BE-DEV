@@ -3,80 +3,62 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { apiBaseUrl } from "@/lib/api";
 import { useSpeechInterviewMachine } from "../hooks/useSpeechInterviewMachine";
-import { useTts } from "../hooks/useTts";
+import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
 import { useGroqStt } from "../hooks/useGroqStt";
-import { useBehavioralAnalysis } from "../hooks/useBehavioralAnalysis";
 import { InterviewIntro } from "./InterviewIntro";
-import { InterviewQuestion } from "./InterviewQuestion";
-import { InterviewAnswering } from "./InterviewAnswering";
-import { InterviewTransition } from "./InterviewTransition";
 import { InterviewClosing } from "./InterviewClosing";
-import { createSpeechInterview } from "../api/speechInterviewApi";
+import { ConversationView } from "./ConversationView";
+import { createSpeechInterview, chatWithInterviewer } from "../api/speechInterviewApi";
 import type { ResumeSession } from "@/features/resume-analyzer/api/types";
 import type { InterviewMode } from "../hooks/useSpeechInterviewMachine";
+
+const MAX_TURNS = 8;
 
 export function SpeechInterviewPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [state, actions] = useSpeechInterviewMachine();
-  const tts = useTts();
+  const tts = useSpeechSynthesis();
   const stt = useGroqStt();
-  const behavioral = useBehavioralAnalysis();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const chatInFlightRef = useRef(false);
 
+  // 인증 가드
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
   }, [user, isLoading, router]);
 
-  useEffect(() => {
-    if (state.useCamera && state.phase === "ANSWERING" && videoRef.current) {
-      behavioral.start(videoRef.current);
+  // AI_THINKING 감지 → chatWithInterviewer 호출
+  const handleAiThinking = useCallback(async () => {
+    if (!state.speechSession || chatInFlightRef.current) return;
+    chatInFlightRef.current = true;
+    try {
+      const lastLog = state.conversationLog;
+      const lastUserEntry = lastLog.filter((e) => e.role === "user").pop();
+      const userMessage = lastUserEntry?.text ?? "";
+
+      const response = await chatWithInterviewer(state.speechSession.id, { userMessage });
+
+      setChatError(null);
+      actions.aiResponse(response.aiMessage, response.turnIndex, response.isComplete, response.questionId, response.badge);
+    } catch (err) {
+      console.error("chat 호출 실패:", err);
+      const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+      setChatError(`AI 면접관 연결 실패: ${msg}. 잠시 후 다시 시도해 주세요.`);
+    } finally {
+      chatInFlightRef.current = false;
     }
-    if (state.phase !== "ANSWERING") {
-      behavioral.stop();
+  }, [state.speechSession, state.conversationLog, actions]);
+
+  useEffect(() => {
+    if (state.phase === "CONVERSING" && state.subPhase === "AI_THINKING") {
+      handleAiThinking();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase, state.useCamera]);
-
-  // CLOSING 진입 시 모든 답변 + 행동 지표를 새 엔드포인트로 전송 (fire-and-forget)
-  useEffect(() => {
-    if (state.phase !== "CLOSING" || !state.speechSession) return;
-    const sessionId = state.speechSession.id;
-    const metrics = behavioral.getMetrics();
-
-    state.answers.forEach((answer) => {
-      if (!answer.answerText || answer.answerText === "(답변 없음)") return;
-      const body: Record<string, unknown> = {
-        questionId: answer.questionId,
-        answerText: answer.answerText,
-      };
-      if (metrics) {
-        body.behavioralMetrics = {
-          eyeContactRatio: metrics.eyeContactRatio,
-          postureStability: metrics.postureStability,
-          expressionVariety: metrics.expressionVariety,
-          fidgetingScore: metrics.fidgetingScore,
-        };
-      }
-      fetch(`${apiBaseUrl()}/api/speech-interviews/${sessionId}/answers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      }).catch(() => {});
-    });
-
-    fetch(`${apiBaseUrl()}/api/speech-interviews/${sessionId}/complete`, {
-      method: "POST",
-      credentials: "include",
-    }).catch(() => {});
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase]);
+  }, [state.phase, state.subPhase]);
 
   // REPORT 진입 시 결과 페이지로 이동
   useEffect(() => {
@@ -85,6 +67,7 @@ export function SpeechInterviewPage() {
     }
   }, [state.phase, state.speechSession, router]);
 
+  // 새로고침 방지
   useEffect(() => {
     if (state.phase === "LOBBY" || state.phase === "REPORT") return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -97,12 +80,12 @@ export function SpeechInterviewPage() {
 
   if (isLoading || !user) return null;
 
-  async function handleSelectSession(session: ResumeSession, mode: InterviewMode, useCamera: boolean) {
+  async function handleSelectSession(session: ResumeSession, mode: InterviewMode) {
     if (isCreatingSession) return;
     setIsCreatingSession(true);
     try {
-      const speechSession = await createSpeechInterview(session.id, useCamera);
-      actions.sessionCreated(speechSession, mode, useCamera);
+      const speechSession = await createSpeechInterview(session.id);
+      actions.sessionCreated(speechSession, mode);
       actions.startIntro();
     } catch (err) {
       console.error("스피치 면접 세션 생성 실패", err);
@@ -117,7 +100,9 @@ export function SpeechInterviewPage() {
       return;
     }
     if (state.phase === "CLOSING" || state.phase === "REPORT") {
-      router.push("/speech-interview");
+      tts.stop();
+      stt.stop();
+      actions.reset();
       return;
     }
     setShowExitConfirm(true);
@@ -126,46 +111,54 @@ export function SpeechInterviewPage() {
   function confirmExit() {
     tts.stop();
     stt.stop();
-    behavioral.stop();
     actions.reset();
     setShowExitConfirm(false);
   }
 
-  const currentQuestion = state.questions[state.currentIndex];
-
   return (
-    <div className="relative min-h-screen bg-[#0a1628]">
-      <div className="pointer-events-none fixed -right-32 -top-32 size-[500px] rounded-full bg-blue-600/5 blur-3xl" />
-      <div className="pointer-events-none fixed -left-48 top-1/2 size-[440px] rounded-full bg-blue-600/8 blur-3xl" />
-
-      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0a1628]/90 backdrop-blur-md">
-        <div className="flex h-14 items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm text-blue-400">record_voice_over</span>
+    <div className="relative min-h-screen bg-[#090f1c]">
+      {/* 헤더 */}
+      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#090f1c]/95 backdrop-blur-md">
+        <div className="flex h-14 items-center px-6">
+          {/* 왼쪽: 로고 레이블 */}
+          <div className="flex min-w-[160px] items-center gap-2 shrink-0">
+            <div className="size-1.5 rounded-full bg-blue-500" />
             <span className="text-sm font-semibold text-white/80">스피치 면접</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {state.phase !== "LOBBY" && state.phase !== "REPORT" && state.questions.length > 0 && (
-              <div className="hidden sm:flex items-center gap-1">
-                {state.questions.map((_, i) => (
+          {/* 가운데: 턴 진행 표시 */}
+          {state.phase === "CONVERSING" && (
+            <div className="flex flex-1 items-center justify-center gap-2">
+              {Array.from({ length: MAX_TURNS }, (_, i) => {
+                const n = i + 1;
+                const done = n < state.turnIndex;
+                const active = n === state.turnIndex;
+                return (
                   <div
                     key={i}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      i < state.answers.length
-                        ? "w-5 bg-blue-400/70"
-                        : i === state.currentIndex
-                        ? "w-5 bg-blue-500 animate-pulse"
-                        : "w-2.5 bg-white/10"
-                    }`}
+                    style={{
+                      width: active ? 28 : 8,
+                      height: 8,
+                      borderRadius: 4,
+                      background: done ? "#3B82F6" : active ? "#3B82F6" : "rgba(255,255,255,0.12)",
+                      transition: "all 0.3s ease",
+                      boxShadow: active ? "0 0 8px rgba(59,130,246,0.6)" : "none",
+                    }}
                   />
-                ))}
-              </div>
-            )}
+                );
+              })}
+              <span className="ml-2 font-mono text-[11px] text-white/35">
+                {state.turnIndex}/{MAX_TURNS}
+              </span>
+            </div>
+          )}
+          {state.phase !== "CONVERSING" && <div className="flex-1" />}
 
+          {/* 오른쪽: 나가기 버튼 */}
+          <div className="flex min-w-[160px] justify-end">
             <button
               onClick={handleExit}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 hover:bg-white/10 hover:text-white/80 transition-all"
+              className="rounded-md border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/80"
             >
               {state.phase === "LOBBY" ? "← 돌아가기" : "나가기"}
             </button>
@@ -173,92 +166,88 @@ export function SpeechInterviewPage() {
         </div>
       </header>
 
-      {state.useCamera && state.phase === "ANSWERING" && (
-        <div className="fixed bottom-6 right-6 z-40 overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black">
-          <video ref={videoRef} autoPlay muted playsInline className="h-28 w-44 object-cover" />
-          <div className="absolute bottom-1.5 left-2 flex items-center gap-1">
-            <span className="size-1.5 animate-pulse rounded-full bg-red-400" />
-            <span className="text-[9px] text-white/60 font-medium">LIVE</span>
-          </div>
-        </div>
-      )}
-
       <main className="pt-14">
+        {/* LOBBY */}
         {state.phase === "LOBBY" && (
           <InterviewIntro onStart={handleSelectSession} isCreatingSession={isCreatingSession} />
         )}
 
+        {/* INTRO */}
         {state.phase === "INTRO" && (
           <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-6">
             <div className="flex size-20 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
-              <span className="material-symbols-outlined text-4xl text-blue-400">record_voice_over</span>
+              <span className="material-symbols-outlined text-4xl text-blue-400">smart_toy</span>
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-bold text-white">스피치 면접을 시작합니다</h2>
-              <p className="mt-2 text-sm text-white/45 max-w-sm">
-                각 질문을 읽은 후 <strong className="text-white/70">답변 시작하기</strong> 버튼을 누르고<br />
-                자연스럽게 말씀해 주세요.
+              <h2 className="text-xl font-bold text-white">AI 면접을 시작합니다</h2>
+              <p className="mt-2 max-w-sm text-sm text-white/45">
+                AI 면접관이 이력서를 기반으로 질문합니다.<br />
+                답변 후 <strong className="text-white/70">답변 완료</strong> 버튼을 누르세요.
               </p>
             </div>
-            <div className="flex flex-col items-center gap-3 w-full max-w-sm">
+            <div className="flex w-full max-w-sm flex-col items-center gap-3">
               <button
                 onClick={actions.onIntroDone}
-                className="w-full rounded-xl bg-blue-600 px-8 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition-all"
+                className="w-full rounded-xl bg-blue-600 px-8 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/30 transition-all hover:bg-blue-500"
               >
-                <span className="material-symbols-outlined mr-2 text-sm align-middle">play_arrow</span>
-                시작
+                <span className="material-symbols-outlined mr-2 align-middle text-sm">play_arrow</span>
+                면접 시작
               </button>
               {state.speechSession && (
                 <p className="text-xs text-white/30">
-                  {state.speechSession.title} · {state.questions.length}개 질문
+                  {state.speechSession.title} · 최대 {MAX_TURNS}턴
                 </p>
               )}
             </div>
           </div>
         )}
 
-        {state.phase === "QUESTION_READ" && currentQuestion && (
-          <InterviewQuestion
-            question={currentQuestion}
-            questionIndex={state.currentIndex}
-            totalQuestions={state.questions.length}
+        {/* CONVERSING — 에러 배너 */}
+        {state.phase === "CONVERSING" && chatError && (
+          <div className="fixed top-16 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
+            <div className="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 shadow-lg">
+              <span className="material-symbols-outlined text-sm text-red-400">error</span>
+              <p className="flex-1 text-xs text-red-300">{chatError}</p>
+              <button
+                onClick={() => { setChatError(null); chatInFlightRef.current = false; handleAiThinking(); }}
+                className="shrink-0 rounded-lg bg-red-500/20 px-2.5 py-1 text-[10px] font-semibold text-red-300 transition-all hover:bg-red-500/30"
+              >
+                재시도
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CONVERSING */}
+        {state.phase === "CONVERSING" && (
+          <ConversationView
+            subPhase={state.subPhase}
+            currentAiMessage={state.currentAiMessage}
+            currentBadge={state.currentBadge}
+            turnIndex={state.turnIndex}
+            maxTurns={MAX_TURNS}
+            conversationLog={state.conversationLog}
             tts={tts}
-            onDone={actions.onQuestionDone}
-          />
-        )}
-
-        {state.phase === "ANSWERING" && currentQuestion && (
-          <InterviewAnswering
-            question={currentQuestion}
-            questionIndex={state.currentIndex}
-            totalQuestions={state.questions.length}
             stt={stt}
-            useCamera={state.useCamera}
-            getMetrics={behavioral.getMetrics}
-            onSubmit={actions.submitAnswer}
+            onAiSpeakDone={actions.aiSpeakDone}
+            onUserSubmit={actions.userSubmit}
           />
         )}
 
-        {state.phase === "TRANSITION" && (
-          <InterviewTransition
-            currentIndex={state.currentIndex}
-            totalQuestions={state.questions.length}
-            onDone={actions.onTransitionDone}
-          />
-        )}
-
+        {/* CLOSING */}
         {state.phase === "CLOSING" && (
           <div className="flex min-h-screen flex-col items-center justify-center gap-6">
             <InterviewClosing tts={tts} onDone={actions.onClosingDone} />
             <button
-              onClick={() => router.push("/speech-interview")}
-              className="mt-2 rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-medium text-white/40 hover:bg-white/10 hover:text-white/70 transition-all"
+              onClick={() => { tts.stop(); actions.reset(); }}
+              className="mt-2 rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-medium text-white/40 transition-all hover:bg-white/10 hover:text-white/70"
             >
               결과 확인 없이 홈으로
             </button>
           </div>
         )}
 
+        {/* REPORT */}
         {state.phase === "REPORT" && (
           <div className="flex min-h-screen flex-col items-center justify-center">
             <div className="flex items-center gap-2">
@@ -269,27 +258,27 @@ export function SpeechInterviewPage() {
         )}
       </main>
 
+      {/* 종료 확인 모달 */}
       {showExitConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f1e35] p-6 shadow-2xl">
             <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-red-500/10">
               <span className="material-symbols-outlined text-xl text-red-400">warning</span>
             </div>
             <h3 className="text-base font-bold text-white">면접을 종료하시겠습니까?</h3>
             <p className="mt-2 text-sm text-white/50">
-              현재 세션의 진행 상황은 저장되지 않습니다.
-              {state.answers.length > 0 && ` (${state.answers.length}개 답변 기록됨)`}
+              현재 진행 중인 면접이 중단됩니다. 지금까지의 대화는 결과 페이지에서 확인할 수 있습니다.
             </p>
             <div className="mt-5 flex gap-2">
               <button
                 onClick={() => setShowExitConfirm(false)}
-                className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/70 hover:bg-white/10 transition-all"
+                className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/70 transition-all hover:bg-white/10"
               >
                 계속하기
               </button>
               <button
                 onClick={confirmExit}
-                className="flex-1 rounded-xl bg-red-500/20 border border-red-500/30 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/30 transition-all"
+                className="flex-1 rounded-xl border border-red-500/30 bg-red-500/20 py-3 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/30"
               >
                 종료
               </button>

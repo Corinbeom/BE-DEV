@@ -1,12 +1,13 @@
 package com.devweb.api.speechinterview;
 
+import com.devweb.api.speechinterview.dto.ChatRequest;
+import com.devweb.api.speechinterview.dto.ChatResponse;
 import com.devweb.api.speechinterview.dto.CreateSpeechInterviewRequest;
 import com.devweb.api.speechinterview.dto.SubmitSpeechAnswerRequest;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.common.UnauthorizedException;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
-import com.devweb.domain.resume.session.model.ResumeQuestion;
 import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.resume.session.port.ResumeSessionRepository;
@@ -20,6 +21,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -48,7 +50,10 @@ public class SpeechInterviewService {
         this.promptRegistry = promptRegistry;
     }
 
-    /** ResumeSession에서 질문을 스냅샷 복사하여 SpeechInterviewSession 생성 */
+    private static final int MAX_TURNS = 8;
+    private static final int MAX_RESUME_CONTEXT_CHARS = 2000;
+
+    /** ResumeSession에서 이력서 컨텍스트를 추출하여 대화형 SpeechInterviewSession 생성 */
     public SpeechInterviewSession createSession(Long memberId, CreateSpeechInterviewRequest req) {
         Member member = memberRepo.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
@@ -68,25 +73,98 @@ public class SpeechInterviewService {
                 req.useCamera()
         );
 
-        List<ResumeQuestion> resumeQuestions = resumeSession.getQuestions();
-        for (ResumeQuestion rq : resumeQuestions) {
-            if (rq.getInterviewQuestion() == null) continue;
-            var iq = rq.getInterviewQuestion();
-            String questionText = iq.getQuestion();
-            if (questionText == null || questionText.isBlank()) continue;
-
-            SpeechInterviewQuestion sq = new SpeechInterviewQuestion(
-                    rq.getOrderIndex(),
-                    rq.getBadge(),
-                    questionText,
-                    iq.getIntention(),
-                    iq.getKeywords(),
-                    iq.getModelAnswer()
-            );
-            session.addQuestion(sq);
-        }
+        // 이력서/포트폴리오 텍스트를 truncate해서 resumeContext 저장
+        String resumeText = truncate(resumeSession.getResumeText(), MAX_RESUME_CONTEXT_CHARS);
+        String portfolioText = truncate(resumeSession.getPortfolioText(), MAX_RESUME_CONTEXT_CHARS / 2);
+        String context = buildResumeContext(resumeText, portfolioText);
+        session.storeResumeContext(context);
 
         return speechRepo.save(session);
+    }
+
+    /** 대화형 면접 턴 처리 */
+    public ChatResponse chat(Long memberId, Long sessionId, ChatRequest req) {
+        SpeechInterviewSession session = findAndAuthorize(memberId, sessionId);
+
+        // 세션 상태 전이: CREATED → IN_PROGRESS (첫 턴)
+        if (session.getStatus() == SpeechInterviewStatus.CREATED) {
+            session.startInterview();
+        }
+
+        List<SpeechInterviewQuestion> questions = new ArrayList<>(session.getQuestions());
+        int turnCount = questions.size(); // 이미 저장된 질문 수 = 현재까지의 AI 턴 수
+
+        // 첫 턴이 아니면: 이전 질문에 사용자 답변 저장 + 비동기 피드백 생성
+        if (!questions.isEmpty()) {
+            SpeechInterviewQuestion lastQuestion = questions.get(questions.size() - 1);
+            if (lastQuestion.getAnswer() == null) {
+                SpeechInterviewAnswer answer = new SpeechInterviewAnswer(
+                        req.userMessage(),
+                        null, null, null, null
+                );
+                lastQuestion.attachAnswer(answer);
+                speechRepo.save(session);
+
+                // 비동기 피드백 생성
+                generateFeedbackAsync(
+                        sessionId,
+                        lastQuestion.getId(),
+                        req.userMessage(),
+                        lastQuestion.getQuestionText(),
+                        lastQuestion.getIntention(),
+                        lastQuestion.getKeywords(),
+                        lastQuestion.getModelAnswer(),
+                        session.getPositionType()
+                );
+            }
+        }
+
+        // 최대 턴 초과 시 강제 종료
+        if (turnCount >= MAX_TURNS) {
+            session.complete();
+            speechRepo.save(session);
+            return new ChatResponse("수고하셨습니다! 면접이 완료되었습니다. 결과를 확인해 보세요.", turnCount, true, null, null);
+        }
+
+        // 대화 히스토리 구축 (question=model, answer=user)
+        // 답변이 이미 lastQuestion에 저장됐으면 latestUserMessage는 빈 문자열로 전달 (중복 방지)
+        List<InterviewAiPort.ChatMessage> history = buildHistory(questions, "");
+
+        // Gemini conductInterview 호출
+        String systemInstruction = promptRegistry.systemInstructionFor(session.getPositionType());
+        InterviewAiPort.GeneratedInterviewerTurn turn = aiPort.conductInterview(
+                systemInstruction,
+                session.getResumeContext(),
+                session.getPositionType(),
+                history,
+                turnCount,
+                MAX_TURNS
+        );
+
+        Long newQuestionId = null;
+        if (!turn.isComplete()) {
+            // 새 질문 엔티티 생성 및 세션에 추가
+            SpeechInterviewQuestion newQuestion = new SpeechInterviewQuestion(
+                    turnCount,
+                    turn.badge() != null ? turn.badge() : "면접 질문",
+                    turn.message(),
+                    turn.intention(),
+                    turn.keywords(),
+                    null // 대화형에서는 모범답안 미생성
+            );
+            session.addQuestion(newQuestion);
+            SpeechInterviewSession saved = speechRepo.save(session);
+            // 저장 후 ID 획득
+            List<SpeechInterviewQuestion> savedQuestions = saved.getQuestions();
+            if (!savedQuestions.isEmpty()) {
+                newQuestionId = savedQuestions.get(savedQuestions.size() - 1).getId();
+            }
+        } else {
+            session.complete();
+            speechRepo.save(session);
+        }
+
+        return new ChatResponse(turn.message(), turnCount + 1, turn.isComplete(), newQuestionId, turn.badge());
     }
 
     /** 답변 제출 — 즉시 저장 후 @Async AI 피드백 생성 */
@@ -98,13 +176,9 @@ public class SpeechInterviewService {
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("질문을 찾을 수 없습니다. id=" + req.questionId()));
 
-        SubmitSpeechAnswerRequest.BehavioralMetricsDto m = req.behavioralMetrics();
         SpeechInterviewAnswer answer = new SpeechInterviewAnswer(
                 req.answerText(),
-                m != null ? m.eyeContactRatio() : null,
-                m != null ? m.postureStability() : null,
-                m != null ? m.expressionVariety() : null,
-                m != null ? m.fidgetingScore() : null
+                null, null, null, null
         );
 
         question.attachAnswer(answer);
@@ -119,7 +193,6 @@ public class SpeechInterviewService {
                 question.getIntention(),
                 question.getKeywords(),
                 question.getModelAnswer(),
-                m,
                 session.getPositionType()
         );
 
@@ -162,25 +235,12 @@ public class SpeechInterviewService {
                                        String answerText,
                                        String questionText, String intention,
                                        String keywords, String modelAnswer,
-                                       SubmitSpeechAnswerRequest.BehavioralMetricsDto metricsDto,
                                        String positionType) {
         try {
             String systemInstruction = promptRegistry.systemInstructionFor(positionType);
 
-            InterviewAiPort.GeneratedFeedback generated;
-            if (metricsDto != null) {
-                InterviewAiPort.BehavioralMetrics metrics = new InterviewAiPort.BehavioralMetrics(
-                        metricsDto.eyeContactRatio(),
-                        metricsDto.postureStability(),
-                        metricsDto.expressionVariety(),
-                        metricsDto.fidgetingScore()
-                );
-                generated = aiPort.generateFeedbackWithBehavior(
-                        systemInstruction, questionText, intention, keywords, modelAnswer, answerText, metrics);
-            } else {
-                generated = aiPort.generateFeedback(
-                        systemInstruction, questionText, intention, keywords, modelAnswer, answerText);
-            }
+            InterviewAiPort.GeneratedFeedback generated = aiPort.generateFeedback(
+                    systemInstruction, questionText, intention, keywords, modelAnswer, answerText);
 
             SpeechAnswerFeedback feedback = new SpeechAnswerFeedback(
                     AiTextSanitizer.sanitizeList(generated.strengths()),
@@ -215,4 +275,39 @@ public class SpeechInterviewService {
             speechRepo.save(session);
         });
     }
+
+    /** 대화 히스토리 구축: question=model, answer=user */
+    private List<InterviewAiPort.ChatMessage> buildHistory(List<SpeechInterviewQuestion> questions, String latestUserMessage) {
+        List<InterviewAiPort.ChatMessage> history = new ArrayList<>();
+        for (SpeechInterviewQuestion q : questions) {
+            history.add(new InterviewAiPort.ChatMessage("model", q.getQuestionText()));
+            if (q.getAnswer() != null) {
+                history.add(new InterviewAiPort.ChatMessage("user", q.getAnswer().getAnswerText()));
+            }
+        }
+        // 최신 사용자 메시지 추가 (아직 DB에 저장되지 않은 현재 턴)
+        if (!latestUserMessage.isBlank()) {
+            history.add(new InterviewAiPort.ChatMessage("user", latestUserMessage));
+        }
+        return history;
+    }
+
+    private String buildResumeContext(String resumeText, String portfolioText) {
+        StringBuilder sb = new StringBuilder();
+        if (resumeText != null && !resumeText.isBlank()) {
+            sb.append("[이력서]\n").append(resumeText);
+        }
+        if (portfolioText != null && !portfolioText.isBlank()) {
+            if (sb.length() > 0) sb.append("\n\n");
+            sb.append("[포트폴리오]\n").append(portfolioText);
+        }
+        return sb.toString();
+    }
+
+    private static String truncate(String text, int maxChars) {
+        if (text == null) return null;
+        if (text.length() <= maxChars) return text;
+        return text.substring(0, maxChars);
+    }
+
 }

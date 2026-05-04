@@ -1,159 +1,176 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-
-export type AvatarState = "idle" | "speaking" | "listening";
+export type AvatarState = "idle" | "speaking" | "listening" | "thinking";
 
 type Props = {
   state: AvatarState;
-  className?: string;
 };
 
-/**
- * AI 면접관 캐릭터 — 순수 CSS/SVG, 외부 라이브러리 없음.
- * state: "idle" (대기), "speaking" (질문 읽는 중), "listening" (답변 듣는 중)
- */
-export function InterviewerAvatar({ state, className }: Props) {
+const STATE_CONFIG = {
+  thinking:  { primary: "#F59E0B", glow: "rgba(245,158,11,0.5)",  ring: "rgba(245,158,11,0.15)", label: "생각하고 있습니다..." },
+  speaking:  { primary: "#3B82F6", glow: "rgba(59,130,246,0.5)",  ring: "rgba(59,130,246,0.12)", label: "질문을 읽고 있습니다" },
+  listening: { primary: "#10B981", glow: "rgba(16,185,129,0.5)",  ring: "rgba(16,185,129,0.12)", label: "답변을 듣고 있습니다" },
+  idle:      { primary: "rgba(255,255,255,0.3)", glow: "rgba(255,255,255,0.08)", ring: "rgba(255,255,255,0.05)", label: "대기 중" },
+};
+
+function hexPoints(cx: number, cy: number, r: number): string {
+  return Array.from({ length: 6 }, (_, i) => {
+    const a = (Math.PI / 180) * (60 * i - 30);
+    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+  }).join(" ");
+}
+
+export function InterviewerAvatar({ state }: Props) {
+  const sc = STATE_CONFIG[state];
+  const isActive = state !== "idle";
+
+  const glowAnim = state === "speaking" ? "speakGlow 2s ease-in-out infinite"
+    : state === "thinking" ? "thinkGlow 2s ease-in-out infinite"
+    : state === "listening" ? "listenGlow 2.5s ease-in-out infinite"
+    : "none";
+
+  const coreAnim = state === "listening" ? "breathe 2.5s ease-in-out infinite"
+    : state === "thinking" ? "breathe 1.4s ease-in-out infinite"
+    : "none";
+
   return (
-    <div className={cn("flex flex-col items-center gap-3 select-none", className)}>
-      {/* 캐릭터 컨테이너 */}
-      <div className="relative">
-        {/* 배경 헤일로 (speaking 시 펄스) */}
-        {state === "speaking" && (
-          <>
-            <div className="absolute inset-0 rounded-full bg-blue-500/10 animate-ping" style={{ animationDuration: "2s" }} />
-            <div className="absolute inset-0 rounded-full bg-blue-500/5 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.5s" }} />
-          </>
-        )}
+    <>
+      <style>{`
+        @keyframes hexSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes hexSpinRev { 0%{transform:rotate(0deg)} 100%{transform:rotate(-360deg)} }
+        @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+        @keyframes speakGlow { 0%,100%{box-shadow:0 0 20px 4px rgba(59,130,246,0.35)} 50%{box-shadow:0 0 40px 12px rgba(59,130,246,0.6)} }
+        @keyframes thinkGlow { 0%,100%{box-shadow:0 0 20px 4px rgba(245,158,11,0.3)} 50%{box-shadow:0 0 40px 12px rgba(245,158,11,0.55)} }
+        @keyframes listenGlow { 0%,100%{box-shadow:0 0 20px 4px rgba(16,185,129,0.3)} 50%{box-shadow:0 0 40px 10px rgba(16,185,129,0.5)} }
+        @keyframes nodeOrbit { 0%{transform:rotate(0deg) translateX(44px) rotate(0deg)} 100%{transform:rotate(360deg) translateX(44px) rotate(-360deg)} }
+        @keyframes nodeOrbit2 { 0%{transform:rotate(120deg) translateX(44px) rotate(-120deg)} 100%{transform:rotate(480deg) translateX(44px) rotate(-480deg)} }
+        @keyframes nodeOrbit3 { 0%{transform:rotate(240deg) translateX(44px) rotate(-240deg)} 100%{transform:rotate(600deg) translateX(44px) rotate(-480deg)} }
+        @keyframes recDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+      `}</style>
 
-        {/* 아바타 SVG */}
-        <svg
-          viewBox="0 0 120 160"
-          width="120"
-          height="160"
-          className={cn(
-            "transition-all duration-500",
-            state === "speaking" && "animate-avatar-speaking",
-            state === "listening" && "animate-avatar-listening"
-          )}
-        >
-          {/* 데스크 상판 */}
-          <rect x="5" y="130" width="110" height="8" rx="4" fill="rgba(255,255,255,0.06)" />
-          {/* 데스크 다리 (좌) */}
-          <rect x="15" y="138" width="6" height="18" rx="2" fill="rgba(255,255,255,0.04)" />
-          {/* 데스크 다리 (우) */}
-          <rect x="99" y="138" width="6" height="18" rx="2" fill="rgba(255,255,255,0.04)" />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+        {/* 노드 비주얼 */}
+        <div style={{ position: "relative", width: 160, height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* 바깥 육각형 링 — 천천히 회전 */}
+          <svg
+            width={160} height={160} viewBox="0 0 160 160"
+            style={{ position: "absolute", inset: 0, animation: isActive ? "hexSpin 12s linear infinite" : "none", opacity: isActive ? 1 : 0.3 }}
+          >
+            <polygon points={hexPoints(80, 80, 72)} fill="none" stroke={sc.primary} strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 6" />
+          </svg>
 
-          {/* 몸통 */}
-          <rect x="35" y="90" width="50" height="42" rx="12" fill="rgba(59,130,246,0.18)" />
-          {/* 넥타이 */}
-          <rect x="57" y="95" width="6" height="20" rx="3" fill="rgba(59,130,246,0.5)" />
-          <polygon points="54,115 66,115 60,128" fill="rgba(59,130,246,0.5)" />
+          {/* 안쪽 육각형 링 — 반대 방향 */}
+          <svg
+            width={160} height={160} viewBox="0 0 160 160"
+            style={{ position: "absolute", inset: 0, animation: isActive ? "hexSpinRev 8s linear infinite" : "none", opacity: isActive ? 1 : 0.2 }}
+          >
+            <polygon points={hexPoints(80, 80, 56)} fill="none" stroke={sc.primary} strokeWidth="1" strokeOpacity="0.5" />
+          </svg>
 
-          {/* 왼팔 */}
-          <rect x="18" y="95" width="20" height="10" rx="5" fill="rgba(59,130,246,0.15)" />
-          {/* 왼손 */}
-          <ellipse cx="14" cy="106" rx="8" ry="6" fill="rgba(255,255,255,0.12)" />
-
-          {/* 오른팔 */}
-          <rect x="82" y="95" width="20" height="10" rx="5" fill="rgba(59,130,246,0.15)" />
-          {/* 오른손 */}
-          <ellipse cx="106" cy="106" rx="8" ry="6" fill="rgba(255,255,255,0.12)" />
-
-          {/* 목 */}
-          <rect x="52" y="78" width="16" height="16" rx="4" fill="rgba(255,255,255,0.12)" />
-
-          {/* 머리 */}
-          <ellipse
-            cx="60"
-            cy="58"
-            rx="26"
-            ry="28"
-            fill="rgba(255,255,255,0.10)"
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth="1"
-          />
-
-          {/* 눈 (왼) */}
-          <ellipse
-            cx="51"
-            cy="54"
-            rx="4"
-            ry={state === "listening" ? "2" : "4"}
-            fill="rgba(255,255,255,0.7)"
-            className="transition-all duration-300"
-          />
-          <ellipse cx="51" cy="54" rx="2.5" ry={state === "listening" ? "1.5" : "2.5"} fill="rgb(59,130,246)" />
-
-          {/* 눈 (우) */}
-          <ellipse
-            cx="69"
-            cy="54"
-            rx="4"
-            ry={state === "listening" ? "2" : "4"}
-            fill="rgba(255,255,255,0.7)"
-            className="transition-all duration-300"
-          />
-          <ellipse cx="69" cy="54" rx="2.5" ry={state === "listening" ? "1.5" : "2.5"} fill="rgb(59,130,246)" />
-
-          {/* 입 */}
-          {state === "speaking" ? (
-            /* 말하는 입 (열린 원) */
-            <ellipse cx="60" cy="69" rx="6" ry="4" fill="rgba(255,255,255,0.15)" />
-          ) : state === "listening" ? (
-            /* 듣는 입 (살짝 미소) */
-            <path d="M 53 69 Q 60 73 67 69" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-          ) : (
-            /* idle — 중립 */
-            <line x1="54" y1="69" x2="66" y2="69" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" />
-          )}
-
-          {/* 귀 (좌) */}
-          <ellipse cx="34" cy="58" rx="4" ry="6" fill="rgba(255,255,255,0.08)" />
-          {/* 귀 (우) */}
-          <ellipse cx="86" cy="58" rx="4" ry="6" fill="rgba(255,255,255,0.08)" />
-
-          {/* 머리카락 */}
-          <path
-            d="M 35 42 Q 40 25 60 22 Q 80 25 85 42"
-            fill="rgba(59,130,246,0.35)"
-          />
-        </svg>
-
-        {/* 말풍선 (speaking 상태) */}
-        {state === "speaking" && (
-          <div className="absolute -right-2 -top-2 flex size-7 items-center justify-center rounded-full bg-blue-500/20 border border-blue-500/30">
-            <div className="flex items-end gap-0.5 h-3">
-              {[0, 1, 2].map((i) => (
+          {/* 궤도 도트 (THINKING 전용) */}
+          {state === "thinking" && (
+            <>
+              {[
+                { anim: "nodeOrbit 2.2s linear infinite" },
+                { anim: "nodeOrbit2 2.2s linear infinite" },
+                { anim: "nodeOrbit3 2.2s linear infinite" },
+              ].map((o, i) => (
                 <div
                   key={i}
-                  className="w-0.5 rounded-full bg-blue-400 animate-sound-bar"
-                  style={{ animationDelay: `${i * 0.15}s`, height: "100%" }}
+                  style={{
+                    position: "absolute", top: "50%", left: "50%",
+                    marginTop: -4, marginLeft: -4,
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "#F59E0B",
+                    animation: o.anim, opacity: 0.8,
+                  }}
                 />
               ))}
+            </>
+          )}
+
+          {/* 코어 서클 */}
+          <div
+            style={{
+              width: 88, height: 88, borderRadius: "50%",
+              background: `radial-gradient(circle at 35% 35%, ${sc.primary}40, ${sc.primary}15 60%, transparent)`,
+              border: `1.5px solid ${sc.primary}60`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              animation: [glowAnim, coreAnim].filter(a => a !== "none").join(", ") || "none",
+              position: "relative", zIndex: 2,
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            {/* 내부 글로우 링 */}
+            <div style={{ width: 60, height: 60, borderRadius: "50%", border: `1px solid ${sc.primary}40`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width={28} height={28} viewBox="0 0 28 28">
+                {state === "thinking" && (
+                  <>
+                    <circle cx="14" cy="14" r="5" fill={sc.primary} opacity="0.9" />
+                    <circle cx="14" cy="14" r="9" fill="none" stroke={sc.primary} strokeWidth="1" strokeDasharray="3 3" strokeOpacity="0.6" />
+                  </>
+                )}
+                {state === "speaking" && (
+                  <>
+                    <circle cx="14" cy="14" r="4" fill={sc.primary} />
+                    {[8, 11, 14].map((r, i) => (
+                      <circle key={i} cx="14" cy="14" r={r} fill="none" stroke={sc.primary} strokeWidth="0.8" strokeOpacity={0.6 - i * 0.15} />
+                    ))}
+                  </>
+                )}
+                {state === "listening" && (
+                  <>
+                    <circle cx="14" cy="14" r="4" fill={sc.primary} opacity="0.9" />
+                    <path d="M 7 14 Q 14 7 21 14 Q 14 21 7 14" fill="none" stroke={sc.primary} strokeWidth="1" strokeOpacity="0.6" />
+                  </>
+                )}
+                {state === "idle" && (
+                  <circle cx="14" cy="14" r="4" fill="rgba(255,255,255,0.3)" />
+                )}
+              </svg>
             </div>
           </div>
-        )}
 
-        {/* 듣기 표시 (listening 상태) */}
-        {state === "listening" && (
-          <div className="absolute -right-2 -top-2 flex size-7 items-center justify-center rounded-full bg-green-500/15 border border-green-500/25">
-            <span className="material-symbols-outlined text-xs text-green-400">hearing</span>
+          {/* SPEAKING: 확장하는 음파 링 */}
+          {state === "speaking" && [1, 2, 3].map((i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute", borderRadius: "50%",
+                border: `1px solid ${sc.primary}`,
+                animation: `breathe ${1.2 + i * 0.4}s ease-in-out infinite ${i * 0.3}s`,
+                width: 88 + i * 22, height: 88 + i * 22,
+                opacity: 0.15 + (3 - i) * 0.08,
+                zIndex: 1,
+              }}
+            />
+          ))}
+
+          {/* LISTENING: 부드러운 펄스 링 */}
+          {state === "listening" && (
+            <div
+              style={{
+                position: "absolute", borderRadius: "50%",
+                border: `1.5px solid ${sc.primary}50`,
+                width: 112, height: 112,
+                animation: "breathe 2.5s ease-in-out infinite",
+                zIndex: 1,
+              }}
+            />
+          )}
+        </div>
+
+        {/* 레이블 */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 5 }}>
+            AI 면접관
           </div>
-        )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: sc.primary, animation: isActive ? "recDot 1.5s ease-in-out infinite" : "none" }} />
+            <span style={{ fontSize: 13, color: sc.primary, fontWeight: 500 }}>{sc.label}</span>
+          </div>
+        </div>
       </div>
-
-      {/* 이름표 */}
-      <div className="rounded-lg border border-white/8 bg-white/[0.04] px-4 py-1.5">
-        <p className="text-xs font-semibold text-white/60">AI 면접관</p>
-      </div>
-
-      {/* 상태 메시지 */}
-      <p className="text-[11px] text-white/30 text-center">
-        {state === "speaking" && "질문을 읽고 있습니다"}
-        {state === "listening" && "답변을 듣고 있습니다"}
-        {state === "idle" && "준비 중"}
-      </p>
-    </div>
+    </>
   );
 }

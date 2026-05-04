@@ -1,5 +1,7 @@
 package com.devweb.api.speechinterview;
 
+import com.devweb.api.speechinterview.dto.ChatRequest;
+import com.devweb.api.speechinterview.dto.ChatResponse;
 import com.devweb.api.speechinterview.dto.CreateSpeechInterviewRequest;
 import com.devweb.api.speechinterview.dto.SpeechInterviewResponse;
 import com.devweb.api.speechinterview.dto.SubmitSpeechAnswerRequest;
@@ -53,6 +55,17 @@ public class SpeechInterviewController {
         Long memberId = AuthUtils.currentMemberId();
         SpeechInterviewSession session = service.completeSession(memberId, id);
         return ApiResponse.success(SpeechInterviewResponse.from(session));
+    }
+
+    @Operation(summary = "대화형 면접 턴 처리", description = "사용자 답변을 받아 AI 면접관의 다음 질문을 반환합니다. 첫 턴에는 userMessage를 빈 문자열로 전송하세요.")
+    @PostMapping("/{id}/chat")
+    public ApiResponse<ChatResponse> chat(
+            @PathVariable Long id,
+            @Valid @RequestBody ChatRequest req
+    ) {
+        Long memberId = AuthUtils.currentMemberId();
+        ChatResponse response = service.chat(memberId, id, req);
+        return ApiResponse.success(response);
     }
 
     @Operation(summary = "내 세션 목록 조회")

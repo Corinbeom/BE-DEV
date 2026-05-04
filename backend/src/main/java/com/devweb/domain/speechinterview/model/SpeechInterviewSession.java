@@ -38,6 +38,10 @@ public class SpeechInterviewSession {
     @Column(nullable = false, length = 20)
     private SpeechInterviewStatus status;
 
+    @Lob
+    @Column(name = "resume_context")
+    private String resumeContext;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -74,6 +78,17 @@ public class SpeechInterviewSession {
         this.questions.add(question);
     }
 
+    public void storeResumeContext(String context) {
+        this.resumeContext = context;
+    }
+
+    public void startInterview() {
+        if (this.status != SpeechInterviewStatus.CREATED) {
+            throw new IllegalStateException("CREATED 상태에서만 시작할 수 있습니다. 현재=" + this.status);
+        }
+        this.status = SpeechInterviewStatus.IN_PROGRESS;
+    }
+
     public void complete() {
         this.status = SpeechInterviewStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
@@ -88,5 +103,6 @@ public class SpeechInterviewSession {
     public SpeechInterviewStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getCompletedAt() { return completedAt; }
+    public String getResumeContext() { return resumeContext; }
     public List<SpeechInterviewQuestion> getQuestions() { return Collections.unmodifiableList(questions); }
 }

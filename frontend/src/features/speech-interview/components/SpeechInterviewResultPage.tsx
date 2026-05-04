@@ -1,440 +1,462 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { useSpeechInterview } from "../hooks/useSpeechInterviews";
-import type { SpeechInterviewSession, SpeechInterviewQuestion, BehavioralMetricsDto, SpeechFeedback } from "../api/types";
-import { cn } from "@/lib/utils";
+import type { SpeechInterviewSession, SpeechInterviewQuestion, SpeechFeedback } from "../api/types";
 
-// ── 행동 분석 평균 계산 ─────────────────────────────────────
-
-function avgMetrics(session: SpeechInterviewSession): BehavioralMetricsDto | null {
-  const metricsArr = session.questions
-    .map((q) => q.answer?.behavioralMetrics)
-    .filter((m): m is BehavioralMetricsDto => m != null);
-  if (metricsArr.length === 0) return null;
-  return {
-    eyeContactRatio: metricsArr.reduce((s, m) => s + m.eyeContactRatio, 0) / metricsArr.length,
-    postureStability: metricsArr.reduce((s, m) => s + m.postureStability, 0) / metricsArr.length,
-    expressionVariety: metricsArr.reduce((s, m) => s + m.expressionVariety, 0) / metricsArr.length,
-    fidgetingScore: metricsArr.reduce((s, m) => s + m.fidgetingScore, 0) / metricsArr.length,
-  };
-}
+// ── 유틸 ──────────────────────────────────────────────────
 
 function hasPendingFeedback(session: SpeechInterviewSession): boolean {
   return session.questions.some((q) => q.answer?.feedbackStatus === "PENDING");
 }
 
-// ── 행동 지표 바 ───────────────────────────────────────────
+function scoreColor(s: number): string {
+  return s >= 85 ? "#10B981" : s >= 70 ? "#3B82F6" : "#F59E0B";
+}
 
-function MetricBar({
-  label,
-  value,
-  icon,
-  thresholdGood,
-  thresholdWarn,
-  invert = false,
-}: {
-  label: string;
-  value: number;
-  icon: string;
-  thresholdGood: number;
-  thresholdWarn: number;
-  invert?: boolean;
-}) {
-  const displayValue = invert ? 1 - value : value;
-  const color =
-    displayValue >= thresholdGood
-      ? "text-green-400"
-      : displayValue >= thresholdWarn
-      ? "text-amber-400"
-      : "text-red-400";
-  const barColor =
-    displayValue >= thresholdGood
-      ? "bg-green-500"
-      : displayValue >= thresholdWarn
-      ? "bg-amber-500"
-      : "bg-red-500";
+function formatDuration(session: SpeechInterviewSession): string {
+  if (!session.completedAt) return "";
+  const ms = new Date(session.completedAt).getTime() - new Date(session.createdAt).getTime();
+  const min = Math.round(ms / 60000);
+  return min > 0 ? `약 ${min}분` : "";
+}
 
+// 참여율을 점수로 사용 (피드백 없을 때)
+function sessionScore(session: SpeechInterviewSession): number {
+  const total = session.questions.length;
+  if (total === 0) return 0;
+  const answered = session.questions.filter((q) => q.answer).length;
+  return Math.round((answered / total) * 100);
+}
+
+// ── 왼쪽 패널 — Score Ring ───────────────────────────────
+
+function ScoreRing({ score }: { score: number }) {
+  const r = 40;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - score / 100);
+  const color = scoreColor(score);
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex w-20 shrink-0 items-center gap-1.5">
-        <span className={cn("material-symbols-outlined text-sm", color)}>{icon}</span>
-        <span className={cn("text-xs font-semibold", color)}>{label}</span>
-      </div>
-      <div className="flex flex-1 items-center gap-2">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-          <div
-            className={cn("h-full rounded-full transition-all duration-500", barColor)}
-            style={{ width: `${Math.round(displayValue * 100)}%` }}
-          />
-        </div>
-        <span className={cn("w-9 text-right text-xs font-bold tabular-nums", color)}>
-          {Math.round(displayValue * 100)}%
-        </span>
+    <div style={{ position: "relative", width: 100, height: 100, margin: "0 auto 14px" }}>
+      <svg width={100} height={100} viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 1s ease" }}
+        />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 28, fontWeight: 700, color, fontFamily: "monospace", letterSpacing: "-0.03em", lineHeight: 1 }}>{score}</span>
+        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>/ 100</span>
       </div>
     </div>
   );
 }
 
-// ── 피드백 태그 리스트 ────────────────────────────────────
+// ── 오른쪽 패널 — 질문 카드 ──────────────────────────────
 
-function FeedbackList({ items, variant }: { items: string[]; variant: "good" | "improve" }) {
-  if (!items || items.length === 0) return null;
-  const dotCls = variant === "good" ? "bg-green-400" : "bg-amber-400";
-  const textCls = variant === "good" ? "text-green-300/80" : "text-amber-300/80";
-  return (
-    <ul className="space-y-1">
-      {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2">
-          <span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", dotCls)} />
-          <span className={cn("text-xs leading-relaxed", textCls)}>{item}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// ── 질문 카드 ─────────────────────────────────────────────
-
-function QuestionCard({ question, index }: { question: SpeechInterviewQuestion; index: number }) {
+function QuestionCard({ question, index, animating, direction }: {
+  question: SpeechInterviewQuestion;
+  index: number;
+  animating: boolean;
+  direction: number;
+}) {
+  const [showModel, setShowModel] = useState(false);
   const answer = question.answer;
   const feedback = answer?.feedback as SpeechFeedback | undefined;
   const isPending = answer?.feedbackStatus === "PENDING";
   const isCompleted = answer?.feedbackStatus === "COMPLETED";
-  const noAnswer = !answer;
+
+  const animClass = animating
+    ? (direction > 0 ? "slideOutLeft" : "slideOutRight")
+    : (direction > 0 ? "slideInRight" : "slideInLeft");
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/[0.02] overflow-hidden">
-      {/* 질문 헤더 */}
-      <div className="border-b border-white/6 px-5 py-4">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="rounded-full bg-white/8 px-2 py-0.5 text-[10px] font-semibold text-white/40">
-            Q{index + 1}
-          </span>
-          <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold text-blue-300">
-            {question.badge}
-          </span>
+    <>
+      <style>{`
+        @keyframes slideInRight  { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes slideInLeft   { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes slideOutLeft  { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(-40px)} }
+        @keyframes slideOutRight { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(40px)} }
+      `}</style>
+      <div style={{
+        position: "absolute", inset: 0, overflow: "auto", padding: "28px 32px",
+        animation: `${animClass} 0.28s ease forwards`,
+      }}>
+        {/* 뱃지 + 질문 번호 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
+            background: "rgba(59,130,246,0.15)", color: "#60A5FA",
+            border: "1px solid rgba(59,130,246,0.25)",
+          }}>{question.badge || "면접 질문"}</span>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>Q{index + 1}</span>
         </div>
-        <p className="text-sm font-medium leading-relaxed text-white/85">
-          {question.questionText}
-        </p>
-      </div>
 
-      {/* 답변 + 피드백 */}
-      <div className="px-5 py-4 space-y-4">
-        {noAnswer ? (
-          <p className="text-xs text-white/25 italic">답변 없음</p>
-        ) : (
+        {/* 질문 박스 */}
+        <div style={{
+          background: "rgba(15,32,64,0.6)", border: "1px solid rgba(59,130,246,0.15)",
+          borderRadius: 14, padding: "18px 20px", marginBottom: 16,
+        }}>
+          <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 8 }}>QUESTION</div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.88)", lineHeight: 1.7, letterSpacing: "-0.01em" }}>
+            {question.questionText}
+          </p>
+        </div>
+
+        {/* 내 답변 */}
+        {answer && (
+          <div style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 14, padding: "16px 20px", marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 8 }}>MY ANSWER</div>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.75 }}>
+              {answer.answerText === "(답변 없음)" ? (
+                <span style={{ fontStyle: "italic", color: "rgba(255,255,255,0.25)" }}>답변 없음</span>
+              ) : answer.answerText}
+            </p>
+          </div>
+        )}
+
+        {/* 피드백 로딩 중 */}
+        {isPending && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)",
+            borderRadius: 12, padding: "14px 18px",
+          }}>
+            <span className="material-symbols-outlined animate-spin" style={{ fontSize: 16, color: "#60A5FA" }}>progress_activity</span>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>AI가 피드백을 생성하고 있습니다...</span>
+          </div>
+        )}
+
+        {/* 강점 + 개선점 */}
+        {isCompleted && feedback && (
           <>
-            {/* 내 답변 */}
-            <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/25">
-                내 답변
-              </p>
-              <p className="text-sm leading-relaxed text-white/60">
-                {answer.answerText === "(답변 없음)" ? (
-                  <span className="italic text-white/25">답변 없음</span>
-                ) : (
-                  answer.answerText
-                )}
-              </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              {/* 강점 */}
+              <div style={{
+                background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.18)",
+                borderRadius: 12, padding: 16,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", fontFamily: "monospace", letterSpacing: "0.04em" }}>강점</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(feedback.strengths ?? []).map((s, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <span style={{ color: "#10B981", flexShrink: 0, marginTop: 2, fontSize: 12 }}>✓</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 개선점 */}
+              <div style={{
+                background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.18)",
+                borderRadius: 12, padding: 16,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#F59E0B", fontFamily: "monospace", letterSpacing: "0.04em" }}>개선점</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(feedback.improvements ?? []).map((s, i) => (
+                    <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <span style={{ color: "#F59E0B", flexShrink: 0, marginTop: 2, fontSize: 12 }}>→</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* 피드백 섹션 */}
-            {isPending && (
-              <div className="flex items-center gap-2 rounded-xl border border-blue-500/15 bg-blue-500/[0.04] px-4 py-3">
-                <span className="material-symbols-outlined animate-spin text-sm text-blue-400">progress_activity</span>
-                <span className="text-xs text-blue-300/70">AI가 답변을 분석하고 있습니다...</span>
+            {/* 모범 답변 (토글) */}
+            {feedback.suggestedAnswer && (
+              <div style={{
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12, overflow: "hidden", marginBottom: 12,
+              }}>
+                <button
+                  onClick={() => setShowModel(v => !v)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 16px", background: "none", border: "none", cursor: "pointer",
+                    color: "rgba(255,255,255,0.45)", fontSize: 12,
+                  }}
+                >
+                  <span>모범 답변 보기</span>
+                  <span style={{ transform: showModel ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+                </button>
+                {showModel && (
+                  <div style={{ padding: "0 16px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.75 }}>{feedback.suggestedAnswer}</p>
+                  </div>
+                )}
               </div>
             )}
 
-            {isCompleted && feedback && (
-              <div className="space-y-3">
-                {/* 강점 */}
-                {feedback.strengths && feedback.strengths.length > 0 && (
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-green-400/60">강점</p>
-                    <FeedbackList items={feedback.strengths} variant="good" />
-                  </div>
-                )}
-
-                {/* 개선점 */}
-                {feedback.improvements && feedback.improvements.length > 0 && (
-                  <div>
-                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400/60">개선점</p>
-                    <FeedbackList items={feedback.improvements} variant="improve" />
-                  </div>
-                )}
-
-                {/* 전달력 */}
-                {((feedback.deliveryStrengths && feedback.deliveryStrengths.length > 0) ||
-                  (feedback.deliveryImprovements && feedback.deliveryImprovements.length > 0)) && (
-                  <div className="rounded-xl border border-blue-500/10 bg-blue-500/[0.03] p-3 space-y-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-300/50">
-                      전달력 (비언어)
-                    </p>
-                    {feedback.deliveryStrengths && <FeedbackList items={feedback.deliveryStrengths} variant="good" />}
-                    {feedback.deliveryImprovements && <FeedbackList items={feedback.deliveryImprovements} variant="improve" />}
-                  </div>
-                )}
-
-                {/* 모범 답변 */}
-                {feedback.suggestedAnswer && (
-                  <details className="group">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/25 hover:text-white/40 transition-colors">
-                        <span className="material-symbols-outlined text-xs transition-transform group-open:rotate-90">chevron_right</span>
-                        모범 답변 보기
-                      </div>
-                    </summary>
-                    <p className="mt-2 text-xs leading-relaxed text-white/40 pl-4 border-l border-white/8">
-                      {feedback.suggestedAnswer}
-                    </p>
-                  </details>
-                )}
-
-                {/* 꼬리 질문 */}
-                {feedback.followups && feedback.followups.length > 0 && (
-                  <details className="group">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/25 hover:text-white/40 transition-colors">
-                        <span className="material-symbols-outlined text-xs transition-transform group-open:rotate-90">chevron_right</span>
-                        예상 꼬리 질문 ({feedback.followups.length})
-                      </div>
-                    </summary>
-                    <ul className="mt-2 space-y-1 pl-4 border-l border-white/8">
-                      {feedback.followups.map((q, i) => (
-                        <li key={i} className="text-xs text-white/40 leading-relaxed">
-                          • {q}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
+            {/* 꼬리 질문 */}
+            {feedback.followups && feedback.followups.length > 0 && (
+              <div style={{
+                background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.12)",
+                borderRadius: 12, padding: "14px 16px",
+              }}>
+                <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 10 }}>예상 꼬리 질문</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {feedback.followups.map((q, i) => (
+                    <p key={i} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>• {q}</p>
+                  ))}
+                </div>
               </div>
             )}
 
             {answer.feedbackStatus === "FAILED" && (
-              <p className="text-xs text-red-400/60 italic">피드백 생성에 실패했습니다.</p>
+              <p style={{ fontSize: 12, color: "rgba(239,68,68,0.6)", fontStyle: "italic" }}>피드백 생성에 실패했습니다.</p>
             )}
           </>
         )}
+      </div>
+    </>
+  );
+}
+
+// ── ResultContent ──────────────────────────────────────────
+
+function ResultContent({ session }: { session: SpeechInterviewSession }) {
+  const router = useRouter();
+  const [activeCard, setActiveCard] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [animating, setAnimating] = useState(false);
+
+  const questions = session.questions;
+  const total = questions.length;
+  const answeredCount = questions.filter((q) => q.answer).length;
+  const score = sessionScore(session);
+  const color = scoreColor(score);
+  const duration = formatDuration(session);
+
+  function goTo(idx: number) {
+    if (animating || idx === activeCard) return;
+    setDirection(idx > activeCard ? 1 : -1);
+    setAnimating(true);
+    setTimeout(() => { setActiveCard(idx); setAnimating(false); }, 280);
+  }
+
+  const prev = () => goTo(Math.max(0, activeCard - 1));
+  const next = () => goTo(Math.min(total - 1, activeCard + 1));
+
+  return (
+    <div style={{ height: "calc(100vh - 0px)", display: "flex", flexDirection: "column", background: "#090f1c", overflow: "hidden" }}>
+      {/* 헤더 */}
+      <header style={{
+        height: 52, flexShrink: 0,
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        display: "flex", alignItems: "center", padding: "0 24px", gap: 12,
+        background: "rgba(9,15,28,0.95)", backdropFilter: "blur(12px)",
+      }}>
+        <button
+          onClick={() => router.push("/speech-interview")}
+          style={{
+            display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 6,
+            border: "1px solid rgba(255,255,255,0.1)", background: "none",
+            color: "rgba(255,255,255,0.45)", fontSize: 12, cursor: "pointer",
+          }}
+        >‹ 스피치 면접</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", whiteSpace: "nowrap" }}>
+            {session.title} · 결과
+          </span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => router.push("/speech-interview")}
+          style={{
+            padding: "5px 14px", borderRadius: 6, border: "none",
+            background: "#1d4ed8", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
+          }}
+        >다시 면접하기</button>
+      </header>
+
+      {/* 본문 */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
+
+        {/* ── 왼쪽 고정 패널 ── */}
+        <div style={{
+          width: 300, flexShrink: 0,
+          borderRight: "1px solid rgba(255,255,255,0.07)",
+          overflow: "auto", padding: "24px 20px",
+          display: "flex", flexDirection: "column", gap: 24,
+        }}>
+          {/* 세션 정보 */}
+          <div>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", marginBottom: 8 }}>
+              {session.positionType ?? "스피치 면접"}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>수고하셨습니다!</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+              {total}턴 완료{duration ? ` · ${duration}` : ""}
+            </div>
+          </div>
+
+          {/* 참여율 링 */}
+          <div style={{
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 14, padding: 20, textAlign: "center",
+          }}>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "monospace", letterSpacing: "0.06em", marginBottom: 12 }}>
+              답변 참여율
+            </div>
+            <ScoreRing score={score} />
+            <div style={{ fontSize: 12, color, fontWeight: 600 }}>
+              {answeredCount}/{total}개 답변 완료
+            </div>
+          </div>
+
+          {/* 질문별 목록 */}
+          <div>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 12 }}>
+              질문별 피드백
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {questions.map((q, i) => {
+                const hasAnswer = !!q.answer;
+                const isCompleted = q.answer?.feedbackStatus === "COMPLETED";
+                const dotColor = isCompleted ? "#10B981" : hasAnswer ? "#F59E0B" : "rgba(255,255,255,0.2)";
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => goTo(i)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8,
+                      background: activeCard === i ? "rgba(59,130,246,0.12)" : "transparent",
+                      border: activeCard === i ? "1px solid rgba(59,130,246,0.25)" : "1px solid transparent",
+                      cursor: "pointer", transition: "all 0.15s", textAlign: "left",
+                    }}
+                  >
+                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
+                    <span style={{
+                      fontSize: 11, flex: 1,
+                      color: activeCard === i ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.4)",
+                    }}>
+                      Q{i + 1}. {q.badge || "면접 질문"}
+                    </span>
+                    <span style={{ fontSize: 10, fontFamily: "monospace", color: dotColor }}>
+                      {isCompleted ? "완료" : hasAnswer ? "분석중" : "미답변"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 오른쪽 캐러셀 ── */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+          {/* 네비게이션 바 */}
+          <div style={{
+            height: 48, flexShrink: 0,
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            display: "flex", alignItems: "center", padding: "0 24px", gap: 12,
+          }}>
+            <button
+              onClick={prev} disabled={activeCard === 0}
+              style={{
+                width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)",
+                background: "none", color: activeCard === 0 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                cursor: activeCard === 0 ? "not-allowed" : "pointer", fontSize: 14,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >‹</button>
+            <div style={{ display: "flex", gap: 5 }}>
+              {questions.map((_, i) => (
+                <button
+                  key={i} onClick={() => goTo(i)}
+                  style={{
+                    width: activeCard === i ? 20 : 7, height: 7, borderRadius: 4,
+                    background: activeCard === i ? "#3B82F6" : "rgba(255,255,255,0.12)",
+                    border: "none", cursor: "pointer", padding: 0, transition: "all 0.25s ease",
+                  }}
+                />
+              ))}
+            </div>
+            <button
+              onClick={next} disabled={activeCard === total - 1}
+              style={{
+                width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)",
+                background: "none", color: activeCard === total - 1 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                cursor: activeCard === total - 1 ? "not-allowed" : "pointer", fontSize: 14,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >›</button>
+            <div style={{ flex: 1 }} />
+            <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255,255,255,0.3)" }}>
+              {activeCard + 1} / {total}
+            </span>
+          </div>
+
+          {/* 카드 영역 */}
+          <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+            {questions.length > 0 ? (
+              <QuestionCard
+                question={questions[activeCard]}
+                index={activeCard}
+                animating={animating}
+                direction={direction}
+              />
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
+                질문이 없습니다.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── 메인 컴포넌트 ────────────────────────────────────────
-
-function ResultContent({ session }: { session: SpeechInterviewSession }) {
-  const router = useRouter();
-  const answeredCount = session.questions.filter((q) => q.answer).length;
-  const totalCount = session.questions.length;
-  const participationRate = totalCount > 0 ? Math.round((answeredCount / totalCount) * 100) : 0;
-  const metrics = session.useCamera ? avgMetrics(session) : null;
-
-  return (
-    <div className="min-h-screen bg-[#0a1628]">
-      <div className="pointer-events-none fixed -right-32 -top-32 size-[500px] rounded-full bg-blue-600/5 blur-3xl" />
-
-      {/* 헤더 */}
-      <header className="sticky top-0 z-10 border-b border-white/5 bg-[#0a1628]/90 backdrop-blur-md">
-        <div className="flex h-14 items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm text-blue-400">record_voice_over</span>
-            <span className="text-sm font-semibold text-white/80">스피치 면접 결과</span>
-          </div>
-          <button
-            onClick={() => router.push("/resume-analyzer")}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 hover:bg-white/10 hover:text-white/80 transition-all"
-          >
-            ← 돌아가기
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-2xl px-6 py-8 space-y-6">
-        {/* 세션 타이틀 */}
-        <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <span className={cn(
-                  "rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                  session.status === "COMPLETED"
-                    ? "bg-green-500/10 text-green-400"
-                    : "bg-blue-500/10 text-blue-400"
-                )}>
-                  {session.status === "COMPLETED" ? "완료" : "진행 중"}
-                </span>
-                {session.useCamera && (
-                  <span className="flex items-center gap-1 rounded-full bg-blue-500/8 px-2 py-0.5 text-xs text-blue-300/70">
-                    <span className="material-symbols-outlined text-xs">videocam</span>
-                    행동 분석
-                  </span>
-                )}
-              </div>
-              <h1 className="text-lg font-bold text-white">{session.title}</h1>
-              {session.positionType && (
-                <p className="mt-1 text-sm text-white/40">{session.positionType}</p>
-              )}
-            </div>
-          </div>
-
-          {/* 통계 */}
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            {[
-              { label: "전체 질문", value: totalCount, icon: "help_outline" },
-              { label: "답변 완료", value: answeredCount, icon: "check_circle", highlight: true },
-              { label: "참여율", value: `${participationRate}%`, icon: "percent" },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="flex flex-col items-center justify-center rounded-xl border border-white/6 bg-white/[0.02] py-3 gap-1"
-              >
-                <span className={cn(
-                  "material-symbols-outlined text-base",
-                  stat.highlight ? "text-green-400" : "text-white/30"
-                )}>{stat.icon}</span>
-                <span className={cn(
-                  "text-lg font-bold tabular-nums",
-                  stat.highlight ? "text-green-400" : "text-white"
-                )}>{stat.value}</span>
-                <span className="text-[10px] text-white/30">{stat.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 비언어 행동 분석 패널 */}
-        {metrics && (
-          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-white/80">
-              <span className="material-symbols-outlined text-sm text-blue-400">monitoring</span>
-              비언어 행동 분석
-              <span className="ml-auto text-[10px] font-normal text-white/25">전체 답변 평균</span>
-            </h2>
-
-            <div className="space-y-3">
-              <MetricBar
-                label="시선 안정성"
-                value={metrics.eyeContactRatio}
-                icon="visibility"
-                thresholdGood={0.65}
-                thresholdWarn={0.45}
-              />
-              <MetricBar
-                label="자세 안정성"
-                value={metrics.postureStability}
-                icon="self_improvement"
-                thresholdGood={0.7}
-                thresholdWarn={0.5}
-              />
-              <MetricBar
-                label="표정 다양성"
-                value={metrics.expressionVariety}
-                icon="sentiment_satisfied"
-                thresholdGood={0.4}
-                thresholdWarn={0.2}
-              />
-              <MetricBar
-                label="안정감"
-                value={metrics.fidgetingScore}
-                icon="personal_injury"
-                thresholdGood={0.6}
-                thresholdWarn={0.4}
-                invert
-              />
-            </div>
-
-            {/* 전달력 AI 피드백 (첫 번째 완료된 답변에서 추출) */}
-            {(() => {
-              const deliveryFeedback = session.questions
-                .map((q) => q.answer?.feedback)
-                .find((f) => f && ((f.deliveryStrengths && f.deliveryStrengths.length > 0) || (f.deliveryImprovements && f.deliveryImprovements.length > 0)));
-              if (!deliveryFeedback) return null;
-              return (
-                <div className="mt-4 border-t border-white/6 pt-4 space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">AI 전달력 종합 피드백</p>
-                  {deliveryFeedback.deliveryStrengths && <FeedbackList items={deliveryFeedback.deliveryStrengths} variant="good" />}
-                  {deliveryFeedback.deliveryImprovements && <FeedbackList items={deliveryFeedback.deliveryImprovements} variant="improve" />}
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* 질문별 상세 분석 */}
-        <div>
-          <h2 className="mb-3 text-sm font-bold text-white/60 uppercase tracking-wider">
-            질문별 상세 분석
-          </h2>
-          <div className="space-y-3">
-            {session.questions.map((q, i) => (
-              <QuestionCard key={q.id} question={q} index={i} />
-            ))}
-          </div>
-        </div>
-
-        {/* 액션 버튼 */}
-        <div className="flex gap-3 pb-8">
-          <button
-            onClick={() => router.push("/speech-interview")}
-            className="flex-1 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-white/60 hover:bg-white/10 hover:text-white/80 transition-all"
-          >
-            다시 시작
-          </button>
-          <button
-            onClick={() => router.push("/resume-analyzer")}
-            className="flex-1 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-all"
-          >
-            AI 면접 준비로 돌아가기
-          </button>
-        </div>
-      </main>
-    </div>
-  );
-}
+// ── 메인 Export ────────────────────────────────────────────
 
 export function SpeechInterviewResultPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
   const parsedId = sessionId ? parseInt(sessionId, 10) : null;
 
-  const { data: session, isLoading, error } = useSpeechInterview(
-    parsedId,
-    // 피드백 PENDING인 답변이 있으면 polling 활성화 (data가 로드된 후에만 판단)
-    false // 초기값은 false, 아래 컴포넌트에서 동적으로 처리
-  );
-
-  // polling 여부를 session 데이터 기반으로 결정
+  const { data: session, isLoading, error } = useSpeechInterview(parsedId, false);
   const pendingExists = session ? hasPendingFeedback(session) : false;
   const { data: polledSession } = useSpeechInterview(parsedId, pendingExists);
-
   const displaySession = polledSession ?? session;
 
   if (!parsedId) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a1628]">
-        <p className="text-sm text-white/40">잘못된 접근입니다.</p>
+      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#090f1c" }}>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>잘못된 접근입니다.</p>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0a1628]">
-        <span className="material-symbols-outlined animate-spin text-2xl text-blue-400">progress_activity</span>
-        <p className="text-sm text-white/40">결과를 불러오는 중...</p>
+      <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "#090f1c" }}>
+        <span className="material-symbols-outlined animate-spin" style={{ fontSize: 24, color: "#3B82F6" }}>progress_activity</span>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>결과를 불러오는 중...</p>
       </div>
     );
   }
 
   if (error || !displaySession) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0a1628]">
-        <span className="material-symbols-outlined text-2xl text-red-400">error</span>
-        <p className="text-sm text-white/40">결과를 불러오지 못했습니다.</p>
+      <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "#090f1c" }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 24, color: "#EF4444" }}>error</span>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>결과를 불러오지 못했습니다.</p>
       </div>
     );
   }

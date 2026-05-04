@@ -6,6 +6,7 @@ import type { SpeechSynthesisHook } from "./useSpeechSynthesis";
 
 export function useTts(): SpeechSynthesisHook {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isError, setIsError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -32,6 +33,7 @@ export function useTts(): SpeechSynthesisHook {
       console.log("[useTts] speak() 호출:", text.slice(0, 30));
       cleanup();
       setIsSpeaking(true);
+      setIsError(false);
       onEndRef.current = onEnd;
 
       const controller = new AbortController();
@@ -95,6 +97,7 @@ export function useTts(): SpeechSynthesisHook {
           }
           console.warn("[useTts] fetch 실패:", err.name, err.message);
           setIsSpeaking(false);
+          setIsError(true);
           const cb = onEndRef.current;
           onEndRef.current = undefined;
           cb?.();
@@ -110,5 +113,5 @@ export function useTts(): SpeechSynthesisHook {
     setIsSpeaking(false);
   }, [cleanup]);
 
-  return { speak, stop, isSpeaking, isSupported: true };
+  return { speak, stop, isSpeaking, isSupported: true, isError };
 }
