@@ -7,10 +7,6 @@ import type { SpeechInterviewSession, SpeechInterviewQuestion, SpeechFeedback } 
 
 // ── 유틸 ──────────────────────────────────────────────────
 
-function hasPendingFeedback(session: SpeechInterviewSession): boolean {
-  return session.questions.some((q) => q.answer?.feedbackStatus === "PENDING");
-}
-
 function scoreColor(s: number): string {
   return s >= 85 ? "#10B981" : s >= 70 ? "#3B82F6" : "#F59E0B";
 }
@@ -122,15 +118,17 @@ function QuestionCard({ question, index, animating, direction }: {
           </div>
         )}
 
-        {/* 피드백 로딩 중 */}
+        {/* 피드백 생성 중 안내 */}
         {isPending && (
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
-            background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.15)",
+            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
             borderRadius: 12, padding: "14px 18px",
           }}>
-            <span className="material-symbols-outlined animate-spin" style={{ fontSize: 16, color: "#60A5FA" }}>progress_activity</span>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>AI가 피드백을 생성하고 있습니다...</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: "rgba(255,255,255,0.25)" }}>schedule</span>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)" }}>
+              AI 피드백은 잠시 후 스피치 면접 이력에서 확인할 수 있습니다.
+            </span>
           </div>
         )}
 
@@ -431,9 +429,7 @@ export function SpeechInterviewResultPage() {
   const parsedId = sessionId ? parseInt(sessionId, 10) : null;
 
   const { data: session, isLoading, error } = useSpeechInterview(parsedId, false);
-  const pendingExists = session ? hasPendingFeedback(session) : false;
-  const { data: polledSession } = useSpeechInterview(parsedId, pendingExists);
-  const displaySession = polledSession ?? session;
+  const displaySession = session;
 
   if (!parsedId) {
     return (
