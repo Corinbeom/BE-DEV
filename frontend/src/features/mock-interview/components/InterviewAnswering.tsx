@@ -3,32 +3,26 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { ResumeQuestion } from "@/features/resume-analyzer/api/types";
 import type { SpeechRecognitionHook } from "../hooks/useSpeechRecognition";
-import type { BehavioralMetrics } from "../hooks/useBehavioralAnalysis";
 import { cn } from "@/lib/utils";
 
-const ANSWER_TIMEOUT_SEC = 120; // 2분
+const ANSWER_TIMEOUT_SEC = 120;
 
 type Props = {
   question: ResumeQuestion;
   questionIndex: number;
   totalQuestions: number;
   stt: SpeechRecognitionHook;
-  useCamera: boolean;
-  getMetrics: () => BehavioralMetrics | null;
   onSubmit: (answerText: string) => void;
 };
 
-export function InterviewAnswering({ question, questionIndex, totalQuestions, stt, useCamera, getMetrics, onSubmit }: Props) {
+export function InterviewAnswering({ question, questionIndex, totalQuestions, stt, onSubmit }: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const [textFallback, setTextFallback] = useState("");
   const [timeLeft, setTimeLeft] = useState(ANSWER_TIMEOUT_SEC);
   const [submitted, setSubmitted] = useState(false);
-  const [metrics, setMetrics] = useState<BehavioralMetrics | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const metricsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 카운트다운 타이머
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -44,28 +38,15 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 행동 지표 주기적 갱신 (1초)
-  useEffect(() => {
-    if (!useCamera) return;
-    metricsTimerRef.current = setInterval(() => {
-      setMetrics(getMetrics());
-    }, 1000);
-    return () => { if (metricsTimerRef.current) clearInterval(metricsTimerRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useCamera]);
-
-  // 마운트 시 이전 질문 답변 초기화
   useEffect(() => {
     stt.resetTranscript();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 언마운트 시 STT 정리
   useEffect(() => {
     return () => {
       stt.stop();
       if (timerRef.current) clearInterval(timerRef.current);
-      if (metricsTimerRef.current) clearInterval(metricsTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -130,60 +111,30 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
         </p>
       </div>
 
-      {/* 타이머 + 행동 지표 행 */}
-      <div className="flex w-full max-w-2xl items-center justify-between">
-        {/* 타이머 */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex size-12 items-center justify-center">
-            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-              <circle
-                cx="24" cy="24" r="20"
-                fill="none"
-                stroke={isUrgent ? "rgb(239,68,68)" : "rgb(59,130,246)"}
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 20}`}
-                strokeDashoffset={`${2 * Math.PI * 20 * (1 - timerPct / 100)}`}
-                style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s" }}
-              />
-            </svg>
-            <span className={cn("text-xs font-bold tabular-nums", isUrgent ? "text-red-400" : "text-white/60")}>
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
-            </span>
-          </div>
-          <span className="text-xs text-white/30">남은 시간</span>
+      {/* 타이머 */}
+      <div className="flex w-full max-w-2xl items-center gap-3">
+        <div className="relative flex size-12 items-center justify-center">
+          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 48 48">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+            <circle
+              cx="24" cy="24" r="20"
+              fill="none"
+              stroke={isUrgent ? "rgb(239,68,68)" : "rgb(59,130,246)"}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 20}`}
+              strokeDashoffset={`${2 * Math.PI * 20 * (1 - timerPct / 100)}`}
+              style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s" }}
+            />
+          </svg>
+          <span className={cn("text-xs font-bold tabular-nums", isUrgent ? "text-red-400" : "text-white/60")}>
+            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+          </span>
         </div>
-
-        {/* 실시간 행동 지표 (카메라 사용 시) */}
-        {useCamera && metrics && (
-          <div className="flex items-center gap-3">
-            <BehavioralIndicator
-              icon="visibility"
-              label="시선"
-              value={metrics.eyeContactRatio}
-              thresholdGood={0.65}
-              thresholdWarn={0.45}
-            />
-            <BehavioralIndicator
-              icon="self_improvement"
-              label="자세"
-              value={metrics.postureStability}
-              thresholdGood={0.7}
-              thresholdWarn={0.5}
-            />
-            <BehavioralIndicator
-              icon="personal_injury"
-              label="안정"
-              value={1 - metrics.fidgetingScore}
-              thresholdGood={0.6}
-              thresholdWarn={0.4}
-            />
-          </div>
-        )}
+        <span className="text-xs text-white/30">남은 시간</span>
       </div>
 
-      {/* 답변 입력 영역 */}
+      {/* 답변 입력 */}
       <div className="w-full max-w-2xl">
         {stt.isSupported ? (
           <div className={cn(
@@ -192,7 +143,6 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
               ? "border-green-500/30 bg-green-500/[0.04] ring-1 ring-green-500/20"
               : "border-white/8 bg-white/[0.03]"
           )}>
-            {/* 녹음 상태 배지 */}
             <div className="mb-3 flex items-center gap-2">
               {isRecording ? (
                 <div className="flex items-center gap-1.5">
@@ -205,14 +155,10 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
                 </span>
               )}
             </div>
-
-            {/* 전사 텍스트 */}
             {displayText ? (
               <p className="text-sm leading-relaxed text-white/80">
                 {stt.transcript}
-                {stt.interimTranscript && (
-                  <span className="text-white/35">{stt.interimTranscript}</span>
-                )}
+                {stt.interimTranscript && <span className="text-white/35">{stt.interimTranscript}</span>}
               </p>
             ) : (
               <p className="text-sm text-white/20 italic">
@@ -221,7 +167,6 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
             )}
           </div>
         ) : (
-          /* STT 미지원 폴백 */
           <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
             <p className="mb-2 text-xs text-amber-400/80">
               이 브라우저는 음성 인식을 지원하지 않습니다. 텍스트로 답변해 주세요.
@@ -237,9 +182,8 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
         )}
       </div>
 
-      {/* 버튼 그룹 */}
+      {/* 버튼 */}
       <div className="flex w-full max-w-2xl gap-3">
-        {/* 녹음 시작/중지 (STT 지원 시) */}
         {stt.isSupported && (
           <button
             onClick={isRecording ? stopRecording : startRecording}
@@ -259,8 +203,6 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
             {isRecording ? "녹음 중지" : "녹음 시작"}
           </button>
         )}
-
-        {/* 답변 완료 */}
         <button
           onClick={() => handleSubmit(false)}
           disabled={submitted || (!displayText && !stt.isSupported)}
@@ -277,28 +219,6 @@ export function InterviewAnswering({ question, questionIndex, totalQuestions, st
           {submitted ? "제출 중..." : "답변 완료"}
         </button>
       </div>
-    </div>
-  );
-}
-
-/* 행동 지표 인디케이터 */
-function BehavioralIndicator({
-  icon, label, value, thresholdGood, thresholdWarn,
-}: {
-  icon: string; label: string; value: number;
-  thresholdGood: number; thresholdWarn: number;
-}) {
-  const color = value >= thresholdGood
-    ? "text-green-400"
-    : value >= thresholdWarn
-    ? "text-amber-400"
-    : "text-red-400";
-
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className={cn("material-symbols-outlined text-sm", color)}>{icon}</span>
-      <span className={cn("text-[10px] font-semibold", color)}>{Math.round(value * 100)}%</span>
-      <span className="text-[9px] text-white/25">{label}</span>
     </div>
   );
 }

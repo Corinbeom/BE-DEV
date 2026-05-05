@@ -5,11 +5,9 @@ import type { ResumeQuestion, ResumeSession } from "@/features/resume-analyzer/a
 
 // ── 상태 정의 ────────────────────────────────────────────
 
-export type InterviewMode = "voice" | "text"; // 카메라: useBehavioralAnalysis 별도 처리
-
 export type InterviewPhase =
-  | "LOBBY"           // 세션 선택 + 권한 체크
-  | "INTRO"           // "면접을 시작합니다" TTS
+  | "LOBBY"           // 세션 선택
+  | "INTRO"           // "면접을 시작합니다"
   | "QUESTION_READ"   // 질문 TTS 재생 중
   | "ANSWERING"       // STT/텍스트 녹음
   | "TRANSITION"      // 답변 저장 + 다음 질문 준비
@@ -27,18 +25,16 @@ export type AnswerRecord = {
 export type InterviewState = {
   phase: InterviewPhase;
   session: ResumeSession | null;
-  questions: ResumeQuestion[];   // 답변 대기 큐 (answered 제외 + null question 제외)
-  currentIndex: number;          // 현재 질문 인덱스 (0-based)
+  questions: ResumeQuestion[];
+  currentIndex: number;
   answers: AnswerRecord[];
-  mode: InterviewMode;
-  useCamera: boolean;
-  isTransitioning: boolean;      // ANSWERING → TRANSITION 중복 방지
+  isTransitioning: boolean;
 };
 
 // ── 액션 정의 ────────────────────────────────────────────
 
 type Action =
-  | { type: "SELECT_SESSION"; session: ResumeSession; mode: InterviewMode; useCamera: boolean }
+  | { type: "SELECT_SESSION"; session: ResumeSession }
   | { type: "START_INTRO" }
   | { type: "INTRO_DONE" }
   | { type: "QUESTION_DONE" }
@@ -55,8 +51,6 @@ const INITIAL: InterviewState = {
   questions: [],
   currentIndex: 0,
   answers: [],
-  mode: "voice",
-  useCamera: false,
   isTransitioning: false,
 };
 
@@ -65,7 +59,6 @@ const INITIAL: InterviewState = {
 function reducer(state: InterviewState, action: Action): InterviewState {
   switch (action.type) {
     case "SELECT_SESSION": {
-      // null question 필터링 (질문 생성 중 상태 제외)
       const validQuestions = action.session.questions.filter(
         (q) => q.question && q.question.trim().length > 0
       );
@@ -75,8 +68,6 @@ function reducer(state: InterviewState, action: Action): InterviewState {
         questions: validQuestions,
         currentIndex: 0,
         answers: [],
-        mode: action.mode,
-        useCamera: action.useCamera,
         isTransitioning: false,
       };
     }
@@ -91,7 +82,6 @@ function reducer(state: InterviewState, action: Action): InterviewState {
       return { ...state, phase: "ANSWERING" };
 
     case "SUBMIT_ANSWER": {
-      // race condition 방지: 이미 transition 중이면 무시
       if (state.isTransitioning) return state;
       if (state.phase !== "ANSWERING") return state;
 
@@ -139,7 +129,7 @@ function reducer(state: InterviewState, action: Action): InterviewState {
 // ── 훅 ───────────────────────────────────────────────────
 
 export type MockInterviewActions = {
-  selectSession: (session: ResumeSession, mode: InterviewMode, useCamera: boolean) => void;
+  selectSession: (session: ResumeSession) => void;
   startIntro: () => void;
   onIntroDone: () => void;
   onQuestionDone: () => void;
@@ -154,8 +144,7 @@ export function useMockInterview(): [InterviewState, MockInterviewActions] {
 
   const actions: MockInterviewActions = {
     selectSession: useCallback(
-      (session, mode, useCamera) =>
-        dispatch({ type: "SELECT_SESSION", session, mode, useCamera }),
+      (session) => dispatch({ type: "SELECT_SESSION", session }),
       []
     ),
     startIntro: useCallback(() => dispatch({ type: "START_INTRO" }), []),
