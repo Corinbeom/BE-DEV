@@ -9,7 +9,6 @@ public record SpeechInterviewResponse(
         Long id,
         String title,
         String positionType,
-        boolean useCamera,
         String status,
         LocalDateTime createdAt,
         LocalDateTime completedAt,
@@ -27,16 +26,7 @@ public record SpeechInterviewResponse(
     public record AnswerDto(
             String answerText,
             String feedbackStatus,
-            BehavioralMetricsDto behavioralMetrics,
             FeedbackDto feedback
-    ) {
-    }
-
-    public record BehavioralMetricsDto(
-            Double eyeContactRatio,
-            Double postureStability,
-            Double expressionVariety,
-            Double fidgetingScore
     ) {
     }
 
@@ -59,7 +49,6 @@ public record SpeechInterviewResponse(
                 session.getId(),
                 session.getTitle(),
                 session.getPositionType(),
-                session.isUseCamera(),
                 session.getStatus().name(),
                 session.getCreatedAt(),
                 session.getCompletedAt(),
@@ -71,15 +60,6 @@ public record SpeechInterviewResponse(
         SpeechInterviewAnswer answer = q.getAnswer();
         AnswerDto answerDto = null;
         if (answer != null) {
-            BehavioralMetricsDto metrics = null;
-            if (answer.getEyeContactRatio() != null) {
-                metrics = new BehavioralMetricsDto(
-                        answer.getEyeContactRatio(),
-                        answer.getPostureStability(),
-                        answer.getExpressionVariety(),
-                        answer.getFidgetingScore()
-                );
-            }
             FeedbackDto feedbackDto = null;
             SpeechAnswerFeedback fb = answer.getFeedback();
             if (fb != null) {
@@ -95,7 +75,6 @@ public record SpeechInterviewResponse(
             answerDto = new AnswerDto(
                     answer.getAnswerText(),
                     answer.getFeedbackStatus().name(),
-                    metrics,
                     feedbackDto
             );
         }

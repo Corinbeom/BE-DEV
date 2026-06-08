@@ -158,42 +158,6 @@ public final class AiPromptBuilder {
         );
     }
 
-    /**
-     * 행동 분석 지표를 포함한 피드백 프롬프트.
-     * 모든 지표가 null이면 기존 buildFeedbackPrompt와 동일.
-     */
-    public static String buildFeedbackPromptWithBehavior(
-            String question, String intention, String keywords, String modelAnswer, String answerText,
-            Double eyeContactRatio, Double postureStability, Double expressionVariety, Double fidgetingScore) {
-
-        String base = buildFeedbackPrompt(question, intention, keywords, modelAnswer, answerText);
-
-        if (eyeContactRatio == null && postureStability == null && expressionVariety == null && fidgetingScore == null) {
-            return base;
-        }
-
-        String deliverySection = """
-
-                [BehavioralMetrics]
-                클라이언트 측정 비언어 행동 분석 지표 (참고용, 0.0~1.0):
-                - 시선 안정성: %.2f  (0.7 이상=양호, 0.5 미만=개선 필요)
-                - 자세 안정성: %.2f  (0.8 이상=양호)
-                - 표정 다양성: %.2f  (0.4~0.7=적절)
-                - 불안 움직임: %.2f  (낮을수록 좋음, 0.5 초과=개선 필요)
-
-                JSON 출력에 아래 두 필드를 추가하세요:
-                - "deliveryStrengths": 전달력 강점 (0~3개 배열, 지표 기반, 추측/과장 없이)
-                - "deliveryImprovements": 전달력 개선점 (0~3개 배열, 지표 기반)
-                """.formatted(
-                eyeContactRatio != null ? eyeContactRatio : 0.0,
-                postureStability != null ? postureStability : 0.0,
-                expressionVariety != null ? expressionVariety : 0.0,
-                fidgetingScore != null ? fidgetingScore : 0.0
-        );
-
-        return base + deliverySection;
-    }
-
     public static String buildCsQuizQuestionsPrompt(Set<CsQuizTopic> topics, CsQuizDifficulty difficulty, CsQuizQuestionType type, int count) {
         return buildCsQuizQuestionsPrompt(topics, difficulty, type, count, List.of());
     }

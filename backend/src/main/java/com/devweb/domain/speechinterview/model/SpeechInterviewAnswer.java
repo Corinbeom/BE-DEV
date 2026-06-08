@@ -20,19 +20,6 @@ public class SpeechInterviewAnswer {
     @Column(nullable = false)
     private String answerText;
 
-    /** 행동 분석 지표 (카메라 OFF 시 null) */
-    @Column
-    private Double eyeContactRatio;
-
-    @Column
-    private Double postureStability;
-
-    @Column
-    private Double expressionVariety;
-
-    @Column
-    private Double fidgetingScore;
-
     @Embedded
     private SpeechAnswerFeedback feedback;
 
@@ -46,14 +33,9 @@ public class SpeechInterviewAnswer {
     protected SpeechInterviewAnswer() {
     }
 
-    public SpeechInterviewAnswer(String answerText, Double eyeContactRatio, Double postureStability,
-                                  Double expressionVariety, Double fidgetingScore) {
+    public SpeechInterviewAnswer(String answerText) {
         if (answerText == null || answerText.isBlank()) throw new IllegalArgumentException("answerText는 필수입니다.");
         this.answerText = answerText;
-        this.eyeContactRatio = eyeContactRatio;
-        this.postureStability = postureStability;
-        this.expressionVariety = expressionVariety;
-        this.fidgetingScore = fidgetingScore;
         this.feedbackStatus = FeedbackStatus.PENDING;
     }
 
@@ -78,10 +60,6 @@ public class SpeechInterviewAnswer {
     public Long getId() { return id; }
     public SpeechInterviewQuestion getQuestion() { return question; }
     public String getAnswerText() { return answerText; }
-    public Double getEyeContactRatio() { return eyeContactRatio; }
-    public Double getPostureStability() { return postureStability; }
-    public Double getExpressionVariety() { return expressionVariety; }
-    public Double getFidgetingScore() { return fidgetingScore; }
     public SpeechAnswerFeedback getFeedback() { return feedback; }
     public FeedbackStatus getFeedbackStatus() { return feedbackStatus; }
     public LocalDateTime getCreatedAt() { return createdAt; }

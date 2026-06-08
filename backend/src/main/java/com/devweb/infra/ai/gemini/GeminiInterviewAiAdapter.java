@@ -111,30 +111,6 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return new InterviewAiPort.GeneratedFeedback(payload.strengths(), payload.improvements(), payload.suggestedAnswer(), payload.followups());
     }
 
-    @Override
-    public InterviewAiPort.GeneratedFeedback generateFeedbackWithBehavior(
-            String systemInstruction, String question, String intention,
-            String keywords, String modelAnswer, String answerText,
-            InterviewAiPort.BehavioralMetrics m) {
-        requireApiKey();
-
-        String prompt = AiPromptBuilder.buildFeedbackPromptWithBehavior(
-                question, intention, keywords, modelAnswer, answerText,
-                m.eyeContactRatio(), m.postureStability(), m.expressionVariety(), m.fidgetingScore());
-        Map<String, Object> schema = feedbackWithBehaviorResponseSchema();
-
-        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, schema, RetryProfile.FEEDBACK);
-        try {
-            FeedbackWithDeliveryPayload p = objectMapper.treeToValue(json, FeedbackWithDeliveryPayload.class);
-            return new InterviewAiPort.GeneratedFeedback(
-                    p.strengths(), p.improvements(), p.suggestedAnswer(), p.followups(),
-                    p.deliveryStrengths(), p.deliveryImprovements());
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            // 폴백: deliveryStrengths/Improvements 없이 기본 피드백 반환
-            FeedbackPayload payload = parseFeedbackPayload(json);
-            return new InterviewAiPort.GeneratedFeedback(payload.strengths(), payload.improvements(), payload.suggestedAnswer(), payload.followups());
-        }
-    }
 
     @Override
     public List<CsQuizAiPort.GeneratedQuizQuestion> generateQuestions(
@@ -810,21 +786,6 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                 "followups", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 10)
         ));
         schema.put("required", List.of("strengths", "improvements", "suggestedAnswer", "followups"));
-        return schema;
-    }
-
-    private static Map<String, Object> feedbackWithBehaviorResponseSchema() {
-        Map<String, Object> schema = new LinkedHashMap<>();
-        schema.put("type", "object");
-        schema.put("properties", Map.of(
-                "strengths", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 10),
-                "improvements", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 10),
-                "suggestedAnswer", Map.of("type", "string", "nullable", true),
-                "followups", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 10),
-                "deliveryStrengths", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 5),
-                "deliveryImprovements", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 5)
-        ));
-        schema.put("required", List.of("strengths", "improvements", "suggestedAnswer", "followups", "deliveryStrengths", "deliveryImprovements"));
         return schema;
     }
 

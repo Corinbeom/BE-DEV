@@ -3,7 +3,6 @@ package com.devweb.api.speechinterview;
 import com.devweb.api.speechinterview.dto.ChatRequest;
 import com.devweb.api.speechinterview.dto.ChatResponse;
 import com.devweb.api.speechinterview.dto.CreateSpeechInterviewRequest;
-import com.devweb.api.speechinterview.dto.SubmitSpeechAnswerRequest;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.common.UnauthorizedException;
 import com.devweb.domain.member.model.Member;
@@ -69,8 +68,7 @@ public class SpeechInterviewService {
                 member,
                 resumeSession.getTitle(),
                 resumeSession.getPositionType(),
-                resumeSession.getId(),
-                req.useCamera()
+                resumeSession.getId()
         );
 
         // 이력서/포트폴리오 텍스트를 truncate해서 resumeContext 저장
@@ -98,10 +96,7 @@ public class SpeechInterviewService {
         if (!questions.isEmpty()) {
             SpeechInterviewQuestion lastQuestion = questions.get(questions.size() - 1);
             if (lastQuestion.getAnswer() == null) {
-                SpeechInterviewAnswer answer = new SpeechInterviewAnswer(
-                        req.userMessage(),
-                        null, null, null, null
-                );
+                SpeechInterviewAnswer answer = new SpeechInterviewAnswer(req.userMessage());
                 lastQuestion.attachAnswer(answer);
                 speechRepo.save(session);
 
@@ -132,14 +127,20 @@ public class SpeechInterviewService {
 
         // Gemini conductInterview 호출
         String systemInstruction = promptRegistry.systemInstructionFor(session.getPositionType());
-        InterviewAiPort.GeneratedInterviewerTurn turn = aiPort.conductInterview(
-                systemInstruction,
-                session.getResumeContext(),
-                session.getPositionType(),
-                history,
-                turnCount,
-                MAX_TURNS
-        );
+        InterviewAiPort.GeneratedInterviewerTurn turn;
+        try {
+            turn = aiPort.conductInterview(
+                    systemInstruction,
+                    session.getResumeContext(),
+                    session.getPositionType(),
+                    history,
+                    turnCount,
+                    MAX_TURNS
+            );
+        } catch (Exception e) {
+            log.error("AI 면접관 응답 생성 실패 sessionId={}", sessionId, e);
+            throw new RuntimeException("면접관 응답을 일시적으로 생성할 수 없습니다. 잠시 후 다시 시도해 주세요.", e);
+        }
 
         Long newQuestionId = null;
         if (!turn.isComplete()) {
@@ -165,38 +166,6 @@ public class SpeechInterviewService {
         }
 
         return new ChatResponse(turn.message(), turnCount + 1, turn.isComplete(), newQuestionId, turn.badge());
-    }
-
-    /** 답변 제출 — 즉시 저장 후 @Async AI 피드백 생성 */
-    public SpeechInterviewSession submitAnswer(Long memberId, Long sessionId, SubmitSpeechAnswerRequest req) {
-        SpeechInterviewSession session = findAndAuthorize(memberId, sessionId);
-
-        SpeechInterviewQuestion question = session.getQuestions().stream()
-                .filter(q -> q.getId().equals(req.questionId()))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("질문을 찾을 수 없습니다. id=" + req.questionId()));
-
-        SpeechInterviewAnswer answer = new SpeechInterviewAnswer(
-                req.answerText(),
-                null, null, null, null
-        );
-
-        question.attachAnswer(answer);
-        SpeechInterviewSession saved = speechRepo.save(session);
-
-        // 저장 완료 후 ID 확보해서 비동기 피드백 생성
-        generateFeedbackAsync(
-                sessionId,
-                question.getId(),
-                req.answerText(),
-                question.getQuestionText(),
-                question.getIntention(),
-                question.getKeywords(),
-                question.getModelAnswer(),
-                session.getPositionType()
-        );
-
-        return saved;
     }
 
     /** 세션 완료 처리 */

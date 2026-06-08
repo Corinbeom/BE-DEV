@@ -29,15 +29,6 @@ public interface InterviewAiPort {
 
     GeneratedFeedback generateFeedback(String systemInstruction, String question, String intention, String keywords, String modelAnswer, String answerText);
 
-    /** 행동 분석 지표 포함 오버로드 — null 전달 시 기존 동작과 동일 */
-    record BehavioralMetrics(Double eyeContactRatio, Double postureStability, Double expressionVariety, Double fidgetingScore) {}
-
-    default GeneratedFeedback generateFeedbackWithBehavior(String systemInstruction, String question, String intention,
-                                                            String keywords, String modelAnswer, String answerText,
-                                                            BehavioralMetrics behavioralMetrics) {
-        return generateFeedback(systemInstruction, question, intention, keywords, modelAnswer, answerText);
-    }
-
     record BadgeSummary(String badge, String summary, List<String> strengths, List<String> weaknesses) {}
     record Improvement(String title, String description) {}
     record GeneratedSessionReport(

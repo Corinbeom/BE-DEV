@@ -27,12 +27,8 @@ public class SpeechInterviewSession {
     @Column(length = 50)
     private String positionType;
 
-    /** 원본 ResumeSession 참조 (FK 없이 Long만 저장 — 독립성 보장) */
     @Column(name = "source_resume_session_id")
     private Long sourceResumeSessionId;
-
-    @Column(nullable = false)
-    private boolean useCamera;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -57,14 +53,13 @@ public class SpeechInterviewSession {
     }
 
     public SpeechInterviewSession(Member member, String title, String positionType,
-                                   Long sourceResumeSessionId, boolean useCamera) {
+                                   Long sourceResumeSessionId) {
         if (member == null) throw new IllegalArgumentException("member는 필수입니다.");
         if (title == null || title.isBlank()) throw new IllegalArgumentException("title은 필수입니다.");
         this.member = member;
         this.title = title;
         this.positionType = positionType;
         this.sourceResumeSessionId = sourceResumeSessionId;
-        this.useCamera = useCamera;
         this.status = SpeechInterviewStatus.CREATED;
     }
 
@@ -90,6 +85,9 @@ public class SpeechInterviewSession {
     }
 
     public void complete() {
+        if (this.status != SpeechInterviewStatus.IN_PROGRESS) {
+            throw new IllegalArgumentException("IN_PROGRESS 상태에서만 완료할 수 있습니다. 현재=" + this.status);
+        }
         this.status = SpeechInterviewStatus.COMPLETED;
         this.completedAt = LocalDateTime.now();
     }
@@ -99,7 +97,6 @@ public class SpeechInterviewSession {
     public String getTitle() { return title; }
     public String getPositionType() { return positionType; }
     public Long getSourceResumeSessionId() { return sourceResumeSessionId; }
-    public boolean isUseCamera() { return useCamera; }
     public SpeechInterviewStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getCompletedAt() { return completedAt; }

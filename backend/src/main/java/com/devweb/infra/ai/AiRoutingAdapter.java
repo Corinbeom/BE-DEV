@@ -86,13 +86,6 @@ public class AiRoutingAdapter implements InterviewAiPort, CsQuizAiPort {
         return groq.generateFeedback(systemInstruction, question, intention, keywords, modelAnswer, answerText);
     }
 
-    @Override
-    public InterviewAiPort.GeneratedFeedback generateFeedbackWithBehavior(String systemInstruction, String question, String intention,
-                                                                            String keywords, String modelAnswer, String answerText,
-                                                                            InterviewAiPort.BehavioralMetrics behavioralMetrics) {
-        return groq.generateFeedbackWithBehavior(systemInstruction, question, intention, keywords, modelAnswer, answerText, behavioralMetrics);
-    }
-
     // ── CS Quiz: 문제 생성 → Gemini (지식 정확성), 피드백 → Groq (빠른 응답) ──
 
     @Override

@@ -109,18 +109,6 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return parseFeedbackAsInterview(json);
     }
 
-    @Override
-    public InterviewAiPort.GeneratedFeedback generateFeedbackWithBehavior(
-            String systemInstruction, String question, String intention,
-            String keywords, String modelAnswer, String answerText,
-            InterviewAiPort.BehavioralMetrics m) {
-        requireApiKey();
-        String prompt = AiPromptBuilder.buildFeedbackPromptWithBehavior(
-                question, intention, keywords, modelAnswer, answerText,
-                m.eyeContactRatio(), m.postureStability(), m.expressionVariety(), m.fidgetingScore());
-        JsonNode json = generateStructuredJsonWithRetry(systemInstruction, prompt, RetryProfile.FEEDBACK);
-        return parseFeedbackWithDeliveryAsInterview(json);
-    }
 
     // ===== CsQuizAiPort =====
 

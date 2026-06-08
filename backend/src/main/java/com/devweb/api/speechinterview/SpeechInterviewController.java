@@ -4,7 +4,6 @@ import com.devweb.api.speechinterview.dto.ChatRequest;
 import com.devweb.api.speechinterview.dto.ChatResponse;
 import com.devweb.api.speechinterview.dto.CreateSpeechInterviewRequest;
 import com.devweb.api.speechinterview.dto.SpeechInterviewResponse;
-import com.devweb.api.speechinterview.dto.SubmitSpeechAnswerRequest;
 import com.devweb.common.ApiResponse;
 import com.devweb.common.AuthUtils;
 import com.devweb.domain.speechinterview.model.SpeechInterviewSession;
@@ -16,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "스피치 면접", description = "AI 스피치 면접 세션 생성 및 답변 관리")
+@Tag(name = "스피치 면접", description = "AI 스피치 면접 세션 생성 및 대화형 면접 진행")
 @RestController
 @RequestMapping("/api/speech-interviews")
 public class SpeechInterviewController {
@@ -35,17 +34,6 @@ public class SpeechInterviewController {
     ) {
         Long memberId = AuthUtils.currentMemberId();
         SpeechInterviewSession session = service.createSession(memberId, req);
-        return ApiResponse.success(SpeechInterviewResponse.from(session));
-    }
-
-    @Operation(summary = "답변 제출", description = "질문에 대한 답변과 행동 분석 지표를 제출합니다. AI 피드백은 비동기로 생성됩니다.")
-    @PostMapping("/{id}/answers")
-    public ApiResponse<SpeechInterviewResponse> submitAnswer(
-            @PathVariable Long id,
-            @Valid @RequestBody SubmitSpeechAnswerRequest req
-    ) {
-        Long memberId = AuthUtils.currentMemberId();
-        SpeechInterviewSession session = service.submitAnswer(memberId, id, req);
         return ApiResponse.success(SpeechInterviewResponse.from(session));
     }
 
@@ -78,7 +66,7 @@ public class SpeechInterviewController {
         return ApiResponse.success(responses);
     }
 
-    @Operation(summary = "세션 상세 조회", description = "질문 + 답변 + 피드백 + 행동 분석 지표를 모두 반환합니다.")
+    @Operation(summary = "세션 상세 조회", description = "질문 + 답변 + 피드백을 모두 반환합니다.")
     @GetMapping("/{id}")
     public ApiResponse<SpeechInterviewResponse> get(@PathVariable Long id) {
         Long memberId = AuthUtils.currentMemberId();
