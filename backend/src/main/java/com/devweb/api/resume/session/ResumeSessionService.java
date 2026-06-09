@@ -197,6 +197,13 @@ public class ResumeSessionService {
     }
 
     @Transactional(readOnly = true)
+    public ResumeSessionResponse getResponse(Long id) {
+        ResumeSession session = sessionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ResumeSession을 찾을 수 없습니다. id=" + id));
+        return ResumeSessionResponse.from(session);
+    }
+
+    @Transactional(readOnly = true)
     public List<ResumeSession> listByMember(Long memberId) {
         return sessionRepository.findAllByMemberId(memberId);
     }
@@ -547,14 +554,15 @@ public class ResumeSessionService {
     }
 
     @CacheEvict(value = {"resumeSessions", "resumeInterviewStats"}, allEntries = true)
-    public ResumeSession complete(Long sessionId, Long memberId) {
+    public ResumeSessionResponse complete(Long sessionId, Long memberId) {
         ResumeSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("ResumeSession을 찾을 수 없습니다. id=" + sessionId));
         if (!session.getMember().getId().equals(memberId)) {
             throw new UnauthorizedException("세션에 접근할 권한이 없습니다.");
         }
         session.markCompleted();
-        return sessionRepository.save(session);
+        sessionRepository.save(session);
+        return ResumeSessionResponse.from(session);
     }
 
     private static void validateSize(MultipartFile file) {
