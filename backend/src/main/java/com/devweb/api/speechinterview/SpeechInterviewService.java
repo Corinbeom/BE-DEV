@@ -84,6 +84,10 @@ public class SpeechInterviewService {
     public ChatResponse chat(Long memberId, Long sessionId, ChatRequest req) {
         SpeechInterviewSession session = findAndAuthorize(memberId, sessionId);
 
+        if (session.getStatus() == SpeechInterviewStatus.COMPLETED) {
+            throw new IllegalArgumentException("이미 완료된 면접 세션입니다.");
+        }
+
         // 세션 상태 전이: CREATED → IN_PROGRESS (첫 턴)
         if (session.getStatus() == SpeechInterviewStatus.CREATED) {
             session.startInterview();
