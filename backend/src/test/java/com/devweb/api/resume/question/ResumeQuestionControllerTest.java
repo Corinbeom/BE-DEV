@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,7 +48,7 @@ class ResumeQuestionControllerTest {
         setId(attempt, 1L);
         setField(attempt, "createdAt", LocalDateTime.now());
 
-        given(service.createFeedback(eq(5L), eq("제 답변입니다"))).willReturn(attempt);
+        given(service.createFeedback(eq(5L), eq("제 답변입니다"), any())).willReturn(attempt);
 
         mockMvc.perform(post("/api/resume-questions/5/feedback")
                         .contentType(MediaType.APPLICATION_JSON)

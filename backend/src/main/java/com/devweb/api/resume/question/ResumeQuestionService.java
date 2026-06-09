@@ -1,5 +1,6 @@
 package com.devweb.api.resume.question;
 
+import com.devweb.api.resume.question.dto.CreateResumeFeedbackRequest;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.domain.resume.model.InterviewQuestion;
 import com.devweb.domain.resume.session.model.Feedback;
@@ -28,6 +29,12 @@ public class ResumeQuestionService {
 
     @CacheEvict(value = "resumeInterviewStats", allEntries = true)
     public ResumeAnswerAttempt createFeedback(Long questionId, String answerText) {
+        return createFeedback(questionId, answerText, null);
+    }
+
+    @CacheEvict(value = "resumeInterviewStats", allEntries = true)
+    public ResumeAnswerAttempt createFeedback(Long questionId, String answerText,
+                                               CreateResumeFeedbackRequest.BehavioralMetricsDto metricsDto) {
         ResumeQuestion question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new ResourceNotFoundException("ResumeQuestion을 찾을 수 없습니다. id=" + questionId));
 
@@ -52,4 +59,3 @@ public class ResumeQuestionService {
         return attempt;
     }
 }
-

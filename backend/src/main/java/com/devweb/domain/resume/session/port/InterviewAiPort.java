@@ -7,7 +7,18 @@ public interface InterviewAiPort {
     record GeneratedQuestion(String badge, int likelihood, String question, String intention, String keywords, String modelAnswer) {
     }
 
-    record GeneratedFeedback(List<String> strengths, List<String> improvements, String suggestedAnswer, List<String> followups) {
+    record GeneratedFeedback(
+            List<String> strengths,
+            List<String> improvements,
+            String suggestedAnswer,
+            List<String> followups,
+            List<String> deliveryStrengths,
+            List<String> deliveryImprovements
+    ) {
+        /** 행동 분석 없는 기존 호환 생성자 */
+        public GeneratedFeedback(List<String> strengths, List<String> improvements, String suggestedAnswer, List<String> followups) {
+            this(strengths, improvements, suggestedAnswer, followups, null, null);
+        }
     }
 
     List<GeneratedQuestion> generateQuestions(String systemInstruction, String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies);
@@ -55,5 +66,26 @@ public interface InterviewAiPort {
     ) {}
 
     GeneratedJdMatchAnalysis analyzeJdMatch(String systemInstruction, String resumeText, String portfolioText, String jdText);
+
+    record ChatMessage(String role, String content) {}
+
+    record GeneratedInterviewerTurn(
+            String message,
+            String badge,
+            boolean isComplete,
+            String intention,
+            String keywords
+    ) {}
+
+    default GeneratedInterviewerTurn conductInterview(
+            String systemInstruction,
+            String resumeContext,
+            String positionType,
+            List<ChatMessage> history,
+            int turnCount,
+            int maxTurns
+    ) {
+        throw new UnsupportedOperationException("conductInterview가 구현되지 않았습니다.");
+    }
 }
 
