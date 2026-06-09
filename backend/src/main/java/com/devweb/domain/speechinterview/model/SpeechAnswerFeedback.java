@@ -25,8 +25,7 @@ public class SpeechAnswerFeedback {
     @OrderColumn(name = "idx")
     private List<String> improvements = new ArrayList<>();
 
-    @Lob
-    @Column(name = "suggested_answer")
+    @Column(name = "suggested_answer", columnDefinition = "text")
     private String suggestedAnswer;
 
     @ElementCollection

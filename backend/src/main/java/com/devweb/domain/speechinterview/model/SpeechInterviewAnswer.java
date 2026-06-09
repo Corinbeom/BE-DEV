@@ -16,8 +16,7 @@ public class SpeechInterviewAnswer {
     @JoinColumn(name = "question_id", nullable = false, unique = true)
     private SpeechInterviewQuestion question;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
     private String answerText;
 
     @Embedded
