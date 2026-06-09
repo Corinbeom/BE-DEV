@@ -61,15 +61,14 @@ public class ResumeSessionController {
     @Operation(summary = "세션 상세 조회", description = "세션 ID로 면접 질문 포함 세션 정보를 조회합니다.")
     @GetMapping("/{id}")
     public ApiResponse<ResumeSessionResponse> get(@PathVariable Long id) {
-        return ApiResponse.success(ResumeSessionResponse.from(service.get(id)));
+        return ApiResponse.success(service.getResponse(id));
     }
 
     @Operation(summary = "세션 완료 처리", description = "현재 세션을 종료 상태(COMPLETED)로 전환합니다. 미답변 질문이 있어도 종료할 수 있습니다.")
     @PostMapping("/{id}/complete")
     public ApiResponse<ResumeSessionResponse> complete(@PathVariable Long id) {
         Long memberId = AuthUtils.currentMemberId();
-        ResumeSession completed = service.complete(id, memberId);
-        return ApiResponse.success(ResumeSessionResponse.from(completed));
+        return ApiResponse.success(service.complete(id, memberId));
     }
 
     @Operation(summary = "AI 회고 리포트 생성", description = "세션 데이터를 분석하여 AI 회고 리포트를 생성합니다. 이미 생성된 리포트가 있으면 캐시된 결과를 반환합니다.")
