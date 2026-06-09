@@ -99,7 +99,14 @@ class ResumeSessionControllerTest {
     @Test
     @DisplayName("GET /api/resume-sessions/{id} → 200")
     void get_성공() throws Exception {
-        given(service.get(20L)).willReturn(session);
+        ResumeSessionResponse dto = new ResumeSessionResponse(
+                20L, "테스트 세션", "BE", null,
+                ResumeSessionStatus.CREATED, List.of(),
+                0, 0, null,
+                LocalDateTime.now(), LocalDateTime.now(),
+                null, false
+        );
+        given(service.getResponse(20L)).willReturn(dto);
 
         mockMvc.perform(get("/api/resume-sessions/20"))
                 .andExpect(status().isOk())
