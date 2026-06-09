@@ -15,6 +15,8 @@ export type ResumeFeedback = {
   improvements: string[];
   suggestedAnswer: string | null;
   followups: string[];
+  deliveryStrengths: string[];
+  deliveryImprovements: string[];
 };
 
 export type ResumeQuestion = {

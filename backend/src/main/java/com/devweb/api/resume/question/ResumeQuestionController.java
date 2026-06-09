@@ -26,7 +26,7 @@ public class ResumeQuestionController {
             @PathVariable Long id,
             @Valid @RequestBody CreateResumeFeedbackRequest req
     ) {
-        ResumeAnswerAttempt attempt = service.createFeedback(id, req.answerText());
+        ResumeAnswerAttempt attempt = service.createFeedback(id, req.answerText(), req.behavioralMetrics());
         return ApiResponse.success(ResumeFeedbackResponse.from(attempt));
     }
 }

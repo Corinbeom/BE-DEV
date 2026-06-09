@@ -111,6 +111,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return new InterviewAiPort.GeneratedFeedback(payload.strengths(), payload.improvements(), payload.suggestedAnswer(), payload.followups());
     }
 
+
     @Override
     public List<CsQuizAiPort.GeneratedQuizQuestion> generateQuestions(
             String systemInstruction,
@@ -274,13 +275,170 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         }
     }
 
+    @Override
+    public InterviewAiPort.GeneratedInterviewerTurn conductInterview(
+            String systemInstruction,
+            String resumeContext,
+            String positionType,
+            List<InterviewAiPort.ChatMessage> history,
+            int turnCount,
+            int maxTurns
+    ) {
+        requireApiKey();
+
+        // 시스템 프롬프트: 이력서 컨텍스트 + positionType 포함
+        String enrichedSystem = AiPromptBuilder.buildConversationalInterviewSystemPrompt(positionType, resumeContext)
+                + "\n현재 턴: " + turnCount + "/" + maxTurns
+                + (turnCount >= maxTurns ? "\n[중요] 최대 턴에 도달했습니다. 반드시 isComplete=true를 반환하세요." : "");
+
+        Map<String, Object> schema = conversationResponseSchema();
+
+        // 히스토리를 멀티턴 contents 배열로 변환 (최근 6턴만)
+        List<InterviewAiPort.ChatMessage> trimmedHistory = history.size() > 6
+                ? history.subList(history.size() - 6, history.size())
+                : history;
+
+        List<Map<String, Object>> contents = new java.util.ArrayList<>(trimmedHistory.stream()
+                .map(msg -> content(msg.role(), msg.content()))
+                .collect(java.util.stream.Collectors.toList()));
+
+        // Gemini API: contents는 반드시 user role로 시작해야 함
+        // 히스토리가 비어있거나 첫 항목이 model이면 시작 트리거 추가
+        if (contents.isEmpty() || "model".equals(contents.get(0).get("role"))) {
+            contents.add(0, content("user", "면접을 시작해주세요."));
+        }
+
+        JsonNode json = generateStructuredJsonMultiTurn(enrichedSystem, contents, schema, RetryProfile.CONVERSATION);
+        try {
+            return objectMapper.treeToValue(json, InterviewAiPort.GeneratedInterviewerTurn.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Gemini 대화형 면접 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
+    private JsonNode generateStructuredJsonMultiTurn(
+            String systemInstruction,
+            List<Map<String, Object>> contents,
+            Map<String, Object> responseSchema,
+            RetryProfile profile
+    ) {
+        log.debug("Gemini 멀티턴 API 호출 시작: profile={}", profile);
+        Timer.Sample timerSample = aiMetrics.startTimer();
+        IllegalStateException last = null;
+
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            String enrichedSystemInstruction = buildEnrichedSystemInstruction(systemInstruction, attempt, profile);
+
+            try {
+                JsonNode result = generateStructuredJsonWithContents(enrichedSystemInstruction, contents, responseSchema, tokensForProfile(profile));
+                aiMetrics.recordSuccess(timerSample, "gemini", profile.name());
+                log.info("Gemini 멀티턴 API 호출 완료: profile={}", profile);
+                return result;
+            } catch (IllegalStateException e) {
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                boolean isJsonFailure = msg.contains("structured JSON 파싱에 실패") || msg.contains("JSON 텍스트를 찾지 못했습니다");
+                boolean isRetryableHttp = msg.contains("status=503") || msg.contains("status=502") || msg.contains("status=529");
+                if (!isJsonFailure && !isRetryableHttp) throw e;
+                aiMetrics.recordRetry("gemini", profile.name());
+                if (isRetryableHttp) {
+                    log.warn("Gemini 멀티턴 일시적 HTTP 오류, {}초 후 재시도: attempt={}", attempt * 2, attempt);
+                    try { Thread.sleep(attempt * 2000L); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); throw e; }
+                } else {
+                    log.warn("Gemini 멀티턴 JSON 파싱 실패, 재시도: attempt={}", attempt);
+                }
+                last = e;
+            }
+        }
+
+        throw last == null ? new IllegalStateException("Gemini 멀티턴 structured JSON 생성에 실패했습니다.") : last;
+    }
+
+    private JsonNode generateStructuredJsonWithContents(
+            String systemInstruction,
+            List<Map<String, Object>> contents,
+            Map<String, Object> responseSchema,
+            int maxOutputTokensForRequest
+    ) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("systemInstruction", systemInstruction(systemInstruction));
+        body.put("contents", contents);
+        body.put("generationConfig", Map.of(
+                "temperature", 0.7,
+                "maxOutputTokens", Math.max(256, maxOutputTokensForRequest),
+                "responseMimeType", "application/json",
+                "responseSchema", responseSchema
+        ));
+
+        String endpoint = baseUrl.replaceAll("/+$", "")
+                + "/v1beta/models/" + model + ":generateContent?key=" + apiKey;
+
+        HttpResponse<byte[]> resp = postJson(endpoint, body);
+        if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
+            String msg = new String(resp.body() == null ? new byte[0] : resp.body(), StandardCharsets.UTF_8);
+            if (resp.statusCode() == 429) {
+                int retryAfter = extractRetryAfterSeconds(msg);
+                aiMetrics.recordRateLimit("gemini");
+                throw new UpstreamRateLimitException("Gemini 호출 제한(429). body=" + truncate(msg, 2000), retryAfter);
+            }
+            throw new IllegalStateException("Gemini 멀티턴 호출 실패. status=" + resp.statusCode() + " body=" + truncate(msg, 2000));
+        }
+
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(resp.body());
+        } catch (IOException e) {
+            throw new IllegalStateException("Gemini 멀티턴 응답 JSON 파싱에 실패했습니다.", e);
+        }
+
+        String finishReason = root.at("/candidates/0/finishReason").asText(null);
+        JsonNode partsNode = root.at("/candidates/0/content/parts");
+        String raw;
+        if (partsNode != null && partsNode.isArray()) {
+            StringBuilder sb = new StringBuilder();
+            for (JsonNode p : partsNode) {
+                JsonNode t = p.get("text");
+                if (t != null && !t.isNull()) sb.append(t.asText());
+            }
+            raw = sb.toString();
+        } else {
+            JsonNode textNode = root.at("/candidates/0/content/parts/0/text");
+            if (textNode.isMissingNode() || textNode.isNull()) {
+                throw new IllegalStateException("Gemini 멀티턴 응답에서 JSON 텍스트를 찾지 못했습니다.");
+            }
+            raw = textNode.asText();
+        }
+
+        String normalized = extractJsonObject(raw);
+        try {
+            return objectMapper.readTree(normalized);
+        } catch (IOException e) {
+            String reason = (finishReason == null || finishReason.isBlank()) ? "unknown" : finishReason;
+            throw new IllegalStateException("Gemini 멀티턴 structured JSON 파싱에 실패했습니다. finishReason=" + reason + " raw=" + truncate(raw, 2000), e);
+        }
+    }
+
+    private static Map<String, Object> conversationResponseSchema() {
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", Map.of(
+                "message", Map.of("type", "string", "maxLength", 400),
+                "badge", Map.of("type", "string", "nullable", true, "maxLength", 60),
+                "isComplete", Map.of("type", "boolean"),
+                "intention", Map.of("type", "string", "nullable", true, "maxLength", 300),
+                "keywords", Map.of("type", "string", "nullable", true, "maxLength", 200)
+        ));
+        schema.put("required", List.of("message", "isComplete"));
+        return schema;
+    }
+
     private enum RetryProfile {
         QUESTIONS,
         QUIZ_QUESTIONS,
         FEEDBACK,
         SESSION_REPORT,
         COACHING,
-        JD_MATCH
+        JD_MATCH,
+        CONVERSATION
     }
 
     private JsonNode generateStructuredJsonWithRetry(
@@ -304,9 +462,15 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             } catch (IllegalStateException e) {
                 String msg = e.getMessage() == null ? "" : e.getMessage();
                 boolean isJsonFailure = msg.contains("structured JSON 파싱에 실패") || msg.contains("JSON 텍스트를 찾지 못했습니다");
-                if (!isJsonFailure) throw e;
+                boolean isRetryableHttp = msg.contains("status=503") || msg.contains("status=502") || msg.contains("status=529");
+                if (!isJsonFailure && !isRetryableHttp) throw e;
                 aiMetrics.recordRetry("gemini", profile.name());
-                log.warn("Gemini JSON 파싱 실패, 재시도: attempt={}", attempt);
+                if (isRetryableHttp) {
+                    log.warn("Gemini 일시적 HTTP 오류, {}초 후 재시도: attempt={}", attempt * 2, attempt);
+                    try { Thread.sleep(attempt * 2000L); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); throw e; }
+                } else {
+                    log.warn("Gemini JSON 파싱 실패, 재시도: attempt={}", attempt);
+                }
                 last = e;
             }
         }
@@ -319,6 +483,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             case FEEDBACK -> 2048;
             case QUESTIONS -> maxOutputTokens; // 5문항 × modelAnswer 등 출력량이 크므로 상한 해제
             case JD_MATCH -> 4096;
+            case CONVERSATION -> 1024;
             default -> 4096;
         };
         return Math.min(maxOutputTokens, profileLimit);
@@ -385,6 +550,12 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - summary는 200자 이내로 짧게 작성하세요.
                     - recommendations는 최대 3개로 제한하세요.
                     """;
+            case CONVERSATION -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - message는 200자 이내로 짧게 작성하세요.
+                    """;
         };
     }
 
@@ -443,6 +614,13 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - summary는 150자 이내로 아주 짧게 작성하세요.
                     - recommendations는 최대 2개로 제한하세요.
                     """;
+            case CONVERSATION -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - message는 150자 이내로 아주 짧게 작성하세요.
+                    - badge는 20자 이내로 작성하세요.
+                    """;
         };
     }
 
@@ -451,6 +629,16 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             List<String> improvements,
             String suggestedAnswer,
             List<String> followups
+    ) {
+    }
+
+    private record FeedbackWithDeliveryPayload(
+            List<String> strengths,
+            List<String> improvements,
+            String suggestedAnswer,
+            List<String> followups,
+            List<String> deliveryStrengths,
+            List<String> deliveryImprovements
     ) {
     }
 

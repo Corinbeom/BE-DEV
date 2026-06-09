@@ -22,7 +22,11 @@ public record ResumeFeedbackResponse(
         @Schema(description = "AI 모범답안", example = "프로젝트에서 Spring Security를 활용하여...")
         String suggestedAnswer,
         @Schema(description = "추가 학습 질문")
-        List<String> followups
+        List<String> followups,
+        @Schema(description = "전달력 강점 (모의 면접 행동 분석 시 제공)", nullable = true)
+        List<String> deliveryStrengths,
+        @Schema(description = "전달력 개선점 (모의 면접 행동 분석 시 제공)", nullable = true)
+        List<String> deliveryImprovements
 ) implements java.io.Serializable {
     public static ResumeFeedbackResponse from(ResumeAnswerAttempt attempt) {
         Feedback f = attempt.getFeedback();
@@ -33,7 +37,9 @@ public record ResumeFeedbackResponse(
                 f == null ? List.of() : f.getStrengths(),
                 f == null ? List.of() : f.getImprovements(),
                 f == null ? null : f.getSuggestedAnswer(),
-                f == null ? List.of() : f.getFollowups()
+                f == null ? List.of() : f.getFollowups(),
+                f == null ? List.of() : f.getDeliveryStrengths(),
+                f == null ? List.of() : f.getDeliveryImprovements()
         );
     }
 }
