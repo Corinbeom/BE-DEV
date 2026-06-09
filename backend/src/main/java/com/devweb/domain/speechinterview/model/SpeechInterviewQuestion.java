@@ -20,19 +20,16 @@ public class SpeechInterviewQuestion {
     @Column(nullable = false, length = 100)
     private String badge;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
     private String questionText;
 
-    @Lob
-    @Column
+    @Column(columnDefinition = "text")
     private String intention;
 
     @Column(length = 500)
     private String keywords;
 
-    @Lob
-    @Column
+    @Column(columnDefinition = "text")
     private String modelAnswer;
 
     @OneToOne(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

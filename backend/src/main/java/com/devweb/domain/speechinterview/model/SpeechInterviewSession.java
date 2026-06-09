@@ -34,8 +34,7 @@ public class SpeechInterviewSession {
     @Column(nullable = false, length = 20)
     private SpeechInterviewStatus status;
 
-    @Lob
-    @Column(name = "resume_context")
+    @Column(name = "resume_context", columnDefinition = "text")
     private String resumeContext;
 
     @Column(nullable = false)
