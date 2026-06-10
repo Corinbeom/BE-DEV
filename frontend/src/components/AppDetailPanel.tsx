@@ -12,12 +12,12 @@ import { cn } from "@/lib/utils";
 // Hide panel on full-screen session pages
 const SESSION_PATHS = ["/resume-analyzer/practice", "/study-quiz/practice"];
 
-// Color tokens matching PA palette (Pulse variant)
+// Gradient start has no direct token (intentional mid-purple for hero card)
 const C = {
   primary: "oklch(0.385 0.175 280)",
-  green: "oklch(0.52 0.18 150)",
-  amber: "oklch(0.55 0.18 60)",
-  violet: "oklch(0.52 0.18 295)",
+  green: "var(--color-teal)",
+  amber: "var(--color-chart-3)",
+  violet: "var(--color-chart-4)",
 };
 
 function stepColor(step: string) {

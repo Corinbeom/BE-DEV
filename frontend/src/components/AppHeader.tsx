@@ -29,7 +29,7 @@ export function AppHeader({ detailOpen, onToggleDetail }: AppHeaderProps) {
         <button
           type="button"
           onClick={() => setTheme(isDark ? "light" : "dark")}
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           aria-label={isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}
           title={isDark ? "라이트 모드" : "다크 모드"}
         >
@@ -41,7 +41,8 @@ export function AppHeader({ detailOpen, onToggleDetail }: AppHeaderProps) {
           <button
             type="button"
             onClick={onToggleDetail}
-            className="hidden size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:flex"
+            className="hidden size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:flex"
+            aria-label={detailOpen ? "패널 숨기기" : "패널 보기"}
             title={detailOpen ? "패널 숨기기" : "패널 보기"}
           >
             <span className="material-symbols-outlined text-[18px]">
