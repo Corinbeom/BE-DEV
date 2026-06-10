@@ -153,17 +153,18 @@ export function ConversationView({
   const lastAiLog = conversationLog.filter(e => e.role === "ai").pop();
 
   return (
-    <div style={{ height: "calc(100vh - 3.5rem)", display: "flex", flexDirection: "row", overflow: "hidden", background: "#090f1c" }}>
+    <div className="flex flex-col md:flex-row overflow-hidden" style={{ height: "calc(100vh - 3.5rem)", background: "#090f1c" }}>
 
       {/* ── 왼쪽 AI 노드 패널 ── */}
-      <div style={{
-        width: 260, flexShrink: 0,
-        borderRight: "1px solid rgba(255,255,255,0.06)",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start",
-        padding: "48px 20px 24px",
-        background: "linear-gradient(180deg, rgba(9,15,28,0) 0%, rgba(14,22,40,0.6) 100%)",
-        position: "relative", overflow: "hidden",
-      }}>
+      <div
+        className="hidden md:flex md:flex-col md:items-center md:justify-start"
+        style={{
+          width: 260, flexShrink: 0,
+          borderRight: "1px solid rgba(255,255,255,0.06)",
+          padding: "48px 20px 24px",
+          background: "linear-gradient(180deg, rgba(9,15,28,0) 0%, rgba(14,22,40,0.6) 100%)",
+          position: "relative", overflow: "hidden",
+        }}>
         {/* 앰비언트 글로우 */}
         <div style={{
           position: "absolute", width: 200, height: 200, borderRadius: "50%",

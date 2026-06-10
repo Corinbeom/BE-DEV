@@ -55,9 +55,9 @@ export function InterviewTrendChart({ weeklyTrends }: InterviewTrendChartProps) 
           type="monotone"
           dataKey="avgStrengths"
           name="평균 강점"
-          stroke="var(--color-emerald-500, #10b981)"
+          stroke="var(--color-teal)"
           strokeWidth={2}
-          dot={{ r: 3, fill: "var(--color-emerald-500, #10b981)", strokeWidth: 0 }}
+          dot={{ r: 3, fill: "var(--color-teal)", strokeWidth: 0 }}
           activeDot={{ r: 5, stroke: "var(--color-background)", strokeWidth: 2 }}
           animationDuration={800}
         />
@@ -65,9 +65,9 @@ export function InterviewTrendChart({ weeklyTrends }: InterviewTrendChartProps) 
           type="monotone"
           dataKey="avgImprovements"
           name="평균 개선점"
-          stroke="var(--color-rose-500, #f43f5e)"
+          stroke="var(--color-destructive)"
           strokeWidth={2}
-          dot={{ r: 3, fill: "var(--color-rose-500, #f43f5e)", strokeWidth: 0 }}
+          dot={{ r: 3, fill: "var(--color-destructive)", strokeWidth: 0 }}
           activeDot={{ r: 5, stroke: "var(--color-background)", strokeWidth: 2 }}
           animationDuration={800}
         />

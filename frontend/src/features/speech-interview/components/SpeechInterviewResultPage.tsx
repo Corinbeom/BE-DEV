@@ -287,12 +287,14 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
       <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
 
         {/* ── 왼쪽 고정 패널 ── */}
-        <div style={{
-          width: 300, flexShrink: 0,
-          borderRight: "1px solid rgba(255,255,255,0.07)",
-          overflow: "auto", padding: "24px 20px",
-          display: "flex", flexDirection: "column", gap: 24,
-        }}>
+        <div
+          className="hidden md:flex"
+          style={{
+            width: 300, flexShrink: 0,
+            borderRight: "1px solid rgba(255,255,255,0.07)",
+            overflow: "auto", padding: "24px 20px",
+            flexDirection: "column", gap: 24,
+          }}>
           {/* 세션 정보 */}
           <div>
             <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", marginBottom: 8 }}>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
+import { AppBottomNav } from "./AppBottomNav";
 import { AppDetailPanel } from "./AppDetailPanel";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -124,9 +125,10 @@ export function AppFrame({ children }: { children: ReactNode }) {
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AppHeader detailOpen={detailOpen} onToggleDetail={toggleDetail} />
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
+        <main className="flex-1 overflow-y-auto custom-scrollbar pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           <div className="mx-auto max-w-5xl space-y-6 p-6">{children}</div>
         </main>
+        <AppBottomNav />
       </div>
       {detailOpen && <AppDetailPanel />}
     </div>
