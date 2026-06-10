@@ -121,7 +121,7 @@ export function SpeechInterviewPage() {
       <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#090f1c]/95 backdrop-blur-md">
         <div className="flex h-14 items-center px-6">
           {/* 왼쪽: 로고 레이블 */}
-          <div className="flex min-w-[160px] items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="size-1.5 rounded-full bg-blue-500" />
             <span className="text-sm font-semibold text-white/80">스피치 면접</span>
           </div>
@@ -155,7 +155,7 @@ export function SpeechInterviewPage() {
           {state.phase !== "CONVERSING" && <div className="flex-1" />}
 
           {/* 오른쪽: 나가기 버튼 */}
-          <div className="flex min-w-[160px] justify-end">
+          <div className="ml-auto flex shrink-0 justify-end">
             <button
               onClick={handleExit}
               className="rounded-md border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/50 transition-all hover:bg-white/[0.08] hover:text-white/80"

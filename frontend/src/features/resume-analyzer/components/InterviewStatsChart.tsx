@@ -51,14 +51,14 @@ export function InterviewStatsChart({ badgeStats }: InterviewStatsChartProps) {
         <Bar
           dataKey="avgStrengths"
           name="평균 강점"
-          fill="var(--color-emerald-500, #10b981)"
+          fill="var(--color-teal)"
           radius={[4, 4, 0, 0]}
           animationDuration={800}
         />
         <Bar
           dataKey="avgImprovements"
           name="평균 개선점"
-          fill="var(--color-rose-500, #f43f5e)"
+          fill="var(--color-destructive)"
           radius={[4, 4, 0, 0]}
           animationDuration={800}
         />

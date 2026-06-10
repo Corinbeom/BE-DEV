@@ -7,7 +7,7 @@ import type { JdMatchAnalysis, MissingKeyword } from "../api/types";
 import { cn } from "@/lib/utils";
 
 function matchRateColor(rate: number): { bar: string; text: string; bg: string } {
-  if (rate >= 80) return { bar: "bg-[oklch(0.52_0.18_150)]", text: "text-[oklch(0.52_0.18_150)]", bg: "bg-[oklch(0.52_0.18_150)]/10" };
+  if (rate >= 80) return { bar: "bg-teal", text: "text-teal", bg: "bg-teal/10" };
   if (rate >= 60) return { bar: "bg-amber-500", text: "text-amber-600", bg: "bg-amber-500/10" };
   return { bar: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" };
 }
@@ -185,7 +185,7 @@ function AnalysisResult({ result }: { result: JdMatchAnalysis }) {
         {/* Matched keywords */}
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="mb-3 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-[oklch(0.52_0.18_150)]">check_circle</span>
+            <span className="material-symbols-outlined text-[18px] text-teal">check_circle</span>
             <h3 className="text-sm font-semibold text-foreground">매칭 키워드</h3>
             <span className="ml-auto text-xs text-muted-foreground">{result.matchedKeywords.length}개</span>
           </div>
@@ -197,7 +197,7 @@ function AnalysisResult({ result }: { result: JdMatchAnalysis }) {
                 <span
                   key={i}
                   title={kw.category}
-                  className="rounded-md bg-[oklch(0.52_0.18_150)]/10 px-2.5 py-1 text-xs font-semibold text-[oklch(0.52_0.18_150)]"
+                  className="rounded-md bg-teal/10 px-2.5 py-1 text-xs font-semibold text-teal"
                 >
                   {kw.keyword}
                 </span>

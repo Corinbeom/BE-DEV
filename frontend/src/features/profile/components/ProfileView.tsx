@@ -27,7 +27,7 @@ function formatBytes(bytes: number | null): string {
 function extractStatusDot(status: string) {
   switch (status) {
     case "EXTRACTED":
-      return { color: "bg-[oklch(0.52_0.18_150)]", label: "추출 완료" };
+      return { color: "bg-teal", label: "추출 완료" };
     case "FAILED":
       return { color: "bg-destructive", label: "추출 실패" };
     default:

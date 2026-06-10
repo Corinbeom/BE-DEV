@@ -7,21 +7,15 @@ import { InterviewTrendChart } from "./InterviewTrendChart";
 import { cn } from "@/lib/utils";
 
 const C = {
-  green: "oklch(0.52 0.18 150)",
-  amber: "oklch(0.58 0.18 60)",
-  rose: "oklch(0.55 0.18 25)",
-  primary: "oklch(0.385 0.175 280)",
+  green: "var(--color-teal)",
+  amber: "var(--color-chart-3)",
+  rose: "var(--color-destructive)",
+  primary: "var(--color-primary)",
+  empty: "var(--color-muted-foreground)",
 } as const;
 
-function badgeBorderColor(b: BadgeStats): string {
-  if (b.attemptedQuestions === 0) return "var(--color-border)";
-  if (b.avgStrengths >= b.avgImprovements * 1.2) return C.green;
-  if (b.avgImprovements >= b.avgStrengths * 1.2) return C.amber;
-  return C.primary;
-}
-
 function badgeDotStyle(b: BadgeStats): { background: string } {
-  if (b.attemptedQuestions === 0) return { background: "oklch(0.7 0 0)" };
+  if (b.attemptedQuestions === 0) return { background: C.empty };
   if (b.avgStrengths >= b.avgImprovements * 1.2) return { background: C.green };
   if (b.avgImprovements >= b.avgStrengths * 1.2) return { background: C.amber };
   return { background: C.primary };
@@ -204,11 +198,10 @@ export function InterviewReportSection({ stats }: { stats: ResumeInterviewStats 
                   setSelectedBadge((prev) => (prev === b.badge ? null : b.badge))
                 }
                 className={cn(
-                  "rounded-xl border border-border bg-card border-l-[3px] px-4 py-3 text-left transition-all hover:bg-accent/30",
+                  "rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:bg-accent/30",
                   selectedBadge === b.badge &&
-                    "bg-accent/20 ring-2 ring-inset ring-primary/30"
+                    "bg-accent/20 ring-2 ring-accent/60"
                 )}
-                style={{ borderLeftColor: badgeBorderColor(b) }}
               >
                 <div className="mb-2 flex items-center justify-between gap-1">
                   <span className="truncate text-sm font-semibold text-foreground">

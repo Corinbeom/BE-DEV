@@ -26,18 +26,18 @@ export function AppSidebar() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <aside className="hidden w-[220px] flex-shrink-0 flex-col bg-sidebar md:flex">
+    <aside className="hidden w-[220px] flex-shrink-0 flex-col border-r border-border bg-background dark:bg-surface md:flex">
       {/* Logo — Blade style text mark */}
       <div className="px-5 pb-[18px] pt-[22px]">
-        <div className="font-sans text-lg font-bold tracking-[-0.02em] text-sidebar-foreground">
+        <div className="font-sans text-lg font-bold tracking-[-0.02em] text-foreground">
           Bluehour
         </div>
-        <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-sidebar-foreground/30">
+        <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground">
           Before Your Sunrise
         </div>
       </div>
 
-      <div className="mx-5 h-px bg-sidebar-border" />
+      <div className="mx-5 h-px bg-border" />
 
       {/* Navigation */}
       <nav className="flex-1 px-2.5 py-3">
@@ -48,21 +48,17 @@ export function AppSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative mb-0.5 flex w-full items-center gap-2.5 px-2.5 py-[9px] text-[13px] transition-colors duration-150",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring",
+                "mb-0.5 flex w-full items-center gap-2.5 border-l-2 px-2.5 py-[9px] text-[13px] transition-colors duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40",
                 active
-                  ? "bg-sidebar-accent font-medium text-sidebar-foreground"
-                  : "text-sidebar-foreground/45 hover:bg-white/[0.05] hover:text-sidebar-foreground"
+                  ? "border-primary bg-accent/10 font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
             >
-              {/* Active indicator bar */}
-              {active && (
-                <div className="absolute inset-y-0 left-0 w-[3px] rounded-r bg-sidebar-primary" />
-              )}
               <span
                 className={cn(
                   "material-symbols-outlined text-[17px]",
-                  active ? "text-sidebar-foreground" : "text-sidebar-foreground/35"
+                  active ? "text-foreground" : "text-muted-foreground"
                 )}
                 style={{
                   fontVariationSettings: active
@@ -78,27 +74,27 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="mx-5 h-px bg-sidebar-border" />
+      <div className="mx-5 h-px bg-border" />
 
       {/* User profile */}
       <div className="p-3.5">
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
-            <Avatar className="size-[26px] flex-shrink-0 border border-sidebar-foreground/20">
+          <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+            <Avatar className="size-[26px] flex-shrink-0 border border-border">
               <AvatarImage src={user?.photoUrl ?? undefined} alt={displayName} />
-              <AvatarFallback className="bg-sidebar-primary/25 text-[11px] font-bold text-sidebar-primary">
+              <AvatarFallback className="bg-primary/10 text-[11px] font-bold text-primary">
                 {initial}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1 text-left">
-              <p className="truncate text-[12px] font-semibold text-sidebar-foreground">
+              <p className="truncate text-[12px] font-semibold text-foreground">
                 {displayName}
               </p>
-              <p className="truncate text-[10px] text-sidebar-foreground/35">
+              <p className="truncate text-[10px] text-muted-foreground">
                 {user?.email}
               </p>
             </div>
-            <span className="material-symbols-outlined text-base text-sidebar-foreground/30">
+            <span className="material-symbols-outlined text-base text-muted-foreground">
               unfold_more
             </span>
           </DropdownMenuTrigger>

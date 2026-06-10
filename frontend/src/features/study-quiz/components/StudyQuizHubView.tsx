@@ -12,7 +12,6 @@ import { LearningInsights } from "@/features/dashboard/components/LearningInsigh
 
 type StatusConfig = {
   label: string;
-  borderColor: string;
   dotColor: string;
   textColor: string;
 };
@@ -22,28 +21,24 @@ function statusConfig(status: string): StatusConfig {
     case "QUESTIONS_READY":
       return {
         label: "준비됨",
-        borderColor: "border-l-primary",
         dotColor: "bg-primary",
         textColor: "text-primary",
       };
     case "CREATED":
       return {
         label: "생성 중",
-        borderColor: "border-l-amber-500",
         dotColor: "bg-amber-500",
         textColor: "text-amber-600",
       };
     case "FAILED":
       return {
         label: "실패",
-        borderColor: "border-l-destructive",
         dotColor: "bg-destructive",
         textColor: "text-destructive",
       };
     default:
       return {
         label: status,
-        borderColor: "border-l-border",
         dotColor: "bg-muted-foreground/40",
         textColor: "text-muted-foreground",
       };
@@ -221,12 +216,13 @@ function SessionCard({
   const lastActivityLabel = formatLastActivity(session.updatedAt ?? session.createdAt);
 
   return (
-    <Link href={`/study-quiz/practice?sessionId=${session.id}`}>
+    <Link
+      href={`/study-quiz/practice?sessionId=${session.id}`}
+      className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+    >
       <div
         className={cn(
-          "group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/30",
-          "border-l-[3px]",
-          cfg.borderColor
+          "flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/30"
         )}
       >
         {/* Status row */}
