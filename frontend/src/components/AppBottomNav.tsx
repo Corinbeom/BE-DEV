@@ -14,7 +14,7 @@ export function AppBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
-      <div className="grid h-16 grid-cols-4">
+      <div className="grid h-16 grid-cols-5">
         {primaryNav.map((item) => {
           const active = isActivePath(pathname, item.href);
 
@@ -41,7 +41,7 @@ export function AppBottomNav() {
               >
                 {item.icon}
               </span>
-              <span className="max-w-full truncate">{item.label}</span>
+              <span className="max-w-full truncate">{item.shortLabel ?? item.label}</span>
             </Link>
           );
         })}
