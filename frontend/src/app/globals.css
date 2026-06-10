@@ -5,104 +5,101 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* ── Bluehour "Pulse × Blade" Design System ──────────────────────────────
-     Variant A (Pulse) palette for content + Variant C (Blade) sidebar
-     Primary: indigo oklch(0.385 0.175 280)
-     Sidebar: dark navy #1e1e2e
-     BG: #f4f4f7 (slight violet tint)
-  ─────────────────────────────────────────────────────── */
+  /* Bluehour UI redesign tokens */
 
   --gold: oklch(0.82 0.16 88);
+  --teal: oklch(0.52 0.10 175);
 
-  --primary: oklch(0.385 0.175 280);        /* #4040b5 indigo */
+  --primary: oklch(0.18 0.06 280);
   --primary-foreground: oklch(1 0 0);       /* white */
 
-  --background: oklch(0.96 0.006 280);      /* #f4f4f7 */
-  --foreground: oklch(0.08 0.015 270);      /* #0f0f1a very dark navy */
+  --background: oklch(0.98 0.005 80);
+  --foreground: oklch(0.18 0.06 280);
 
   --card: oklch(1 0 0);                     /* #ffffff */
-  --card-foreground: oklch(0.08 0.015 270);
+  --card-foreground: oklch(0.18 0.06 280);
+  --surface: var(--card);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.08 0.015 270);
+  --popover-foreground: oklch(0.18 0.06 280);
 
   --secondary: oklch(0.93 0.008 280);       /* light purple-gray */
-  --secondary-foreground: oklch(0.08 0.015 270);
+  --secondary-foreground: oklch(0.18 0.06 280);
 
-  --muted: oklch(0.93 0.006 280);           /* subtle muted bg */
-  --muted-foreground: oklch(0.63 0.03 280); /* #9090b0 */
+  --muted: oklch(0.50 0.01 280);
+  --muted-foreground: oklch(0.50 0.01 280);
 
   --accent: oklch(0.94 0.012 280);          /* light lavender hover */
-  --accent-foreground: oklch(0.08 0.015 270);
+  --accent-foreground: oklch(0.18 0.06 280);
 
-  --destructive: oklch(0.52 0.20 25);
+  --destructive: oklch(0.55 0.18 25);
 
   --border: oklch(0.90 0.008 280);          /* #e4e4ec */
   --input: oklch(0.90 0.008 280);
-  --ring: oklch(0.385 0.175 280);
+  --ring: oklch(0.18 0.06 280);
 
   /* Chart palette (used for stat card colors) */
-  --chart-1: oklch(0.385 0.175 280);        /* indigo */
-  --chart-2: oklch(0.52 0.18 150);          /* green */
+  --chart-1: oklch(0.18 0.06 280);          /* deep midnight */
+  --chart-2: var(--teal);
   --chart-3: oklch(0.55 0.18 60);           /* amber */
   --chart-4: oklch(0.52 0.18 295);          /* violet */
-  --chart-5: oklch(0.52 0.20 25);           /* red */
+  --chart-5: var(--destructive);
 
   --radius: 0.75rem;                        /* 12px rounded cards */
 
-  /* Sidebar — Blade dark navy */
-  --sidebar: oklch(0.13 0.04 270);          /* #1e1e2e */
-  --sidebar-foreground: oklch(0.96 0 0);
-  --sidebar-primary: oklch(0.385 0.175 280);
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 10%);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.385 0.175 280);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
-  --background: oklch(0.10 0.015 270);
+  --background: oklch(0.12 0.02 280);
   --foreground: oklch(0.93 0.005 280);
 
-  --card: oklch(0.14 0.025 270);
+  --card: oklch(0.18 0.06 280);
   --card-foreground: oklch(0.93 0.005 280);
+  --surface: var(--card);
 
-  --popover: oklch(0.14 0.025 270);
+  --popover: oklch(0.18 0.06 280);
   --popover-foreground: oklch(0.93 0.005 280);
 
-  --primary: oklch(0.65 0.175 280);
-  --primary-foreground: oklch(0.08 0.015 270);
+  --primary: oklch(0.86 0.02 280);
+  --primary-foreground: oklch(0.18 0.06 280);
 
   --secondary: oklch(0.18 0.03 270);
   --secondary-foreground: oklch(0.93 0.005 280);
 
-  --muted: oklch(0.18 0.03 270);
-  --muted-foreground: oklch(0.60 0.025 280);
+  --muted: oklch(0.24 0.02 280);
+  --muted-foreground: oklch(0.72 0.01 280);
 
   --accent: oklch(0.20 0.03 280);
   --accent-foreground: oklch(0.93 0.005 280);
 
-  --destructive: oklch(0.52 0.20 25);
+  --destructive: oklch(0.55 0.18 25);
 
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.65 0.175 280);
+  --ring: oklch(0.86 0.02 280);
 
-  --chart-1: oklch(0.60 0.175 280);
-  --chart-2: oklch(0.60 0.18 150);
+  --chart-1: oklch(0.86 0.02 280);
+  --chart-2: var(--teal);
   --chart-3: oklch(0.65 0.18 60);
   --chart-4: oklch(0.60 0.18 295);
-  --chart-5: oklch(0.60 0.20 25);
+  --chart-5: var(--destructive);
 
-  --sidebar: oklch(0.10 0.025 270);
+  --sidebar: var(--surface);
   --sidebar-foreground: oklch(0.93 0 0);
-  --sidebar-primary: oklch(0.65 0.175 280);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(1 0 0 / 10%);
-  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.65 0.175 280);
+  --sidebar-ring: var(--ring);
 }
 
 @theme inline {
@@ -116,9 +113,12 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-gold: var(--gold);
+  --color-teal: var(--teal);
   --color-destructive: var(--destructive);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-border: var(--border);
@@ -138,9 +138,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Fonts: DM Sans (display/numbers) + Noto Sans KR (Korean body) + DM Mono (labels) */
-  --font-sans: var(--font-dm-sans), var(--font-noto-kr), system-ui, sans-serif;
-  --font-mono: var(--font-dm-mono), "Courier New", monospace;
+  --font-sans: var(--font-geist-sans), var(--font-noto-kr), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Courier New", monospace;
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);

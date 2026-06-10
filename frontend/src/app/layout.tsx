@@ -1,23 +1,13 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Mono, Noto_Sans_KR } from "next/font/google";
+import { Noto_Sans_KR } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const dmMono = DM_Mono({
-  variable: "--font-dm-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  display: "swap",
-});
 
 const notoSansKR = Noto_Sans_KR({
   variable: "--font-noto-kr",
@@ -52,12 +42,14 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${dmSans.variable} ${dmMono.variable} ${notoSansKR.variable} antialiased`}
+        className={`${GeistSans.variable} ${GeistMono.variable} ${notoSansKR.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
-        <Toaster richColors position="top-right" />
-        <SpeedInsights />
-        <Analytics />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Providers>{children}</Providers>
+          <Toaster richColors position="top-right" />
+          <SpeedInsights />
+          <Analytics />
+        </ThemeProvider>
       </body>
     </html>
   );
