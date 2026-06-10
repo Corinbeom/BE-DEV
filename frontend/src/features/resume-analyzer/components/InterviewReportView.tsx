@@ -9,10 +9,10 @@ import { InterviewReportSection } from "./InterviewReportSection";
 import type { CoachingReport, CoachingLearningPlanItem } from "../api/types";
 
 const C = {
-  green: "oklch(0.52 0.18 150)",
-  amber: "oklch(0.58 0.18 60)",
-  rose: "oklch(0.55 0.18 25)",
-  primary: "oklch(0.385 0.175 280)",
+  green: "var(--color-teal)",
+  amber: "var(--color-chart-3)",
+  rose: "var(--color-destructive)",
+  primary: "var(--color-primary)",
 } as const;
 
 function getCooldownRemainingMs(generatedAt?: string): number {
@@ -322,10 +322,7 @@ function LearningPlanItem({ item }: { item: CoachingLearningPlanItem }) {
     item.priority === 1 ? C.rose : item.priority === 2 ? C.amber : C.primary;
 
   return (
-    <div
-      className="overflow-hidden rounded-xl border border-border border-l-[3px] bg-background"
-      style={{ borderLeftColor: priorityColor }}
-    >
+    <div className="overflow-hidden rounded-xl border border-border bg-background">
       <div className="px-4 py-3.5">
         <div className="mb-2 flex items-center gap-2">
           <span

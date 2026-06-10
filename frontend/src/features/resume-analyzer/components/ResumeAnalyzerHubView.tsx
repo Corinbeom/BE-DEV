@@ -15,7 +15,6 @@ function positionLabel(type: string | null) {
 
 type StatusConfig = {
   label: string;
-  borderColor: string;
   dotColor: string;
   barColor: string;
   textColor: string;
@@ -26,15 +25,13 @@ function statusConfig(status: string): StatusConfig {
     case "COMPLETED":
       return {
         label: "완료",
-        borderColor: "border-l-[oklch(0.52_0.18_150)]",
-        dotColor: "bg-[oklch(0.52_0.18_150)]",
-        barColor: "bg-[oklch(0.52_0.18_150)]",
-        textColor: "text-[oklch(0.52_0.18_150)]",
+        dotColor: "bg-teal",
+        barColor: "bg-teal",
+        textColor: "text-teal",
       };
     case "QUESTIONS_READY":
       return {
         label: "연습 가능",
-        borderColor: "border-l-primary",
         dotColor: "bg-primary",
         barColor: "bg-primary",
         textColor: "text-primary",
@@ -42,7 +39,6 @@ function statusConfig(status: string): StatusConfig {
     case "CREATED":
       return {
         label: "생성 중",
-        borderColor: "border-l-amber-500",
         dotColor: "bg-amber-500",
         barColor: "bg-amber-500",
         textColor: "text-amber-600",
@@ -50,7 +46,6 @@ function statusConfig(status: string): StatusConfig {
     case "FAILED":
       return {
         label: "실패",
-        borderColor: "border-l-destructive",
         dotColor: "bg-destructive",
         barColor: "bg-destructive",
         textColor: "text-destructive",
@@ -58,7 +53,6 @@ function statusConfig(status: string): StatusConfig {
     default:
       return {
         label: status,
-        borderColor: "border-l-border",
         dotColor: "bg-muted-foreground/40",
         barColor: "bg-muted",
         textColor: "text-muted-foreground",
@@ -143,7 +137,7 @@ export function ResumeAnalyzerHubView() {
               label: "완료",
               value: completedCount,
               icon: "task_alt",
-              iconCls: "text-[oklch(0.52_0.18_150)] bg-[oklch(0.52_0.18_150)]/10",
+              iconCls: "text-teal bg-teal/10",
             },
             {
               label: "연습 가능",
@@ -253,12 +247,13 @@ function SessionCard({
   const cfg = statusConfig(session.status);
 
   return (
-    <Link href={`/resume-analyzer/practice?sessionId=${session.id}`}>
+    <Link
+      href={`/resume-analyzer/practice?sessionId=${session.id}`}
+      className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+    >
       <div
         className={cn(
-          "group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/30",
-          "border-l-[3px]",
-          cfg.borderColor
+          "flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/30"
         )}
       >
         {/* Status row */}
