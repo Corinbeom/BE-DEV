@@ -11,11 +11,11 @@ import { cn } from "@/lib/utils";
 
 // Pulse palette — matches PA colors from design
 const PA = {
-  primary: "oklch(0.385 0.175 280)",
-  green: "oklch(0.52 0.18 150)",
-  amber: "oklch(0.55 0.18 60)",
-  violet: "oklch(0.52 0.18 295)",
-  red: "oklch(0.52 0.20 25)",
+  primary: "var(--color-primary)",
+  green: "var(--color-teal)",
+  amber: "var(--color-chart-3)",
+  violet: "var(--color-chart-4)",
+  red: "var(--color-destructive)",
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -33,15 +33,6 @@ function topicLabel(topic: string) {
     CLOUD: "클라우드",
   };
   return map[topic] ?? topic;
-}
-
-function statusKorean(status: string) {
-  switch (status) {
-    case "QUESTIONS_READY": return "완료";
-    case "CREATED": return "생성 중";
-    case "FAILED": return "실패";
-    default: return status;
-  }
 }
 
 function formatRelativeDate(isoString: string | null): string {

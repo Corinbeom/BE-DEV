@@ -10,7 +10,6 @@ import type { ResumeFile } from "@/features/profile/api/types";
 import type {
   PositionType,
   ResumeFeedback,
-  ResumeQuestion,
   ResumeSession,
   SessionReport,
 } from "../api/types";
@@ -32,13 +31,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -665,7 +657,7 @@ export function ResumePortfolioPrepView() {
                     className={cn(
                       "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full",
                       done
-                        ? "bg-[oklch(0.52_0.18_150)]"
+                        ? "bg-teal"
                         : active
                           ? "bg-primary"
                           : "bg-border"
@@ -690,7 +682,7 @@ export function ResumePortfolioPrepView() {
                       className={cn(
                         "text-[11px] font-semibold",
                         done
-                          ? "text-[oklch(0.52_0.18_150)]"
+                          ? "text-teal"
                           : active
                             ? "text-primary"
                             : "text-muted-foreground"
@@ -974,7 +966,7 @@ export function ResumePortfolioPrepView() {
                             className={cn(
                               "size-3 shrink-0 rounded-full",
                               done
-                                ? "bg-[oklch(0.52_0.18_150)]"
+                                ? "bg-teal"
                                 : active
                                   ? "bg-primary"
                                   : "bg-border"
@@ -984,7 +976,7 @@ export function ResumePortfolioPrepView() {
                             className={cn(
                               "truncate text-[11px]",
                               done
-                                ? "text-[oklch(0.52_0.18_150)]"
+                                ? "text-teal"
                                 : active
                                   ? "font-medium text-foreground"
                                   : "text-muted-foreground"
@@ -1090,10 +1082,10 @@ function FeedbackPanelContent({
           <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
             <div>
               <div className="mb-3 flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-[oklch(0.52_0.10_175)]">
+                <span className="material-symbols-outlined text-base text-teal">
                   thumb_up
                 </span>
-                <p className="text-xs font-bold uppercase tracking-wider text-[oklch(0.52_0.10_175)]">
+                <p className="text-xs font-bold uppercase tracking-wider text-teal">
                   잘한 점
                 </p>
               </div>
@@ -1101,7 +1093,7 @@ function FeedbackPanelContent({
                 {feedback.strengths.length > 0 ? (
                   feedback.strengths.map((s, idx) => (
                     <li key={idx} className="flex items-start gap-2">
-                      <span className="material-symbols-outlined mt-0.5 text-sm text-[oklch(0.52_0.10_175)]">
+                      <span className="material-symbols-outlined mt-0.5 text-sm text-teal">
                         check_circle
                       </span>
                       <span>{s}</span>
@@ -1229,8 +1221,8 @@ function SessionCompletedView({
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <Card>
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-[oklch(0.52_0.18_150)]/15">
-            <span className="material-symbols-outlined text-4xl text-[oklch(0.52_0.18_150)]"
+          <div className="flex size-16 items-center justify-center rounded-full bg-teal/15">
+            <span className="material-symbols-outlined text-4xl text-teal"
               style={{ fontVariationSettings: '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24' }}>
               task_alt
             </span>
@@ -1254,10 +1246,10 @@ function SessionCompletedView({
                   className={cn(
                     "text-5xl font-bold tabular-nums",
                     report.overallScore >= 8
-                      ? "text-[oklch(0.52_0.18_150)]"
+                      ? "text-teal"
                       : report.overallScore >= 5
                         ? "text-foreground"
-                        : "text-[oklch(0.52_0.20_25)]"
+                        : "text-destructive"
                   )}
                 >
                   {report.overallScore}
@@ -1411,13 +1403,13 @@ function SessionReportCard({ report }: { report: SessionReport }) {
                           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {bs.strengths.length > 0 && (
                               <div>
-                                <p className="mb-2 text-xs font-semibold text-[oklch(0.52_0.10_175)]">
+                                <p className="mb-2 text-xs font-semibold text-teal">
                                   강점
                                 </p>
                                 <ul className="space-y-2">
                                   {bs.strengths.map((s, i) => (
                                     <li key={i} className="flex items-start gap-1.5 text-sm text-foreground">
-                                      <span className="mt-1 shrink-0 text-[oklch(0.52_0.10_175)]">•</span>
+                                      <span className="mt-1 shrink-0 text-teal">•</span>
                                       <span>{s}</span>
                                     </li>
                                   ))}
@@ -1523,7 +1515,7 @@ function StatTile({
 }) {
   const toneClass =
     tone === "teal"
-      ? "text-[oklch(0.52_0.18_150)] bg-[oklch(0.52_0.18_150)]/10"
+      ? "text-teal bg-teal/10"
       : tone === "neutral"
         ? "text-foreground bg-card"
         : "text-primary bg-primary/10";

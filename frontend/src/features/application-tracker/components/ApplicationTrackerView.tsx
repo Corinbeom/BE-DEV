@@ -104,7 +104,7 @@ function toKoreanStep(step: RecruitmentStep) {
 
 function stepBorderColor(step: RecruitmentStep) {
   switch (step) {
-    case "OFFERED": return "border-l-[oklch(0.52_0.18_150)]";
+    case "OFFERED": return "border-l-teal";
     case "INTERVIEWING": return "border-l-amber-500";
     case "REJECTED": return "border-l-destructive";
     default: return "border-l-primary";
@@ -195,7 +195,7 @@ export function ApplicationTrackerView() {
         {[
           { label: "총 지원", value: entries.length, icon: "description", iconCls: "text-primary bg-primary/10" },
           { label: "면접", value: grouped.INTERVIEWING.length, icon: "event", iconCls: "text-amber-600 bg-amber-500/10" },
-          { label: "오퍼", value: entries.filter((e) => e.step === "OFFERED").length, icon: "workspace_premium", iconCls: "text-[oklch(0.52_0.18_150)] bg-[oklch(0.52_0.18_150)]/10" },
+          { label: "오퍼", value: entries.filter((e) => e.step === "OFFERED").length, icon: "workspace_premium", iconCls: "text-teal bg-teal/10" },
         ].map((stat) => (
           <div key={stat.label} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
             <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", stat.iconCls)}>
@@ -574,7 +574,7 @@ function EntryDetailsModal({
         </div>
 
         {justSaved && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-[oklch(0.52_0.18_150)]/30 bg-[oklch(0.52_0.18_150)]/5 px-4 py-3 text-sm font-semibold text-[oklch(0.52_0.18_150)]">
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-teal/30 bg-teal/10 px-4 py-3 text-sm font-semibold text-teal">
             <span className="material-symbols-outlined text-lg">check_circle</span>
             저장 완료
           </div>
