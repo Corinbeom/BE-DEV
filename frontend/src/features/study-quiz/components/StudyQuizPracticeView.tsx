@@ -18,7 +18,6 @@ import type {
 } from "../api/types";
 import { TOPICS, DIFFICULTIES, TOPIC_LABEL, DIFFICULTY_META } from "../constants";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -317,8 +316,8 @@ export function StudyQuizPracticeView() {
             if (attempt) {
               if (q.type === "MULTIPLE_CHOICE") {
                 circleClass = attempt.correct
-                  ? "bg-[oklch(0.52_0.18_150)] text-white"
-                  : "bg-red-500 text-white";
+                  ? "bg-teal text-white"
+                  : "bg-destructive text-white";
                 circleContent = (
                   <span className="material-symbols-outlined text-[12px]">
                     {attempt.correct ? "check" : "close"}
@@ -359,8 +358,8 @@ export function StudyQuizPracticeView() {
                       attempt
                         ? q.type === "MULTIPLE_CHOICE"
                           ? attempt.correct
-                            ? "text-[oklch(0.52_0.18_150)]"
-                            : "text-red-500"
+                            ? "text-teal"
+                            : "text-destructive"
                           : "text-primary"
                         : isActive
                           ? "text-primary"
@@ -439,15 +438,15 @@ export function StudyQuizPracticeView() {
                     let circleStyle = "border-border text-muted-foreground";
 
                     if (selected && !hasAttempt) {
-                      choiceStyle = "border-primary bg-primary/5";
-                      circleStyle = "border-primary bg-primary text-primary-foreground";
+                      choiceStyle = "border-accent/40 bg-accent/15";
+                      circleStyle = "border-accent bg-accent text-accent-foreground";
                     } else if (hasAttempt && selected) {
                       choiceStyle = activeAttempt.correct
-                        ? "border-[oklch(0.52_0.18_150)] bg-[oklch(0.52_0.18_150)]/10"
-                        : "border-red-500 bg-red-500/10";
+                        ? "border-teal bg-teal/10"
+                        : "border-destructive bg-destructive/10";
                       circleStyle = activeAttempt.correct
-                        ? "border-[oklch(0.52_0.18_150)] bg-[oklch(0.52_0.18_150)] text-white"
-                        : "border-red-500 bg-red-500 text-white";
+                        ? "border-teal bg-teal text-white"
+                        : "border-destructive bg-destructive text-white";
                     }
 
                     return (
@@ -662,8 +661,8 @@ export function StudyQuizPracticeView() {
                   if (attempt) {
                     if (q.type === "MULTIPLE_CHOICE") {
                       dotClass = attempt.correct
-                        ? "bg-[oklch(0.52_0.18_150)] text-white"
-                        : "bg-red-500 text-white";
+                        ? "bg-teal text-white"
+                        : "bg-destructive text-white";
                     } else {
                       dotClass = "bg-primary text-primary-foreground";
                     }
@@ -725,14 +724,14 @@ function FeedbackTabs({ attempt }: { attempt: CsQuizAttempt }) {
             className={cn(
               "mb-4 flex items-center gap-2 rounded-xl border p-4",
               attempt.correct
-                ? "border-[oklch(0.52_0.18_150)]/30 bg-[oklch(0.52_0.18_150)]/5"
-                : "border-red-500/30 bg-red-500/5"
+                ? "border-teal bg-teal/10"
+                : "border-destructive bg-destructive/10"
             )}
           >
             <span
               className={cn(
                 "material-symbols-outlined text-lg",
-                attempt.correct ? "text-[oklch(0.52_0.18_150)]" : "text-red-600"
+                attempt.correct ? "text-teal" : "text-destructive"
               )}
             >
               {attempt.correct ? "check_circle" : "cancel"}
@@ -740,7 +739,7 @@ function FeedbackTabs({ attempt }: { attempt: CsQuizAttempt }) {
             <span
               className={cn(
                 "text-sm font-bold",
-                attempt.correct ? "text-[oklch(0.52_0.18_150)]" : "text-red-600"
+                attempt.correct ? "text-teal" : "text-destructive"
               )}
             >
               채점 결과: {attempt.correct ? "정답" : "오답"}
@@ -749,14 +748,14 @@ function FeedbackTabs({ attempt }: { attempt: CsQuizAttempt }) {
         )}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-border bg-background p-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[oklch(0.52_0.18_150)]">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-teal">
               잘한 점
             </p>
             <ul className="space-y-2 text-sm text-foreground">
               {attempt.strengths.length > 0 ? (
                 attempt.strengths.map((s, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="material-symbols-outlined text-sm text-[oklch(0.52_0.18_150)]">
+                    <span className="material-symbols-outlined text-sm text-teal">
                       done
                     </span>
                     {s}
