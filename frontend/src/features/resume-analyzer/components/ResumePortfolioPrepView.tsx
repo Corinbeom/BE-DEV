@@ -603,11 +603,11 @@ export function ResumePortfolioPrepView() {
   const hasFeedback = !!activeFeedback && !createFeedback.isPending;
 
   return (
-    <div className="-mx-6 -mt-6">
-      <div className="grid min-h-[calc(100vh-3rem)] grid-cols-1 md:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr_240px]">
+    <div className="-mx-6 -mt-6 -mb-6">
+      <div className="grid h-[calc(100vh-3rem-4rem-env(safe-area-inset-bottom))] md:h-auto md:min-h-[calc(100vh-3rem)] grid-cols-1 md:grid-cols-[220px_1fr] xl:grid-cols-[220px_1fr_240px]">
 
         {/* ── LEFT nav (260px) ─────────────────────────────────── */}
-        <aside className="sticky top-0 flex max-h-[calc(100vh-3rem)] w-[220px] shrink-0 flex-col overflow-hidden border-r border-border bg-card">
+        <aside className="sticky top-0 hidden md:flex max-h-[calc(100vh-3rem)] w-[220px] shrink-0 flex-col overflow-hidden border-r border-border bg-card">
           {/* Header: session meta + progress */}
           <div className="shrink-0 border-b border-border px-4 py-3">
             <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -764,7 +764,7 @@ export function ResumePortfolioPrepView() {
                 const isAtMax = attemptCount >= maxAttempts;
 
                 return (
-                  <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+                  <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-6 py-5">
                     {/* Answer label + counters */}
                     <div className="flex items-center justify-between">
                       <span className="text-[13px] font-semibold text-muted-foreground">
@@ -1051,6 +1051,7 @@ function FeedbackPanelContent({
   return (
     <div>
       <Tabs defaultValue="evaluation">
+        <div className="overflow-x-auto">
         <TabsList>
           <TabsTrigger value="evaluation">
             <span className="material-symbols-outlined mr-1 text-sm">check_circle</span>
@@ -1076,6 +1077,7 @@ function FeedbackPanelContent({
             </TabsTrigger>
           )}
         </TabsList>
+        </div>
 
         {/* 평가 */}
         <TabsContent value="evaluation">

@@ -272,7 +272,7 @@ export function StudyQuizPracticeView() {
   const activeAttempt = activeQuestion ? attemptByQuestion[activeQuestion.id] : undefined;
 
   return (
-    <div className="-mx-6 -mt-6 flex min-h-[calc(100vh-3rem)]">
+    <div className="-mx-6 -mt-6 -mb-6 flex h-[calc(100vh-3rem-4rem-env(safe-area-inset-bottom))] md:h-auto md:min-h-[calc(100vh-3rem)]">
       {/* ── LEFT nav ── */}
       <div className="hidden md:flex w-[220px] shrink-0 flex-col bg-card border-r border-border sticky top-0 max-h-[calc(100vh-3rem)] overflow-hidden">
         {/* 헤더 */}
@@ -426,7 +426,7 @@ export function StudyQuizPracticeView() {
             </div>
 
             {/* 답변 영역 */}
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-5">
+            <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto px-6 py-5">
               {activeQuestion.type === "MULTIPLE_CHOICE" ? (
                 <div className="flex flex-col gap-3">
                   {activeQuestion.choices.map((c, idx) => {
@@ -521,7 +521,7 @@ export function StudyQuizPracticeView() {
             </div>
 
             {/* 액션바 */}
-            <div className="flex items-center justify-between border-t border-border bg-card px-6 py-3.5">
+            <div className="flex shrink-0 items-center justify-between border-t border-border bg-card px-6 py-3.5">
               <button
                 type="button"
                 disabled={activeIndex <= 0}
