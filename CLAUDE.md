@@ -31,18 +31,20 @@ npm run lint     # ESLint
 
 ## Architecture
 
-### Backend — Hexagonal / Layered Architecture
+### Backend — Layered Architecture with Ports
 
 ```
-api/        → REST controllers + request/response DTOs
-domain/     → Pure business logic (entities, ports, services)
+api/        → REST controllers, application services, request/response DTOs
+domain/     → Business entities, domain services, port interfaces
 infra/      → Port implementations (JPA, Gemini AI, file storage, text parsing)
 common/     → ApiResponse wrapper, shared exceptions
 ```
 
 All API responses use the `ApiResponse<T>(success, data, error)` wrapper defined in `common/`.
 
-Domain layer defines **port interfaces**; `infra/` provides implementations. Never let `infra/` depend on `api/`.
+This is not a strict hexagonal architecture: application services live under `api/`, while the
+domain layer owns business entities and selected port interfaces. Keep dependencies flowing
+`api → domain → infra implementations via ports`; never let `infra/` depend on `api/`.
 
 **Domain modules:** `recruitmenttracker`, `resume`, `studyquiz`, `member`
 

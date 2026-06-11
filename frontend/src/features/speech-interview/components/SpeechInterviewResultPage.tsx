@@ -8,7 +8,7 @@ import type { SpeechInterviewSession, SpeechInterviewQuestion, SpeechFeedback } 
 // ── 유틸 ──────────────────────────────────────────────────
 
 function scoreColor(s: number): string {
-  return s >= 85 ? "#10B981" : s >= 70 ? "#3B82F6" : "#F59E0B";
+  return s >= 85 ? "var(--speech-success)" : s >= 70 ? "var(--speech-accent)" : "var(--speech-warning)";
 }
 
 function formatDuration(session: SpeechInterviewSession): string {
@@ -36,7 +36,7 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div style={{ position: "relative", width: 100, height: 100, margin: "0 auto 14px" }}>
       <svg width={100} height={100} viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(var(--speech-text-rgb) / 0.06)" strokeWidth="8" />
         <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="8"
           strokeDasharray={circ}
           strokeDashoffset={offset}
@@ -46,7 +46,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontSize: 28, fontWeight: 700, color, fontFamily: "monospace", letterSpacing: "-0.03em", lineHeight: 1 }}>{score}</span>
-        <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>/ 100</span>
+        <span style={{ fontSize: 10, color: "rgb(var(--speech-text-rgb) / 0.3)", marginTop: 2 }}>/ 100</span>
       </div>
     </div>
   );
@@ -86,19 +86,19 @@ function QuestionCard({ question, index, animating, direction }: {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
           <span style={{
             fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
-            background: "rgba(59,130,246,0.15)", color: "#60A5FA",
-            border: "1px solid rgba(59,130,246,0.25)",
+            background: "rgb(var(--speech-accent-rgb) / 0.15)", color: "var(--speech-accent-soft)",
+            border: "1px solid rgb(var(--speech-accent-rgb) / 0.25)",
           }}>{question.badge || "면접 질문"}</span>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>Q{index + 1}</span>
+          <span style={{ fontSize: 11, color: "rgb(var(--speech-text-rgb) / 0.3)", fontFamily: "monospace" }}>Q{index + 1}</span>
         </div>
 
         {/* 질문 박스 */}
         <div style={{
-          background: "rgba(15,32,64,0.6)", border: "1px solid rgba(59,130,246,0.15)",
+          background: "color-mix(in srgb, var(--speech-panel) 60%, transparent)", border: "1px solid rgb(var(--speech-accent-rgb) / 0.15)",
           borderRadius: 14, padding: "18px 20px", marginBottom: 16,
         }}>
-          <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 8 }}>QUESTION</div>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.88)", lineHeight: 1.7, letterSpacing: "-0.01em" }}>
+          <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgb(var(--speech-text-rgb) / 0.3)", letterSpacing: "0.06em", marginBottom: 8 }}>QUESTION</div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "rgb(var(--speech-text-rgb) / 0.88)", lineHeight: 1.7, letterSpacing: "-0.01em" }}>
             {question.questionText}
           </p>
         </div>
@@ -106,13 +106,13 @@ function QuestionCard({ question, index, animating, direction }: {
         {/* 내 답변 */}
         {answer && (
           <div style={{
-            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgb(var(--speech-text-rgb) / 0.03)", border: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
             borderRadius: 14, padding: "16px 20px", marginBottom: 16,
           }}>
-            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 8 }}>MY ANSWER</div>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.75 }}>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgb(var(--speech-text-rgb) / 0.3)", letterSpacing: "0.06em", marginBottom: 8 }}>MY ANSWER</div>
+            <p style={{ fontSize: 14, color: "rgb(var(--speech-text-rgb) / 0.65)", lineHeight: 1.75 }}>
               {answer.answerText === "(답변 없음)" ? (
-                <span style={{ fontStyle: "italic", color: "rgba(255,255,255,0.25)" }}>답변 없음</span>
+                <span style={{ fontStyle: "italic", color: "rgb(var(--speech-text-rgb) / 0.25)" }}>답변 없음</span>
               ) : answer.answerText}
             </p>
           </div>
@@ -122,11 +122,11 @@ function QuestionCard({ question, index, animating, direction }: {
         {isPending && (
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
-            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgb(var(--speech-text-rgb) / 0.03)", border: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
             borderRadius: 12, padding: "14px 18px",
           }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: "rgba(255,255,255,0.25)" }}>schedule</span>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.35)" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: "rgb(var(--speech-text-rgb) / 0.25)" }}>schedule</span>
+            <span style={{ fontSize: 13, color: "rgb(var(--speech-text-rgb) / 0.35)" }}>
               AI 피드백은 잠시 후 스피치 면접 이력에서 확인할 수 있습니다.
             </span>
           </div>
@@ -138,18 +138,18 @@ function QuestionCard({ question, index, animating, direction }: {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               {/* 강점 */}
               <div style={{
-                background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.18)",
+                background: "rgb(var(--speech-success-rgb) / 0.06)", border: "1px solid rgb(var(--speech-success-rgb) / 0.18)",
                 borderRadius: 12, padding: 16,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#10B981", fontFamily: "monospace", letterSpacing: "0.04em" }}>강점</span>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--speech-success)" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--speech-success)", fontFamily: "monospace", letterSpacing: "0.04em" }}>강점</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {(feedback.strengths ?? []).map((s, i) => (
                     <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                      <span style={{ color: "#10B981", flexShrink: 0, marginTop: 2, fontSize: 12 }}>✓</span>
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s}</span>
+                      <span style={{ color: "var(--speech-success)", flexShrink: 0, marginTop: 2, fontSize: 12 }}>✓</span>
+                      <span style={{ fontSize: 13, color: "rgb(var(--speech-text-rgb) / 0.7)", lineHeight: 1.6 }}>{s}</span>
                     </div>
                   ))}
                 </div>
@@ -157,18 +157,18 @@ function QuestionCard({ question, index, animating, direction }: {
 
               {/* 개선점 */}
               <div style={{
-                background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.18)",
+                background: "rgb(var(--speech-warning-rgb) / 0.06)", border: "1px solid rgb(var(--speech-warning-rgb) / 0.18)",
                 borderRadius: 12, padding: 16,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: "#F59E0B", fontFamily: "monospace", letterSpacing: "0.04em" }}>개선점</span>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--speech-warning)" }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "var(--speech-warning)", fontFamily: "monospace", letterSpacing: "0.04em" }}>개선점</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {(feedback.improvements ?? []).map((s, i) => (
                     <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                      <span style={{ color: "#F59E0B", flexShrink: 0, marginTop: 2, fontSize: 12 }}>→</span>
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>{s}</span>
+                      <span style={{ color: "var(--speech-warning)", flexShrink: 0, marginTop: 2, fontSize: 12 }}>→</span>
+                      <span style={{ fontSize: 13, color: "rgb(var(--speech-text-rgb) / 0.7)", lineHeight: 1.6 }}>{s}</span>
                     </div>
                   ))}
                 </div>
@@ -178,7 +178,7 @@ function QuestionCard({ question, index, animating, direction }: {
             {/* 모범 답변 (토글) */}
             {feedback.suggestedAnswer && (
               <div style={{
-                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+                background: "rgb(var(--speech-text-rgb) / 0.03)", border: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
                 borderRadius: 12, overflow: "hidden", marginBottom: 12,
               }}>
                 <button
@@ -186,15 +186,15 @@ function QuestionCard({ question, index, animating, direction }: {
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "12px 16px", background: "none", border: "none", cursor: "pointer",
-                    color: "rgba(255,255,255,0.45)", fontSize: 12,
+                    color: "rgb(var(--speech-text-rgb) / 0.45)", fontSize: 12,
                   }}
                 >
                   <span>모범 답변 보기</span>
                   <span style={{ transform: showModel ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
                 </button>
                 {showModel && (
-                  <div style={{ padding: "0 16px 16px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
-                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.75 }}>{feedback.suggestedAnswer}</p>
+                  <div style={{ padding: "0 16px 16px", borderTop: "1px solid rgb(var(--speech-text-rgb) / 0.06)", paddingTop: 12 }}>
+                    <p style={{ fontSize: 13, color: "rgb(var(--speech-text-rgb) / 0.55)", lineHeight: 1.75 }}>{feedback.suggestedAnswer}</p>
                   </div>
                 )}
               </div>
@@ -203,20 +203,20 @@ function QuestionCard({ question, index, animating, direction }: {
             {/* 꼬리 질문 */}
             {feedback.followups && feedback.followups.length > 0 && (
               <div style={{
-                background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.12)",
+                background: "rgb(var(--speech-accent-rgb) / 0.05)", border: "1px solid rgb(var(--speech-accent-rgb) / 0.12)",
                 borderRadius: 12, padding: "14px 16px",
               }}>
-                <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 10 }}>예상 꼬리 질문</div>
+                <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgb(var(--speech-text-rgb) / 0.3)", letterSpacing: "0.06em", marginBottom: 10 }}>예상 꼬리 질문</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {feedback.followups.map((q, i) => (
-                    <p key={i} style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>• {q}</p>
+                    <p key={i} style={{ fontSize: 13, color: "rgb(var(--speech-text-rgb) / 0.5)", lineHeight: 1.6 }}>• {q}</p>
                   ))}
                 </div>
               </div>
             )}
 
             {answer.feedbackStatus === "FAILED" && (
-              <p style={{ fontSize: 12, color: "rgba(239,68,68,0.6)", fontStyle: "italic" }}>피드백 생성에 실패했습니다.</p>
+              <p style={{ fontSize: 12, color: "rgb(var(--speech-danger-rgb) / 0.6)", fontStyle: "italic" }}>피드백 생성에 실패했습니다.</p>
             )}
           </>
         )}
@@ -251,25 +251,25 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
   const next = () => goTo(Math.min(total - 1, activeCard + 1));
 
   return (
-    <div style={{ height: "calc(100vh - 0px)", display: "flex", flexDirection: "column", background: "#090f1c", overflow: "hidden" }}>
+    <div style={{ height: "calc(100vh - 0px)", display: "flex", flexDirection: "column", background: "var(--speech-bg)", overflow: "hidden" }}>
       {/* 헤더 */}
       <header style={{
         height: 52, flexShrink: 0,
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        borderBottom: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
         display: "flex", alignItems: "center", padding: "0 24px", gap: 12,
-        background: "rgba(9,15,28,0.95)", backdropFilter: "blur(12px)",
+        background: "color-mix(in srgb, var(--speech-bg) 95%, transparent)", backdropFilter: "blur(12px)",
       }}>
         <button
           onClick={() => router.push("/speech-interview")}
           style={{
             display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderRadius: 6,
-            border: "1px solid rgba(255,255,255,0.1)", background: "none",
-            color: "rgba(255,255,255,0.45)", fontSize: 12, cursor: "pointer",
+            border: "1px solid rgb(var(--speech-text-rgb) / 0.1)", background: "none",
+            color: "rgb(var(--speech-text-rgb) / 0.45)", fontSize: 12, cursor: "pointer",
           }}
         >‹ 스피치 면접</button>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-          <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", whiteSpace: "nowrap" }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--speech-success)" }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: "rgb(var(--speech-text-rgb) / 0.8)", whiteSpace: "nowrap" }}>
             {session.title} · 결과
           </span>
         </div>
@@ -278,7 +278,7 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
           onClick={() => router.push("/speech-interview")}
           style={{
             padding: "5px 14px", borderRadius: 6, border: "none",
-            background: "#1d4ed8", color: "#fff", fontSize: 12, cursor: "pointer", fontWeight: 600,
+            background: "var(--speech-accent-strong)", color: "var(--speech-text)", fontSize: 12, cursor: "pointer", fontWeight: 600,
           }}
         >다시 면접하기</button>
       </header>
@@ -291,27 +291,27 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
           className="hidden md:flex"
           style={{
             width: 300, flexShrink: 0,
-            borderRight: "1px solid rgba(255,255,255,0.07)",
+            borderRight: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
             overflow: "auto", padding: "24px 20px",
             flexDirection: "column", gap: 24,
           }}>
           {/* 세션 정보 */}
           <div>
-            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em", marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgb(var(--speech-text-rgb) / 0.3)", letterSpacing: "0.08em", marginBottom: 8 }}>
               {session.positionType ?? "스피치 면접"}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>수고하셨습니다!</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "rgb(var(--speech-text-rgb) / 0.9)", marginBottom: 4 }}>수고하셨습니다!</div>
+            <div style={{ fontSize: 12, color: "rgb(var(--speech-text-rgb) / 0.35)" }}>
               {total}턴 완료{duration ? ` · ${duration}` : ""}
             </div>
           </div>
 
           {/* 참여율 링 */}
           <div style={{
-            background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgb(var(--speech-text-rgb) / 0.03)", border: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
             borderRadius: 14, padding: 20, textAlign: "center",
           }}>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "monospace", letterSpacing: "0.06em", marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: "rgb(var(--speech-text-rgb) / 0.35)", fontFamily: "monospace", letterSpacing: "0.06em", marginBottom: 12 }}>
               답변 참여율
             </div>
             <ScoreRing score={score} />
@@ -322,29 +322,29 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
 
           {/* 질문별 목록 */}
           <div>
-            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgba(255,255,255,0.3)", letterSpacing: "0.06em", marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "rgb(var(--speech-text-rgb) / 0.3)", letterSpacing: "0.06em", marginBottom: 12 }}>
               질문별 피드백
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {questions.map((q, i) => {
                 const hasAnswer = !!q.answer;
                 const isCompleted = q.answer?.feedbackStatus === "COMPLETED";
-                const dotColor = isCompleted ? "#10B981" : hasAnswer ? "#F59E0B" : "rgba(255,255,255,0.2)";
+                const dotColor = isCompleted ? "var(--speech-success)" : hasAnswer ? "var(--speech-warning)" : "rgb(var(--speech-text-rgb) / 0.2)";
                 return (
                   <button
                     key={q.id}
                     onClick={() => goTo(i)}
                     style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8,
-                      background: activeCard === i ? "rgba(59,130,246,0.12)" : "transparent",
-                      border: activeCard === i ? "1px solid rgba(59,130,246,0.25)" : "1px solid transparent",
+                      background: activeCard === i ? "rgb(var(--speech-accent-rgb) / 0.12)" : "transparent",
+                      border: activeCard === i ? "1px solid rgb(var(--speech-accent-rgb) / 0.25)" : "1px solid transparent",
                       cursor: "pointer", transition: "all 0.15s", textAlign: "left",
                     }}
                   >
                     <div style={{ width: 6, height: 6, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
                     <span style={{
                       fontSize: 11, flex: 1,
-                      color: activeCard === i ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.4)",
+                      color: activeCard === i ? "rgb(var(--speech-text-rgb) / 0.85)" : "rgb(var(--speech-text-rgb) / 0.4)",
                     }}>
                       Q{i + 1}. {q.badge || "면접 질문"}
                     </span>
@@ -363,14 +363,14 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
           {/* 네비게이션 바 */}
           <div style={{
             height: 48, flexShrink: 0,
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "1px solid rgb(var(--speech-text-rgb) / 0.07)",
             display: "flex", alignItems: "center", padding: "0 24px", gap: 12,
           }}>
             <button
               onClick={prev} disabled={activeCard === 0}
               style={{
-                width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)",
-                background: "none", color: activeCard === 0 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                width: 28, height: 28, borderRadius: 7, border: "1px solid rgb(var(--speech-text-rgb) / 0.1)",
+                background: "none", color: activeCard === 0 ? "rgb(var(--speech-text-rgb) / 0.15)" : "rgb(var(--speech-text-rgb) / 0.6)",
                 cursor: activeCard === 0 ? "not-allowed" : "pointer", fontSize: 14,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
@@ -381,7 +381,7 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
                   key={i} onClick={() => goTo(i)}
                   style={{
                     width: activeCard === i ? 20 : 7, height: 7, borderRadius: 4,
-                    background: activeCard === i ? "#3B82F6" : "rgba(255,255,255,0.12)",
+                    background: activeCard === i ? "var(--speech-accent)" : "rgb(var(--speech-text-rgb) / 0.12)",
                     border: "none", cursor: "pointer", padding: 0, transition: "all 0.25s ease",
                   }}
                 />
@@ -390,14 +390,14 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
             <button
               onClick={next} disabled={activeCard === total - 1}
               style={{
-                width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(255,255,255,0.1)",
-                background: "none", color: activeCard === total - 1 ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.6)",
+                width: 28, height: 28, borderRadius: 7, border: "1px solid rgb(var(--speech-text-rgb) / 0.1)",
+                background: "none", color: activeCard === total - 1 ? "rgb(var(--speech-text-rgb) / 0.15)" : "rgb(var(--speech-text-rgb) / 0.6)",
                 cursor: activeCard === total - 1 ? "not-allowed" : "pointer", fontSize: 14,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >›</button>
             <div style={{ flex: 1 }} />
-            <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255,255,255,0.3)" }}>
+            <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgb(var(--speech-text-rgb) / 0.3)" }}>
               {activeCard + 1} / {total}
             </span>
           </div>
@@ -412,7 +412,7 @@ function ResultContent({ session }: { session: SpeechInterviewSession }) {
                 direction={direction}
               />
             ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "rgb(var(--speech-text-rgb) / 0.3)", fontSize: 14 }}>
                 질문이 없습니다.
               </div>
             )}
@@ -435,26 +435,26 @@ export function SpeechInterviewResultPage() {
 
   if (!parsedId) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "#090f1c" }}>
-        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>잘못된 접근입니다.</p>
+      <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", background: "var(--speech-bg)" }}>
+        <p style={{ fontSize: 14, color: "rgb(var(--speech-text-rgb) / 0.4)" }}>잘못된 접근입니다.</p>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "#090f1c" }}>
-        <span className="material-symbols-outlined animate-spin" style={{ fontSize: 24, color: "#3B82F6" }}>progress_activity</span>
-        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>결과를 불러오는 중...</p>
+      <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "var(--speech-bg)" }}>
+        <span className="material-symbols-outlined animate-spin" style={{ fontSize: 24, color: "var(--speech-accent)" }}>progress_activity</span>
+        <p style={{ fontSize: 14, color: "rgb(var(--speech-text-rgb) / 0.4)" }}>결과를 불러오는 중...</p>
       </div>
     );
   }
 
   if (error || !displaySession) {
     return (
-      <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "#090f1c" }}>
-        <span className="material-symbols-outlined" style={{ fontSize: 24, color: "#EF4444" }}>error</span>
-        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)" }}>결과를 불러오지 못했습니다.</p>
+      <div style={{ display: "flex", minHeight: "100vh", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: "var(--speech-bg)" }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 24, color: "var(--speech-danger)" }}>error</span>
+        <p style={{ fontSize: 14, color: "rgb(var(--speech-text-rgb) / 0.4)" }}>결과를 불러오지 못했습니다.</p>
       </div>
     );
   }

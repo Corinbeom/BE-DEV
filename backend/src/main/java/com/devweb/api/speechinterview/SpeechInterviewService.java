@@ -11,12 +11,14 @@ import com.devweb.domain.resume.session.model.ResumeSession;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.resume.session.port.ResumeSessionRepository;
 import com.devweb.domain.resume.session.service.PositionPromptRegistry;
-import com.devweb.domain.speechinterview.model.*;
+import com.devweb.domain.speechinterview.model.SpeechInterviewAnswer;
+import com.devweb.domain.speechinterview.model.SpeechInterviewQuestion;
+import com.devweb.domain.speechinterview.model.SpeechInterviewSession;
+import com.devweb.domain.speechinterview.model.SpeechInterviewStatus;
 import com.devweb.domain.speechinterview.port.SpeechInterviewSessionRepository;
-import com.devweb.infra.ai.AiTextSanitizer;
+import org.springframework.context.ApplicationEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,19 +36,22 @@ public class SpeechInterviewService {
     private final MemberRepository memberRepo;
     private final InterviewAiPort aiPort;
     private final PositionPromptRegistry promptRegistry;
+    private final ApplicationEventPublisher eventPublisher;
 
     public SpeechInterviewService(
             SpeechInterviewSessionRepository speechRepo,
             ResumeSessionRepository resumeSessionRepo,
             MemberRepository memberRepo,
             InterviewAiPort aiPort,
-            PositionPromptRegistry promptRegistry
+            PositionPromptRegistry promptRegistry,
+            ApplicationEventPublisher eventPublisher
     ) {
         this.speechRepo = speechRepo;
         this.resumeSessionRepo = resumeSessionRepo;
         this.memberRepo = memberRepo;
         this.aiPort = aiPort;
         this.promptRegistry = promptRegistry;
+        this.eventPublisher = eventPublisher;
     }
 
     private static final int MAX_TURNS = 8;
@@ -104,9 +109,8 @@ public class SpeechInterviewService {
                 lastQuestion.attachAnswer(answer);
                 speechRepo.save(session);
 
-                // 비동기 피드백 생성
-                generateFeedbackAsync(
-                        sessionId,
+                eventPublisher.publishEvent(new SpeechInterviewFeedbackRequestedEvent(
+                        savedSessionId(session, sessionId),
                         lastQuestion.getId(),
                         req.userMessage(),
                         lastQuestion.getQuestionText(),
@@ -114,7 +118,7 @@ public class SpeechInterviewService {
                         lastQuestion.getKeywords(),
                         lastQuestion.getModelAnswer(),
                         session.getPositionType()
-                );
+                ));
             }
         }
 
@@ -202,53 +206,6 @@ public class SpeechInterviewService {
         return session;
     }
 
-    @Async
-    @Transactional
-    public void generateFeedbackAsync(Long sessionId, Long questionId,
-                                       String answerText,
-                                       String questionText, String intention,
-                                       String keywords, String modelAnswer,
-                                       String positionType) {
-        try {
-            String systemInstruction = promptRegistry.systemInstructionFor(positionType);
-
-            InterviewAiPort.GeneratedFeedback generated = aiPort.generateFeedback(
-                    systemInstruction, questionText, intention, keywords, modelAnswer, answerText);
-
-            SpeechAnswerFeedback feedback = new SpeechAnswerFeedback(
-                    AiTextSanitizer.sanitizeList(generated.strengths()),
-                    AiTextSanitizer.sanitizeList(generated.improvements()),
-                    AiTextSanitizer.sanitize(generated.suggestedAnswer()),
-                    AiTextSanitizer.sanitizeList(generated.followups()),
-                    AiTextSanitizer.sanitizeList(generated.deliveryStrengths()),
-                    AiTextSanitizer.sanitizeList(generated.deliveryImprovements())
-            );
-
-            updateAnswerWithFeedback(sessionId, questionId, feedback, true);
-        } catch (Exception e) {
-            log.error("SpeechInterview 피드백 생성 실패 sessionId={} questionId={}", sessionId, questionId, e);
-            updateAnswerWithFeedback(sessionId, questionId, null, false);
-        }
-    }
-
-    private void updateAnswerWithFeedback(Long sessionId, Long questionId,
-                                           SpeechAnswerFeedback feedback, boolean success) {
-        speechRepo.findById(sessionId).ifPresent(session -> {
-            session.getQuestions().stream()
-                    .filter(q -> q.getId().equals(questionId))
-                    .findFirst()
-                    .ifPresent(q -> {
-                        if (q.getAnswer() == null) return;
-                        if (success) {
-                            q.getAnswer().completeFeedback(feedback);
-                        } else {
-                            q.getAnswer().failFeedback();
-                        }
-                    });
-            speechRepo.save(session);
-        });
-    }
-
     /** 대화 히스토리 구축: question=model, answer=user */
     private List<InterviewAiPort.ChatMessage> buildHistory(List<SpeechInterviewQuestion> questions, String latestUserMessage) {
         List<InterviewAiPort.ChatMessage> history = new ArrayList<>();
@@ -281,6 +238,10 @@ public class SpeechInterviewService {
         if (text == null) return null;
         if (text.length() <= maxChars) return text;
         return text.substring(0, maxChars);
+    }
+
+    private Long savedSessionId(SpeechInterviewSession session, Long fallbackSessionId) {
+        return session.getId() != null ? session.getId() : fallbackSessionId;
     }
 
 }

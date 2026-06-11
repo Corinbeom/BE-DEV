@@ -239,7 +239,7 @@ export function InterviewIntro({ onStart, isCreatingSession }: Props) {
       {/* ── 온보딩 오버레이 (첫 방문 시) ── */}
       {showOnboarding && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f1e35] p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[var(--speech-panel)] p-6 shadow-2xl">
             {/* 헤더 */}
             <div className="mb-5 text-center">
               <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-blue-500/15">

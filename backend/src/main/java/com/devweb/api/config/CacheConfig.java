@@ -1,19 +1,19 @@
 package com.devweb.api.config;
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 
 import java.time.Duration;
@@ -24,30 +24,24 @@ import java.util.Map;
 public class CacheConfig implements CachingConfigurer {
 
     @Bean
-    @ConditionalOnBean(RedisConnectionFactory.class)
+    @ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis", matchIfMissing = true)
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // JSON serializer: simple types (stats)
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer()
+                .configure(mapper -> mapper.registerModule(new JavaTimeModule()));
+
         RedisCacheConfiguration jsonConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair
-                                .fromSerializer(new GenericJackson2JsonRedisSerializer())
-                )
-                .disableCachingNullValues();
-
-        // JDK serializer: JPA entities & Java record DTOs (questionBank, sessions)
-        RedisCacheConfiguration jdkConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair
-                                .fromSerializer(new JdkSerializationRedisSerializer())
+                                .fromSerializer(jsonSerializer)
                 )
                 .disableCachingNullValues();
 
         Map<String, RedisCacheConfiguration> cacheConfigs = Map.of(
                 "stats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
                 "resumeInterviewStats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
-                "questionBank", jdkConfig.entryTtl(Duration.ofHours(1)),
-                "csQuizSessions", jdkConfig.entryTtl(Duration.ofMinutes(2)),
-                "resumeSessions", jdkConfig.entryTtl(Duration.ofMinutes(2))
+                "questionBank", jsonConfig.entryTtl(Duration.ofHours(1)),
+                "csQuizSessions", jsonConfig.entryTtl(Duration.ofMinutes(2)),
+                "resumeSessions", jsonConfig.entryTtl(Duration.ofMinutes(2))
         );
 
         return RedisCacheManager.builder(connectionFactory)

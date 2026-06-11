@@ -116,9 +116,9 @@ export function SpeechInterviewPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#090f1c]">
+    <div className="relative min-h-screen bg-[var(--speech-bg)]">
       {/* 헤더 */}
-      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#090f1c]/95 backdrop-blur-md">
+      <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-[var(--speech-bg)]/95 backdrop-blur-md">
         <div className="flex h-14 items-center px-6">
           {/* 왼쪽: 로고 레이블 */}
           <div className="flex shrink-0 items-center gap-2">
@@ -140,9 +140,9 @@ export function SpeechInterviewPage() {
                       width: active ? 28 : 8,
                       height: 8,
                       borderRadius: 4,
-                      background: done ? "#3B82F6" : active ? "#3B82F6" : "rgba(255,255,255,0.12)",
+                      background: done ? "var(--speech-accent)" : active ? "var(--speech-accent)" : "rgb(var(--speech-text-rgb) / 0.12)",
                       transition: "all 0.3s ease",
-                      boxShadow: active ? "0 0 8px rgba(59,130,246,0.6)" : "none",
+                      boxShadow: active ? "0 0 8px rgb(var(--speech-accent-rgb) / 0.6)" : "none",
                     }}
                   />
                 );
@@ -261,7 +261,7 @@ export function SpeechInterviewPage() {
       {/* 종료 확인 모달 */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f1e35] p-6 shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[var(--speech-panel)] p-6 shadow-2xl">
             <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-red-500/10">
               <span className="material-symbols-outlined text-xl text-red-400">warning</span>
             </div>
