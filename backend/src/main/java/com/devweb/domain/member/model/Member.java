@@ -1,9 +1,13 @@
 package com.devweb.domain.member.model;
 
+import com.devweb.common.StringListConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Table(name = "members")
@@ -36,6 +40,13 @@ public class Member {
 
     @Column(name = "coaching_report_generated_at")
     private LocalDateTime coachingReportGeneratedAt;
+
+    @Convert(converter = StringListConverter.class)
+    @Column(name = "target_roles", columnDefinition = "text")
+    private List<String> targetRoles = new ArrayList<>();
+
+    @Column(name = "onboarding_completed", nullable = false, columnDefinition = "boolean default false")
+    private boolean onboardingCompleted = false;
 
     protected Member() {
     }
@@ -102,5 +113,18 @@ public class Member {
     public boolean canRegenerateCoachingReport() {
         if (coachingReportGeneratedAt == null) return true;
         return coachingReportGeneratedAt.isBefore(LocalDateTime.now().minusHours(24));
+    }
+
+    public List<String> getTargetRoles() {
+        return Collections.unmodifiableList(targetRoles == null ? List.of() : targetRoles);
+    }
+
+    public boolean isOnboardingCompleted() {
+        return onboardingCompleted;
+    }
+
+    public void completeOnboarding(List<String> targetRoles) {
+        this.targetRoles = new ArrayList<>(targetRoles == null ? List.of() : targetRoles);
+        this.onboardingCompleted = true;
     }
 }

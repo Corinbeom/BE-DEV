@@ -3,6 +3,7 @@ package com.devweb.api.member;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import static org.mockito.BDDMockito.*;
 class MemberServiceTest {
 
     @Mock MemberRepository memberRepository;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     @InjectMocks MemberService sut;
 
@@ -60,5 +62,29 @@ class MemberServiceTest {
         assertThatThrownBy(() -> sut.get(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("99");
+    }
+
+    @Test
+    @DisplayName("관심 직무 수정 시 trim, 중복 제거, 온보딩 완료 처리")
+    void updateTargetRoles_정규화_성공() {
+        Member member = new Member("user@example.com");
+        given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+        given(memberRepository.save(any(Member.class))).willAnswer(inv -> inv.getArgument(0));
+
+        Member result = sut.updateTargetRoles(1L, java.util.List.of(" 백엔드   개발자 ", "백엔드 개발자", "PM"));
+
+        assertThat(result.isOnboardingCompleted()).isTrue();
+        assertThat(result.getTargetRoles()).containsExactly("백엔드 개발자", "PM");
+    }
+
+    @Test
+    @DisplayName("관심 직무는 최대 3개까지만 허용")
+    void updateTargetRoles_최대개수_초과() {
+        Member member = new Member("user@example.com");
+        given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+
+        assertThatThrownBy(() -> sut.updateTargetRoles(1L, java.util.List.of("A", "B", "C", "D")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("최대 3개");
     }
 }
