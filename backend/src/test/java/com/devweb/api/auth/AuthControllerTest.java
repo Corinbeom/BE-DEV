@@ -50,6 +50,7 @@ class AuthControllerTest {
     void me_인증됨() throws Exception {
         Member member = new Member("user@example.com", "google", "sub123", "홍길동", "http://photo.url");
         setId(member, 1L);
+        member.completeOnboarding(List.of("백엔드 개발자"));
         given(memberRepository.findById(1L)).willReturn(Optional.of(member));
 
         mockMvc.perform(get("/api/auth/me"))
@@ -57,7 +58,9 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value(1))
                 .andExpect(jsonPath("$.data.email").value("user@example.com"))
-                .andExpect(jsonPath("$.data.displayName").value("홍길동"));
+                .andExpect(jsonPath("$.data.displayName").value("홍길동"))
+                .andExpect(jsonPath("$.data.onboardingCompleted").value(true))
+                .andExpect(jsonPath("$.data.targetRoles[0]").value("백엔드 개발자"));
     }
 
     @Test

@@ -20,4 +20,14 @@ export async function createMember(email: string) {
   return res.data;
 }
 
+export async function updateMyTargetRoles(targetRoles: string[]) {
+  const res = await apiFetch<ApiResponse<Member>>("/api/members/me/target-roles", {
+    method: "PATCH",
+    body: JSON.stringify({ targetRoles }),
+  });
+  if (!res.success || !res.data) {
+    throw new Error(res.error?.message ?? "관심 직무 저장에 실패했습니다.");
+  }
+  return res.data;
+}
 

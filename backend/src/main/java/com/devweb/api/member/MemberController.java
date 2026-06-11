@@ -2,7 +2,9 @@ package com.devweb.api.member;
 
 import com.devweb.api.member.dto.CreateMemberRequest;
 import com.devweb.api.member.dto.MemberResponse;
+import com.devweb.api.member.dto.UpdateTargetRolesRequest;
 import com.devweb.common.ApiResponse;
+import com.devweb.common.AuthUtils;
 import com.devweb.domain.member.model.Member;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +41,12 @@ public class MemberController {
         service.delete(id);
         return ApiResponse.ok();
     }
-}
 
+    @Operation(summary = "내 관심 직무 수정", description = "현재 로그인한 회원의 관심 직무를 최대 3개까지 저장합니다.")
+    @PatchMapping("/me/target-roles")
+    public ApiResponse<MemberResponse> updateMyTargetRoles(@RequestBody UpdateTargetRolesRequest req) {
+        Member updated = service.updateTargetRoles(AuthUtils.currentMemberId(), req.targetRoles());
+        return ApiResponse.success(MemberResponse.from(updated));
+    }
+}
 

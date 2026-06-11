@@ -8,6 +8,8 @@ import {
   useDeleteResumeFile,
 } from "../hooks/useResumeFiles";
 import { useDeleteAccount } from "@/features/auth/hooks/useDeleteAccount";
+import { updateMyTargetRoles } from "@/features/member/api/memberApi";
+import { TargetRoleSelector } from "@/features/member/components/TargetRoleSelector";
 import { fetchResumeFileBlob } from "../api/resumeFileApi";
 import type { ResumeFile, ResumeFileType } from "../api/types";
 import { Button } from "@/components/ui/button";
@@ -224,7 +226,7 @@ function FileCard({
 }
 
 export function ProfileView() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const displayName = user?.displayName ?? user?.email ?? "사용자";
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -239,7 +241,13 @@ export function ProfileView() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [previewFile, setPreviewFile] = useState<ResumeFile | null>(null);
+  const [targetRoles, setTargetRoles] = useState<string[]>(user?.targetRoles ?? []);
+  const [isSavingRoles, setIsSavingRoles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setTargetRoles(user?.targetRoles ?? []);
+  }, [user?.targetRoles]);
 
   const resumeFiles = files?.filter((f) => f.fileType === "RESUME") ?? [];
   const portfolioFiles = files?.filter((f) => f.fileType === "PORTFOLIO") ?? [];
@@ -270,6 +278,19 @@ export function ProfileView() {
     setSelectedFile(null);
     setUploadTitle("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function onSaveTargetRoles() {
+    setIsSavingRoles(true);
+    try {
+      await updateMyTargetRoles(targetRoles);
+      await refresh();
+      toast.success("관심 직무가 저장되었습니다.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "관심 직무 저장에 실패했습니다.");
+    } finally {
+      setIsSavingRoles(false);
+    }
   }
 
   return (
@@ -467,6 +488,37 @@ export function ProfileView() {
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="mb-4">
+              <p className="text-sm font-bold text-foreground">관심 직무</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                AI 코치가 이 직무들을 기준으로 이력서와 학습 기록을 분석합니다.
+              </p>
+            </div>
+            <TargetRoleSelector
+              value={targetRoles}
+              onChange={setTargetRoles}
+              disabled={isSavingRoles}
+            />
+            <Button
+              className="mt-4 w-full gap-2"
+              onClick={() => void onSaveTargetRoles()}
+              disabled={isSavingRoles}
+            >
+              {isSavingRoles ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm">save</span>
+                  관심 직무 저장
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
