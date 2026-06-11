@@ -1,6 +1,7 @@
 package com.devweb.infra.ai.gemini;
 
 import com.devweb.domain.resume.session.port.InterviewAiPort;
+import com.devweb.domain.coach.port.CoachAiPort;
 import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestionType;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
@@ -32,7 +33,7 @@ import java.util.Set;
 
 @Component
 @Qualifier("geminiAi")
-public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
+public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort, CoachAiPort {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiInterviewAiAdapter.class);
 
@@ -276,6 +277,26 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
     }
 
     @Override
+    public CoachAiPort.GeneratedCoachAnalysis analyzeReadiness(CoachAiPort.CoachContext context) {
+        requireApiKey();
+        String systemInstruction = """
+                당신은 취업 준비 데이터를 기반으로 오늘 할 일을 정하는 AI 코치입니다.
+                숫자 지표를 과장하지 말고, 목표 직무에 맞는 짧은 실행 계획만 제시하세요.
+                """;
+        JsonNode json = generateStructuredJsonWithRetry(
+                systemInstruction,
+                AiPromptBuilder.buildCoachAnalysisPrompt(context),
+                coachAnalysisResponseSchema(),
+                RetryProfile.COACH_ANALYSIS
+        );
+        try {
+            return objectMapper.treeToValue(json, CoachAiPort.GeneratedCoachAnalysis.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Gemini 코치 분석 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
+    @Override
     public InterviewAiPort.GeneratedInterviewerTurn conductInterview(
             String systemInstruction,
             String resumeContext,
@@ -438,7 +459,8 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         SESSION_REPORT,
         COACHING,
         JD_MATCH,
-        CONVERSATION
+        CONVERSATION,
+        COACH_ANALYSIS
     }
 
     private JsonNode generateStructuredJsonWithRetry(
@@ -484,6 +506,7 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
             case QUESTIONS -> maxOutputTokens; // 5문항 × modelAnswer 등 출력량이 크므로 상한 해제
             case JD_MATCH -> 4096;
             case CONVERSATION -> 1024;
+            case COACH_ANALYSIS -> 1024;
             default -> 4096;
         };
         return Math.min(maxOutputTokens, profileLimit);
@@ -556,6 +579,14 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
                     - message는 200자 이내로 짧게 작성하세요.
                     """;
+            case COACH_ANALYSIS -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - strengths/gaps는 각각 최대 2개로 제한하세요.
+                    - plan은 정확히 3개, do는 20자 이내로 짧게 작성하세요.
+                    - today는 30자 이내로 짧게 작성하세요.
+                    """;
         };
     }
 
@@ -620,6 +651,13 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
                     - message는 150자 이내로 아주 짧게 작성하세요.
                     - badge는 20자 이내로 작성하세요.
+                    """;
+            case COACH_ANALYSIS -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - 모든 배열 항목은 2개 이하로 줄이세요. plan만 3개입니다.
+                    - plan.do와 today는 명사형 짧은 행동으로만 작성하세요.
                     """;
         };
     }
@@ -879,6 +917,29 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return schema;
     }
 
+    private static Map<String, Object> coachAnalysisResponseSchema() {
+        Map<String, Object> planItem = new LinkedHashMap<>();
+        planItem.put("type", "object");
+        planItem.put("properties", Map.of(
+                "d", Map.of("type", "integer"),
+                "do", Map.of("type", "string", "maxLength", 60)
+        ));
+        planItem.put("required", List.of("d", "do"));
+
+        Map<String, Object> schema = new LinkedHashMap<>();
+        schema.put("type", "object");
+        schema.put("properties", Map.of(
+                "score", Map.of("type", "integer"),
+                "primary", Map.of("type", "string", "maxLength", 100),
+                "strengths", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 2),
+                "gaps", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 0, "maxItems", 2),
+                "plan", Map.of("type", "array", "items", planItem, "minItems", 3, "maxItems", 3),
+                "today", Map.of("type", "string", "maxLength", 100)
+        ));
+        schema.put("required", List.of("score", "primary", "strengths", "gaps", "plan", "today"));
+        return schema;
+    }
+
     private void requireApiKey() {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("Gemini API key가 설정되지 않았습니다. env 또는 application.yml에 devweb.gemini.api-key를 설정하세요.");
@@ -929,4 +990,3 @@ public class GeminiInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         return -1;
     }
 }
-

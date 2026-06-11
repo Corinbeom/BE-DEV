@@ -3,6 +3,8 @@ package com.devweb.api.member;
 import com.devweb.common.ResourceNotFoundException;
 import com.devweb.domain.member.model.Member;
 import com.devweb.domain.member.port.MemberRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,10 @@ public class MemberService {
         memberRepository.delete(member);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "coachSummary", key = "#memberId"),
+            @CacheEvict(value = "coachAnalysis", allEntries = true)
+    })
     public Member updateTargetRoles(Long memberId, List<String> targetRoles) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member를 찾을 수 없습니다. id=" + memberId));
@@ -69,4 +75,3 @@ public class MemberService {
         return new ArrayList<>(normalized);
     }
 }
-
