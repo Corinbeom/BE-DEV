@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -37,6 +39,7 @@ class SpeechInterviewServiceTest {
     @Mock MemberRepository memberRepo;
     @Mock InterviewAiPort aiPort;
     @Mock PositionPromptRegistry promptRegistry;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     @InjectMocks SpeechInterviewService sut;
 
@@ -84,6 +87,31 @@ class SpeechInterviewServiceTest {
 
         assertThat(session.getStatus()).isEqualTo(SpeechInterviewStatus.COMPLETED);
         assertThat(response.isComplete()).isTrue();
+    }
+
+    @Test
+    @DisplayName("답변 저장 후 피드백 생성 이벤트를 발행한다")
+    void chat_answeredQuestion_publishesFeedbackRequestedEvent() {
+        var q = new com.devweb.domain.speechinterview.model.SpeechInterviewQuestion(
+                0, "질문", "Spring 트랜잭션을 설명해 주세요.", "트랜잭션 이해", "Spring", null);
+        ReflectionTestUtils.setField(q, "id", 10L);
+        session.addQuestion(q);
+        session.startInterview();
+        given(promptRegistry.systemInstructionFor(any())).willReturn("system instruction");
+        given(aiPort.conductInterview(any(), any(), any(), any(), anyInt(), anyInt()))
+                .willReturn(new InterviewAiPort.GeneratedInterviewerTurn(
+                        "다음 질문입니다.", "심화", false, "추가 검증", "JPA"));
+        given(speechRepo.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+        sut.chat(1L, 1L, new ChatRequest("격리 수준과 전파 옵션이 중요합니다."));
+
+        verify(eventPublisher).publishEvent((Object) argThat(event -> {
+            SpeechInterviewFeedbackRequestedEvent feedbackEvent = (SpeechInterviewFeedbackRequestedEvent) event;
+            return feedbackEvent.sessionId().equals(1L)
+                    && feedbackEvent.questionId().equals(10L)
+                    && feedbackEvent.answerText().equals("격리 수준과 전파 옵션이 중요합니다.")
+                    && feedbackEvent.questionText().equals("Spring 트랜잭션을 설명해 주세요.");
+        }));
     }
 
     @Test

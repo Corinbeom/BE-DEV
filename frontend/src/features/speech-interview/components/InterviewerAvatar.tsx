@@ -7,10 +7,10 @@ type Props = {
 };
 
 const STATE_CONFIG = {
-  thinking:  { primary: "#F59E0B", glow: "rgba(245,158,11,0.5)",  ring: "rgba(245,158,11,0.15)", label: "생각하고 있습니다..." },
-  speaking:  { primary: "#3B82F6", glow: "rgba(59,130,246,0.5)",  ring: "rgba(59,130,246,0.12)", label: "질문을 읽고 있습니다" },
-  listening: { primary: "#10B981", glow: "rgba(16,185,129,0.5)",  ring: "rgba(16,185,129,0.12)", label: "답변을 듣고 있습니다" },
-  idle:      { primary: "rgba(255,255,255,0.3)", glow: "rgba(255,255,255,0.08)", ring: "rgba(255,255,255,0.05)", label: "대기 중" },
+  thinking:  { primary: "var(--speech-warning)", glow: "rgb(var(--speech-warning-rgb) / 0.5)",  ring: "rgb(var(--speech-warning-rgb) / 0.15)", label: "생각하고 있습니다..." },
+  speaking:  { primary: "var(--speech-accent)", glow: "rgb(var(--speech-accent-rgb) / 0.5)",  ring: "rgb(var(--speech-accent-rgb) / 0.12)", label: "질문을 읽고 있습니다" },
+  listening: { primary: "var(--speech-success)", glow: "rgb(var(--speech-success-rgb) / 0.5)",  ring: "rgb(var(--speech-success-rgb) / 0.12)", label: "답변을 듣고 있습니다" },
+  idle:      { primary: "rgb(var(--speech-text-rgb) / 0.3)", glow: "rgb(var(--speech-text-rgb) / 0.08)", ring: "rgb(var(--speech-text-rgb) / 0.05)", label: "대기 중" },
 };
 
 function hexPoints(cx: number, cy: number, r: number): string {
@@ -39,9 +39,9 @@ export function InterviewerAvatar({ state }: Props) {
         @keyframes hexSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
         @keyframes hexSpinRev { 0%{transform:rotate(0deg)} 100%{transform:rotate(-360deg)} }
         @keyframes breathe { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
-        @keyframes speakGlow { 0%,100%{box-shadow:0 0 20px 4px rgba(59,130,246,0.35)} 50%{box-shadow:0 0 40px 12px rgba(59,130,246,0.6)} }
-        @keyframes thinkGlow { 0%,100%{box-shadow:0 0 20px 4px rgba(245,158,11,0.3)} 50%{box-shadow:0 0 40px 12px rgba(245,158,11,0.55)} }
-        @keyframes listenGlow { 0%,100%{box-shadow:0 0 20px 4px rgba(16,185,129,0.3)} 50%{box-shadow:0 0 40px 10px rgba(16,185,129,0.5)} }
+        @keyframes speakGlow { 0%,100%{box-shadow:0 0 20px 4px rgb(var(--speech-accent-rgb) / 0.35)} 50%{box-shadow:0 0 40px 12px rgb(var(--speech-accent-rgb) / 0.6)} }
+        @keyframes thinkGlow { 0%,100%{box-shadow:0 0 20px 4px rgb(var(--speech-warning-rgb) / 0.3)} 50%{box-shadow:0 0 40px 12px rgb(var(--speech-warning-rgb) / 0.55)} }
+        @keyframes listenGlow { 0%,100%{box-shadow:0 0 20px 4px rgb(var(--speech-success-rgb) / 0.3)} 50%{box-shadow:0 0 40px 10px rgb(var(--speech-success-rgb) / 0.5)} }
         @keyframes nodeOrbit { 0%{transform:rotate(0deg) translateX(44px) rotate(0deg)} 100%{transform:rotate(360deg) translateX(44px) rotate(-360deg)} }
         @keyframes nodeOrbit2 { 0%{transform:rotate(120deg) translateX(44px) rotate(-120deg)} 100%{transform:rotate(480deg) translateX(44px) rotate(-480deg)} }
         @keyframes nodeOrbit3 { 0%{transform:rotate(240deg) translateX(44px) rotate(-240deg)} 100%{transform:rotate(600deg) translateX(44px) rotate(-480deg)} }
@@ -81,7 +81,7 @@ export function InterviewerAvatar({ state }: Props) {
                     position: "absolute", top: "50%", left: "50%",
                     marginTop: -4, marginLeft: -4,
                     width: 8, height: 8, borderRadius: "50%",
-                    background: "#F59E0B",
+                    background: "var(--speech-warning)",
                     animation: o.anim, opacity: 0.8,
                   }}
                 />
@@ -125,7 +125,7 @@ export function InterviewerAvatar({ state }: Props) {
                   </>
                 )}
                 {state === "idle" && (
-                  <circle cx="14" cy="14" r="4" fill="rgba(255,255,255,0.3)" />
+                  <circle cx="14" cy="14" r="4" fill="rgb(var(--speech-text-rgb) / 0.3)" />
                 )}
               </svg>
             </div>
@@ -162,7 +162,7 @@ export function InterviewerAvatar({ state }: Props) {
 
         {/* 레이블 */}
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 5 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "rgb(var(--speech-text-rgb) / 0.5)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "monospace", marginBottom: 5 }}>
             AI 면접관
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
