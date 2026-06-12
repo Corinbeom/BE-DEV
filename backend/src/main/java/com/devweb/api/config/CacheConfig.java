@@ -41,7 +41,9 @@ public class CacheConfig implements CachingConfigurer {
                 "resumeInterviewStats", jsonConfig.entryTtl(Duration.ofMinutes(5)),
                 "questionBank", jsonConfig.entryTtl(Duration.ofHours(1)),
                 "csQuizSessions", jsonConfig.entryTtl(Duration.ofMinutes(2)),
-                "resumeSessions", jsonConfig.entryTtl(Duration.ofMinutes(2))
+                "resumeSessions", jsonConfig.entryTtl(Duration.ofMinutes(2)),
+                "coachSummary", jsonConfig.entryTtl(Duration.ofMinutes(5)),
+                "coachAnalysis", jsonConfig.entryTtl(Duration.ofHours(1))
         );
 
         return RedisCacheManager.builder(connectionFactory)

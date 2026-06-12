@@ -1,5 +1,6 @@
 package com.devweb.infra.ai;
 
+import com.devweb.domain.coach.port.CoachAiPort;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
@@ -21,23 +22,29 @@ import java.util.Set;
  */
 @Component
 @Primary
-public class AiRoutingAdapter implements InterviewAiPort, CsQuizAiPort {
+public class AiRoutingAdapter implements InterviewAiPort, CsQuizAiPort, CoachAiPort {
 
     private final InterviewAiPort gemini;
     private final InterviewAiPort groq;
     private final CsQuizAiPort geminiQuiz;
     private final CsQuizAiPort groqQuiz;
+    private final CoachAiPort geminiCoach;
+    private final CoachAiPort groqCoach;
 
     public AiRoutingAdapter(
             @Qualifier("geminiAi") InterviewAiPort gemini,
             @Qualifier("groqAi") InterviewAiPort groq,
             @Qualifier("geminiAi") CsQuizAiPort geminiQuiz,
-            @Qualifier("groqAi") CsQuizAiPort groqQuiz
+            @Qualifier("groqAi") CsQuizAiPort groqQuiz,
+            @Qualifier("geminiAi") CoachAiPort geminiCoach,
+            @Qualifier("groqAi") CoachAiPort groqCoach
     ) {
         this.gemini = gemini;
         this.groq = groq;
         this.geminiQuiz = geminiQuiz;
         this.groqQuiz = groqQuiz;
+        this.geminiCoach = geminiCoach;
+        this.groqCoach = groqCoach;
     }
 
     // ── Heavy → Gemini ──
@@ -101,5 +108,14 @@ public class AiRoutingAdapter implements InterviewAiPort, CsQuizAiPort {
     @Override
     public CsQuizAiPort.GeneratedFeedback generateShortAnswerFeedback(String systemInstruction, CsQuizTopic topic, CsQuizDifficulty difficulty, String question, String referenceAnswer, List<String> rubricKeywords, String userAnswer) {
         return groqQuiz.generateShortAnswerFeedback(systemInstruction, topic, difficulty, question, referenceAnswer, rubricKeywords, userAnswer);
+    }
+
+    @Override
+    public CoachAiPort.GeneratedCoachAnalysis analyzeReadiness(CoachAiPort.CoachContext context) {
+        try {
+            return groqCoach.analyzeReadiness(context);
+        } catch (RuntimeException e) {
+            return geminiCoach.analyzeReadiness(context);
+        }
     }
 }

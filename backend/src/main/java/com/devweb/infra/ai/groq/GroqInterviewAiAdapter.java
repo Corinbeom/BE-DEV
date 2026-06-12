@@ -1,6 +1,7 @@
 package com.devweb.infra.ai.groq;
 
 import com.devweb.common.UpstreamRateLimitException;
+import com.devweb.domain.coach.port.CoachAiPort;
 import com.devweb.domain.resume.session.port.InterviewAiPort;
 import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestionType;
@@ -37,7 +38,7 @@ import java.util.Set;
  */
 @Component
 @Qualifier("groqAi")
-public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
+public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort, CoachAiPort {
 
     private static final Logger log = LoggerFactory.getLogger(GroqInterviewAiAdapter.class);
 
@@ -238,9 +239,28 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         }
     }
 
+    @Override
+    public CoachAiPort.GeneratedCoachAnalysis analyzeReadiness(CoachAiPort.CoachContext context) {
+        requireApiKey();
+        String systemInstruction = """
+                당신은 취업 준비 데이터를 기반으로 오늘 할 일을 정하는 AI 코치입니다.
+                숫자 지표를 과장하지 말고, 목표 직무에 맞는 짧은 실행 계획만 제시하세요.
+                """;
+        JsonNode json = generateStructuredJsonWithRetry(
+                systemInstruction,
+                AiPromptBuilder.buildCoachAnalysisPrompt(context),
+                RetryProfile.COACH_ANALYSIS
+        );
+        try {
+            return objectMapper.treeToValue(json, CoachAiPort.GeneratedCoachAnalysis.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Groq 코치 분석 응답 파싱에 실패했습니다.", e);
+        }
+    }
+
     // ===== Retry & HTTP =====
 
-    private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK, SESSION_REPORT, COACHING, JD_MATCH }
+    private enum RetryProfile { QUESTIONS, QUIZ_QUESTIONS, FEEDBACK, SESSION_REPORT, COACHING, JD_MATCH, COACH_ANALYSIS }
 
     private JsonNode generateStructuredJsonWithRetry(String systemInstruction, String userPrompt, RetryProfile profile) {
         log.debug("Groq API 호출 시작: profile={}", profile);
@@ -249,7 +269,7 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         for (int attempt = 1; attempt <= 3; attempt++) {
             String enrichedSystemInstruction = buildEnrichedSystemInstruction(systemInstruction, attempt, profile);
             try {
-                JsonNode result = callGroq(enrichedSystemInstruction, userPrompt);
+                JsonNode result = callGroq(enrichedSystemInstruction, userPrompt, profile);
                 aiMetrics.recordSuccess(timerSample, "groq", profile.name());
                 log.info("Groq API 호출 완료: profile={}", profile);
                 return result;
@@ -274,7 +294,7 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
         };
     }
 
-    private JsonNode callGroq(String systemInstruction, String userPrompt) {
+    private JsonNode callGroq(String systemInstruction, String userPrompt, RetryProfile profile) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         body.put("messages", List.of(
@@ -282,8 +302,8 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                 Map.of("role", "user", "content", userPrompt)
         ));
         body.put("response_format", Map.of("type", "json_object"));
-        body.put("temperature", 0.2);
-        body.put("max_tokens", maxOutputTokens);
+        body.put("temperature", profile == RetryProfile.COACH_ANALYSIS ? 0.5 : 0.2);
+        body.put("max_tokens", profile == RetryProfile.COACH_ANALYSIS ? Math.min(maxOutputTokens, 1024) : maxOutputTokens);
 
         String endpoint = baseUrl.replaceAll("/+$", "") + "/openai/v1/chat/completions";
         HttpResponse<byte[]> resp = postJson(endpoint, body);
@@ -455,6 +475,14 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - summary는 200자 이내로 짧게 작성하세요.
                     - recommendations는 최대 3개로 제한하세요.
                     """;
+            case COACH_ANALYSIS -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - strengths/gaps는 각각 최대 2개로 제한하세요.
+                    - plan은 정확히 3개, do는 20자 이내로 짧게 작성하세요.
+                    - today는 30자 이내로 짧게 작성하세요.
+                    """;
         };
     }
 
@@ -512,6 +540,13 @@ public class GroqInterviewAiAdapter implements InterviewAiPort, CsQuizAiPort {
                     - suggestion은 1문장으로만 작성하세요.
                     - summary는 150자 이내로 아주 짧게 작성하세요.
                     - recommendations는 최대 2개로 제한하세요.
+                    """;
+            case COACH_ANALYSIS -> """
+
+                    [RETRY_RULES]
+                    - 반드시 유효한 JSON만 출력하세요(중간에 끊기면 안 됩니다).
+                    - 모든 배열 항목은 2개 이하로 줄이세요. plan만 3개입니다.
+                    - plan.do와 today는 명사형 짧은 행동으로만 작성하세요.
                     """;
         };
     }

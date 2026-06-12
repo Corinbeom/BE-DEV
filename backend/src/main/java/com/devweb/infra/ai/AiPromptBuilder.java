@@ -1,10 +1,12 @@
 package com.devweb.infra.ai;
 
+import com.devweb.domain.coach.port.CoachAiPort;
 import com.devweb.domain.studyquiz.session.model.CsQuizDifficulty;
 import com.devweb.domain.studyquiz.session.model.CsQuizQuestionType;
 import com.devweb.domain.studyquiz.session.model.CsQuizTopic;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -25,6 +27,54 @@ public final class AiPromptBuilder {
             + "- 문자열 값 안에는 큰따옴표(\") 문자를 넣지 마세요(필요하면 괄호나 작은따옴표로 표현).";
 
     private AiPromptBuilder() {}
+
+    public static String buildCoachAnalysisPrompt(CoachAiPort.CoachContext context) {
+        return """
+                목표직무: %s
+                지원: %d건 (%s)
+                이력서: %d개, 마지막분석: %s
+                면접연습: 완료%d/%d회
+                퀴즈정확도: %s / 총%d문제
+
+                위 데이터로 첫 번째 목표직무 중심의 취업 준비 상태를 분석하세요.
+                출력은 반드시 아래 JSON 스키마를 정확히 따르세요:
+                {"score":68,"primary":"프론트엔드 개발자","strengths":["DS 78%%","면접 3회 완료"],"gaps":["OS 45%% 취약","이력서 분석 공백"],"plan":[{"d":1,"do":"OS 퀴즈 10문제"},{"d":2,"do":"이력서 키워드 보강"},{"d":3,"do":"면접 연습 1회"}],"today":"OS 퀴즈 10문제 — 지금 바로"}
+
+                규칙:
+                - score는 0~100 정수입니다.
+                - primary는 targetRoles 중 하나를 선택합니다.
+                - strengths와 gaps는 각각 최대 2개, 각 항목 20자 이내입니다.
+                - plan은 정확히 3일치이며 d는 1,2,3만 사용합니다.
+                - today는 오늘 바로 실행할 1가지 행동만 40자 이내로 씁니다.
+                - 직무와 무관한 CS 항목이 있으면 일반 역량 관점으로 해석하세요.
+                """.formatted(
+                String.join(", ", context.targetRoles()),
+                context.totalApplications(),
+                formatStatusCounts(context.statusCounts()),
+                context.resumeCount(),
+                context.daysSinceLastAnalysis() < 0 ? "없음" : context.daysSinceLastAnalysis() + "일전",
+                context.interviewCompleted(),
+                context.interviewTotal(),
+                formatQuizAccuracy(context.quizAccuracy()),
+                context.quizTotalAttempts()
+        );
+    }
+
+    private static String formatStatusCounts(Map<String, Integer> statusCounts) {
+        if (statusCounts == null || statusCounts.isEmpty()) return "단계 없음";
+        return statusCounts.entrySet().stream()
+                .map(entry -> entry.getKey() + ":" + entry.getValue())
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("단계 없음");
+    }
+
+    private static String formatQuizAccuracy(Map<String, Double> quizAccuracy) {
+        if (quizAccuracy == null || quizAccuracy.isEmpty()) return "없음";
+        return quizAccuracy.entrySet().stream()
+                .map(entry -> entry.getKey() + ":" + Math.round(entry.getValue() * 100) + "%")
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("없음");
+    }
 
     public static String buildQuestionsPrompt(String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
         StringBuilder sb = new StringBuilder();
