@@ -1,0 +1,20 @@
+package com.bluehour.domain.studyquiz.session.port;
+
+import com.bluehour.domain.studyquiz.session.model.CsQuizSession;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface CsQuizSessionRepository {
+    CsQuizSession save(CsQuizSession session);
+
+    Optional<CsQuizSession> findById(Long id);
+
+    List<CsQuizSession> findAllByMemberId(Long memberId);
+
+    /** 반환: List of [CsQuizTopic, Long(totalAttempts), Long(correctCount)] */
+    List<Object[]> findStatsGroupedByTopic(Long memberId);
+
+    void deleteById(Long id);
+}
+

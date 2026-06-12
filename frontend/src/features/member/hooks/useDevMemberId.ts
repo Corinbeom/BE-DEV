@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createMember, getMember } from "../api/memberApi";
 
-const STORAGE_KEY = "devweb:memberId";
+const STORAGE_KEY = "bluehour:memberId";
 
 export function useDevMemberId() {
   const [memberId, setMemberId] = useState<number | null>(null);
@@ -36,7 +36,7 @@ export function useDevMemberId() {
           }
         }
 
-        const email = `dev+${Date.now()}@devweb.local`;
+        const email = `dev+${Date.now()}@bluehour.local`;
         const created = await createMember(email);
         if (cancelled) return;
         localStorage.setItem(STORAGE_KEY, String(created.id));

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: devweb
+    name: bluehour
   config:
     import: optional:file:.env.properties
   servlet:
@@ -31,7 +31,7 @@ spring:
   flyway:
     enabled: false
   datasource:
-    url: jdbc:h2:mem:devweb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:bluehour;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -66,8 +66,8 @@ springdoc:
 
 logging:
   level:
-    com.devweb: info
-    com.devweb.infra.ai: debug
+    com.bluehour: info
+    com.bluehour.infra.ai: debug
     org.hibernate.SQL: debug
 
 management:
@@ -79,9 +79,9 @@ management:
     health:
       show-details: always
 
-devweb:
+bluehour:
   jwt:
-    secret: ${JWT_SECRET:devweb-default-secret-key-must-be-at-least-256-bits-long-for-hs256}
+    secret: ${JWT_SECRET:bluehour-default-secret-key-must-be-at-least-256-bits-long-for-hs256}
     expiry-hours: 24
 
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
@@ -106,6 +106,6 @@ devweb:
     from: ${RESEND_FROM:onboarding@resend.dev}
 
   cron:
-    secret: ${DEVWEB_CRON_SECRET:}
+    secret: ${BLUEHOUR_CRON_SECRET:}
 
 

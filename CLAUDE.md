@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**DevWeb** is a full-stack monorepo for an AI-powered career prep platform. Core features: Resume Analyzer (AI interview question generation), CS Study Quiz (Gemini-generated Q&A), and Application Tracker (job application CRUD).
+**BlueHour** is a full-stack monorepo for an AI-powered career prep platform. Core features: Resume Analyzer (AI interview question generation), CS Study Quiz (Gemini-generated Q&A), and Application Tracker (job application CRUD).
 
 ## Commands
 
@@ -20,7 +20,7 @@ npm run lint     # ESLint
 ./gradlew bootRun          # Start dev server (http://localhost:8080)
 ./gradlew build            # Full build + tests
 ./gradlew test             # Run all tests
-./gradlew test --tests "com.devweb.ClassName.methodName"  # Single test
+./gradlew test --tests "com.bluehour.ClassName.methodName"  # Single test
 ```
 
 ### Environment Setup
@@ -54,7 +54,7 @@ domain layer owns business entities and selected port interfaces. Keep dependenc
 - `infra/persistence/` — Spring Data JPA repositories
 - `infra/text/` — PDFBox (PDF parsing) + jsoup (HTML parsing)
 
-**Database:** H2 in-memory (`jdbc:h2:mem:devweb`) in dev; PostgreSQL for prod. H2 console available at `/h2-console`.
+**Database:** H2 in-memory (`jdbc:h2:mem:bluehour`) in dev; PostgreSQL for prod. H2 console available at `/h2-console`.
 
 ### Frontend — Feature-Based Structure
 
