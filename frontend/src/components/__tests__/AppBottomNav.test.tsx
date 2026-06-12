@@ -17,15 +17,16 @@ describe("AppBottomNav", () => {
     pathnameMock.mockReturnValue("/dashboard");
   });
 
-  it("5개 탭을 렌더링한다", () => {
+  it("주요 탭을 렌더링한다", () => {
     render(<AppBottomNav />);
 
     expect(screen.getByRole("link", { name: /대시보드/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /AI 코치/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /면접 준비/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /CS 문제풀이/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /지원 현황/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /프로필/ })).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(5);
+    expect(screen.getAllByRole("link")).toHaveLength(6);
   });
 
   it("현재 경로에 해당하는 탭을 활성화한다", () => {
