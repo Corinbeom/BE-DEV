@@ -354,7 +354,7 @@ function KanbanColumn({
         onDragLeave={onDragLeave}
         onDrop={(e) => {
           e.preventDefault();
-          const raw = e.dataTransfer.getData("text/devweb-recruitment-entry-id");
+          const raw = e.dataTransfer.getData("text/bluehour-recruitment-entry-id");
           const id = Number(raw);
           if (!Number.isNaN(id) && id > 0) onDrop(id);
         }}
@@ -398,7 +398,7 @@ function KanbanCard({
       onClick={onOpenDetails}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpenDetails(); }}
       onDragStart={(e) => {
-        e.dataTransfer.setData("text/devweb-recruitment-entry-id", String(id));
+        e.dataTransfer.setData("text/bluehour-recruitment-entry-id", String(id));
         onDragStart(id);
       }}
     >

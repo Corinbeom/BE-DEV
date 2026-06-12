@@ -1,0 +1,68 @@
+package com.bluehour.domain.resume.session.service;
+
+import com.bluehour.domain.resume.model.InterviewQuestion;
+import com.bluehour.domain.resume.session.model.ResumeQuestion;
+import com.bluehour.domain.resume.session.port.InterviewAiPort;
+import com.bluehour.infra.ai.AiTextSanitizer;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+public class QuestionGenerator {
+
+    private static final int MAX_CONTEXT_CHARS = 8_000; // 응답 지연/타임아웃 방지용 가드
+
+    private final InterviewAiPort aiPort;
+    private final PositionPromptRegistry promptRegistry;
+
+    public QuestionGenerator(InterviewAiPort aiPort, PositionPromptRegistry promptRegistry) {
+        this.aiPort = aiPort;
+        this.promptRegistry = promptRegistry;
+    }
+
+    public List<ResumeQuestion> generate(String positionType, String resumeText, String portfolioText, String portfolioUrl, List<String> targetTechnologies) {
+        return generate(positionType, resumeText, portfolioText, portfolioUrl, targetTechnologies, List.of());
+    }
+
+    public List<ResumeQuestion> generate(String positionType, String resumeText, String portfolioText,
+                                          String portfolioUrl, List<String> targetTechnologies,
+                                          List<String> previousQuestions) {
+        String systemInstruction = promptRegistry.systemInstructionFor(positionType);
+        String safeResumeText = trimToMaxChars(resumeText, MAX_CONTEXT_CHARS);
+        String safePortfolioText = trimToMaxChars(portfolioText, MAX_CONTEXT_CHARS);
+
+        List<InterviewAiPort.GeneratedQuestion> generated;
+        if (previousQuestions != null && !previousQuestions.isEmpty()) {
+            generated = aiPort.generateQuestionsWithHistory(systemInstruction, positionType, safeResumeText,
+                    safePortfolioText, portfolioUrl, targetTechnologies, previousQuestions);
+        } else {
+            generated = aiPort.generateQuestions(systemInstruction, positionType, safeResumeText,
+                    safePortfolioText, portfolioUrl, targetTechnologies);
+        }
+
+        List<ResumeQuestion> questions = new ArrayList<>();
+        int idx = 0;
+        for (InterviewAiPort.GeneratedQuestion q : generated) {
+            InterviewQuestion vo = new InterviewQuestion(
+                    AiTextSanitizer.sanitize(q.question()),
+                    AiTextSanitizer.sanitize(q.intention()),
+                    AiTextSanitizer.sanitize(q.keywords()),
+                    AiTextSanitizer.sanitize(q.modelAnswer()));
+            questions.add(new ResumeQuestion(idx++, q.badge(), q.likelihood(), vo));
+        }
+        return questions;
+    }
+
+    private static String trimToMaxChars(String text, int max) {
+        if (text == null) return null;
+        if (text.length() <= max) return text;
+        // 앞/뒤를 조금씩 남겨 문맥 손실을 줄인다.
+        int head = Math.max(0, (int) (max * 0.7));
+        int tail = Math.max(0, max - head);
+        String h = text.substring(0, Math.min(head, text.length()));
+        String t = text.substring(Math.max(0, text.length() - tail));
+        return h + "\n...(truncated)...\n" + t;
+    }
+}

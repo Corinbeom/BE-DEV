@@ -1,0 +1,17 @@
+package com.bluehour.domain.recruitmenttracker.entry.model;
+
+public enum PlatformType {
+    MANUAL,
+    WANTED,
+    LINKEDIN,
+    JOBKOREA,
+    SARMIN,
+    REMEMBER,
+    JUMPIT,
+    ROCKETPUNCH,
+    PROGRAMMERS,
+    GROUPBY,
+    ETC
+}
+
+

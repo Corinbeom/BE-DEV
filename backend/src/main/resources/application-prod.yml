@@ -42,7 +42,7 @@ logging:
   level:
     org.hibernate.SQL: warn
     root: warn
-    com.devweb: info
+    com.bluehour: info
 
 management:
   endpoints:
@@ -56,7 +56,7 @@ management:
     db:
       enabled: false
 
-devweb:
+bluehour:
   storage:
     s3:
       endpoint: ${SUPABASE_S3_ENDPOINT}

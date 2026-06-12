@@ -6,7 +6,7 @@
 
 -- Member
 INSERT INTO members (id, email, display_name, oauth_provider, oauth_subject)
-VALUES (1, 'seed@devweb.com', 'Seed User', 'google', 'seed-subject-123');
+VALUES (1, 'seed@bluehour.com', 'Seed User', 'google', 'seed-subject-123');
 
 -- ===================== CS Quiz Sessions (20) =====================
 INSERT INTO cs_quiz_sessions (id, member_id, title, difficulty, status, created_at, updated_at) VALUES
