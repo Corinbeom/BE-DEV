@@ -14,7 +14,10 @@ export function AppBottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
-      <div className="grid h-16 grid-cols-5">
+      <div
+        className="grid h-16"
+        style={{ gridTemplateColumns: `repeat(${primaryNav.length}, minmax(0, 1fr))` }}
+      >
         {primaryNav.map((item) => {
           const active = isActivePath(pathname, item.href);
 
