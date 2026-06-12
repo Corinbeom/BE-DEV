@@ -33,7 +33,7 @@ springdoc:
   api-docs:
     enabled: false
 
-devweb:
+bluehour:
   frontend-url: http://localhost:3000
   jwt:
     secret: test-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
