@@ -22,11 +22,12 @@ describe("AppBottomNav", () => {
 
     expect(screen.getByRole("link", { name: /대시보드/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /AI 코치/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /AI 비서/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /면접 준비/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /CS 문제풀이/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /지원 현황/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /프로필/ })).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(6);
+    expect(screen.getAllByRole("link")).toHaveLength(7);
   });
 
   it("현재 경로에 해당하는 탭을 활성화한다", () => {

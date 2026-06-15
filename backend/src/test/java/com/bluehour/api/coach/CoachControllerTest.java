@@ -50,7 +50,7 @@ class CoachControllerTest {
                 new CoachSummaryResponse.Recruitment(1, Map.of("APPLIED", 1), List.of("백엔드 개발자")),
                 new CoachSummaryResponse.Resume(0, null),
                 new CoachSummaryResponse.Interview(0, 0, 0.0),
-                new CoachSummaryResponse.Quiz(0, Map.of())
+                new CoachSummaryResponse.Quiz(0, Map.of(), Map.of())
         ));
 
         mockMvc.perform(get("/api/coach/summary"))

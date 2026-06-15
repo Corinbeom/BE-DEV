@@ -92,6 +92,7 @@ class CoachServiceTest {
         assertThat(result.interview().averageTurns()).isEqualTo(2.0);
         assertThat(result.quiz().totalAttempts()).isEqualTo(15);
         assertThat(result.quiz().topicAccuracy()).containsEntry("OS", 0.4).containsEntry("NETWORK", 0.8);
+        assertThat(result.quiz().topicAttempts()).containsEntry("OS", 10).containsEntry("NETWORK", 5);
     }
 
     @Test

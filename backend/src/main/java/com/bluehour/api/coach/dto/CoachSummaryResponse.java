@@ -33,6 +33,7 @@ public record CoachSummaryResponse(
 
     public record Quiz(
             int totalAttempts,
-            Map<String, Double> topicAccuracy
+            Map<String, Double> topicAccuracy,
+            Map<String, Integer> topicAttempts
     ) implements Serializable {}
 }

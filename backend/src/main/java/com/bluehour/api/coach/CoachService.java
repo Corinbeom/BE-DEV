@@ -135,7 +135,8 @@ public class CoachService {
                 ),
                 new CoachSummaryResponse.Quiz(
                         quizStats.totalAttempts(),
-                        quizStats.topicAccuracy()
+                        quizStats.topicAccuracy(),
+                        quizStats.topicAttempts()
                 )
         );
 
@@ -238,14 +239,16 @@ public class CoachService {
         List<Object[]> rows = csQuizSessionRepository.findStatsGroupedByTopic(memberId);
         int totalAttempts = 0;
         Map<String, Double> topicAccuracy = new LinkedHashMap<>();
+        Map<String, Integer> topicAttempts = new LinkedHashMap<>();
         for (Object[] row : rows) {
             CsQuizTopic topic = (CsQuizTopic) row[0];
             int topicTotal = ((Long) row[1]).intValue();
             int topicCorrect = ((Long) row[2]).intValue();
             totalAttempts += topicTotal;
             topicAccuracy.put(topic.name(), topicTotal > 0 ? (double) topicCorrect / topicTotal : 0.0);
+            topicAttempts.put(topic.name(), topicTotal);
         }
-        return new QuizStats(totalAttempts, topicAccuracy);
+        return new QuizStats(totalAttempts, topicAccuracy, topicAttempts);
     }
 
     private static String contextHash(CoachAiPort.CoachContext context) {
@@ -283,6 +286,7 @@ public class CoachService {
 
     private record QuizStats(
             int totalAttempts,
-            Map<String, Double> topicAccuracy
+            Map<String, Double> topicAccuracy,
+            Map<String, Integer> topicAttempts
     ) {}
 }

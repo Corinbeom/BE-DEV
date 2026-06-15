@@ -20,6 +20,7 @@ export type CoachSummary = {
   quiz: {
     totalAttempts: number;
     topicAccuracy: Record<string, number>;
+    topicAttempts: Record<string, number>;
   };
 };
 
